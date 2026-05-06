@@ -12,6 +12,7 @@ import {
   Settings,
   LogOut,
   BarChart,
+  FileText,
 } from "lucide-react";
 import { useTenant } from "@/hooks/useTenant";
 import { useEffect, useState } from "react";
@@ -21,13 +22,15 @@ export default function Sidebar({ isOpen, setIsOpen }) {
   const pathname = usePathname();
   const tenant = useTenant();
   const [role, setRole] = useState(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const storedRole = localStorage.getItem("role");
     if (storedRole) setRole(storedRole);
   }, []);
 
-  if (!role || !tenant) return null;
+  const isReady = role && tenant;
 
   const basePath =
     role === "ADMIN"
@@ -37,16 +40,17 @@ export default function Sidebar({ isOpen, setIsOpen }) {
   const payRollPath = role === "ADMIN" ? `${basePath}/payrollmanagement` : `${basePath}/payroll`;
 
   const navItems = [
-    { label: "Home", href: `${basePath}/home/overview`, icon: LayoutGrid },
-    { label: "Profile", href: `${basePath}/profile`, icon: User },
-    { label: "Leave", href: `${basePath}/leaveManagement`, icon: CalendarDays },
-    { label: "Payroll", href: `${payRollPath}`, icon: Briefcase },
-    { label: "Performance", href: `${basePath}/performance`, icon: BarChart2 },
-    { label: "Support", href: `${basePath}/support`, icon: MessageSquare },
+    { label: "Home", href: `/${tenant}/home/overview`, icon: LayoutGrid },
+    { label: "Profile", href: `/${tenant}/profile`, icon: User },
+    { label: "Leave", href: `/${tenant}/leaveManagement`, icon: CalendarDays },
+    { label: "Payroll", href: `/${tenant}/payroll`, icon: Briefcase },
+    { label: "Resignation", href: `/${tenant}/resignation`, icon: FileText },
+    { label: "Attendance", href: `/${tenant}/attendance`, icon: BarChart2 },
+    { label: "Support", href: `/${tenant}/support`, icon: MessageSquare },
   ];
 
   const bottomItems = [
-    { label: "Settings", href: `${basePath}/settings`, icon: Settings },
+    { label: "Settings", href: `/${tenant}/settings`, icon: Settings },
     { label: "Logout", href: "/logout", icon: LogOut },
   ];
 
@@ -98,7 +102,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
         </nav>
         {/* Divider */}
         {
-          role == "ADMIN" &&
+          mounted && role === "ADMIN" &&
           <Link
             href={`/${tenant}/admin/operations/employeemanagement/employee-list`}
             className="flex w-full flex-col items-center gap-1 px-2 py-3 text-[10px] transition-colors bg-white/15 text-white"

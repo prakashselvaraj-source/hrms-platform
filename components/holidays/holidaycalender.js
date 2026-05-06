@@ -15,42 +15,7 @@ const localizer = dateFnsLocalizer({
   locales,
 });
 
-const EVENTS = [
-  {
-    id: 1,
-    title: "Gandhi Jayanti",
-    start: new Date(2026, 3, 2),
-    end: new Date(2026, 3, 2),
-    type: "national",
-  },
-  {
-    id: 2,
-    title: "Columbus Day",
-    start: new Date(2026, 3, 12),
-    end: new Date(2026, 3, 12),
-    type: "national",
-  },
-  {
-    id: 3,
-    title: "Founder's Day",
-    start: new Date(2026, 3, 24),
-    end: new Date(2026, 3, 24),
-    type: "company",
-  },
-  {
-    id: 4,
-    title: "Halloween",
-    start: new Date(2026, 3, 31),
-    end: new Date(2026, 3, 31),
-    type: "religious",
-  },
-];
 
-const UPCOMING = [
-  { month: "OCT", day: 12, title: "Columbus Day", category: "National Holiday" },
-  { month: "OCT", day: 24, title: "Founder's Day", category: "Company Specific" },
-  { month: "OCT", day: 31, title: "Halloween", category: "Religious/Cultural" },
-];
 
 const eventTypeColors = {
   national: { bg: "bg-indigo-100", text: "text-indigo-700", dot: "bg-indigo-600" },
@@ -68,7 +33,7 @@ const eventStyleGetter = (event) => {
 };
 
 function CustomDateCell({ value, children }) {
-  const today = new Date(2026, 3, 16);
+  const today = new Date();
   const isToday =
     value.getDate() === today.getDate() &&
     value.getMonth() === today.getMonth() &&
@@ -91,13 +56,36 @@ function CustomDateCell({ value, children }) {
   );
 }
 
-export default function HolidayCalendarPage() {
+export default function HolidayCalendarPage({ holidays = [] }) {
   const [currentDate, setCurrentDate] = useState(new Date(2026, 3, 1));
 
   const handlePrev = () => setCurrentDate((d) => subMonths(d, 1));
   const handleNext = () => setCurrentDate((d) => addMonths(d, 1));
 
   const monthLabel = format(currentDate, "MMMM yyyy");
+  const normalizeType = (category) => {
+    if (!category) return "national";
+
+    const c = category.toLowerCase();
+
+    if (c.includes("national")) return "national";
+    if (c.includes("religious")) return "religious";
+    if (c.includes("company")) return "company";
+
+    return "national";
+  };
+
+  const events = holidays.map((h) => {
+    const dateObj = new Date(h.date);
+
+    return {
+      id: h.id,
+      title: h.holidayName,
+      start: dateObj,
+      end: dateObj,
+      type: normalizeType(h.category),
+    };
+  });
 
   const components = {
     event: ({ event }) => {
@@ -139,6 +127,24 @@ export default function HolidayCalendarPage() {
     },
   };
 
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const upcoming = holidays
+    .filter((h) => new Date(h.date) > today)
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .slice(0, 3)
+    .map((h) => {
+      const d = new Date(h.date);
+      return {
+        month: d.toLocaleString("en-US", { month: "short" }).toUpperCase(),
+        day: d.getDate(),
+        title: h.holidayName,
+        category: h.category,
+      };
+    });
+
   return (
     <div className="flex flex-col lg:flex-row gap-6 md:p-6 min-h-screen">
       {/* LEFT SIDEBAR */}
@@ -160,7 +166,7 @@ export default function HolidayCalendarPage() {
               </div>
               <div>
                 <p className="text-xs text-gray-400 leading-none mb-1">Total Holidays</p>
-                <p className="text-2xl font-bold text-gray-900 leading-none">14</p>
+                <p className="text-2xl font-bold">{holidays.length}</p>
                 <p className="text-sm font-semibold text-gray-700 leading-none mt-0.5">Days</p>
               </div>
             </div>
@@ -173,7 +179,7 @@ export default function HolidayCalendarPage() {
             <div>
               <div className="flex justify-between items-center mb-1.5">
                 <span className="text-sm text-gray-600">National Holidays</span>
-                <span className="text-sm font-semibold text-gray-800">8</span>
+                <span className="text-sm font-semibold text-gray-800"> {holidays.filter(h => h.category === "NATIONAL").length} </span>
               </div>
               <div className="h-1.5 bg-gray-100 rounded-full">
                 <div className="h-1.5 bg-indigo-600 rounded-full" style={{ width: "57%" }} />
@@ -183,7 +189,7 @@ export default function HolidayCalendarPage() {
             <div>
               <div className="flex justify-between items-center mb-1.5">
                 <span className="text-sm text-gray-600">Company Specific</span>
-                <span className="text-sm font-semibold text-gray-800">4</span>
+                <span className="text-sm font-semibold text-gray-800"> {holidays.filter(h => h.category === "COMPANY").length} </span>
               </div>
               <div className="h-1.5 bg-gray-100 rounded-full">
                 <div className="h-1.5 bg-purple-500 rounded-full" style={{ width: "29%" }} />
@@ -193,7 +199,7 @@ export default function HolidayCalendarPage() {
             <div>
               <div className="flex justify-between items-center mb-1.5">
                 <span className="text-sm text-gray-600">Religious</span>
-                <span className="text-sm font-semibold text-gray-800">2</span>
+                <span className="text-sm font-semibold text-gray-800"> {holidays.filter(h => h.category === "REGIONAL").length} </span>
               </div>
               <div className="h-1.5 bg-gray-100 rounded-full">
                 <div className="h-1.5 bg-emerald-500 rounded-full" style={{ width: "14%" }} />
@@ -212,7 +218,7 @@ export default function HolidayCalendarPage() {
           </div>
 
           <div className="space-y-4">
-            {UPCOMING.map((item, i) => (
+            {upcoming.map((item, i) => (
               <div key={i} className="flex items-start gap-3">
                 <div className="flex flex-col items-center bg-gray-50 rounded-xl px-2.5 py-1.5 min-w-[44px] text-center border border-gray-100">
                   <span className="text-[9px] font-bold tracking-widest text-gray-400 uppercase leading-none">
@@ -274,7 +280,7 @@ export default function HolidayCalendarPage() {
           <div className="min-w-[1000px] min-[1200px]:min-w-0 h-full">
             <Calendar
               localizer={localizer}
-              events={EVENTS}
+              events={events}
               startAccessor="start"
               endAccessor="end"
               date={currentDate}

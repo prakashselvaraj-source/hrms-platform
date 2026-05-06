@@ -94,14 +94,14 @@ export default function OperationNavbar() {
             items: [
                 { label: "All Employees", href: `/${tenant}/admin/operations/employeemanagement/employee-list` },
                 { label: "Add Employee", href: `/${tenant}/admin/operations/employeemanagement/add-employee` },
-                { label: "Promotion", href: "/operations/employees/add" },
-                { label: "Performance", href: "/operations/employees/add" },
-                { label: "Resignation", href: "/operations/employees/add" },
-                { label: "Termination", href: "/operations/employees/add" },
-                { label: "Advancement", href: "/operations/employees/add" },
+                { label: "Promotion", href: `/${tenant}/admin/operations/promotion` },
+                { label: "Performance", href: `/${tenant}/admin/operations/employeemanagement/performance` },
+                { label: "Resignation", href: `/${tenant}/admin/operations/resignation` },
+                { label: "Termination", href: `/${tenant}/admin/operations/employeemanagement/termination` },
+                { label: "Advancement", href: `/${tenant}/admin/operations/employeemanagement/advancement` },
 
-                { label: "Departments", href: "/operations/employees/departments" },
-                { label: "Add Department", href: "/operations/employees/departments/add" },
+                { label: "Departments", href: `/${tenant}/admin/department` },
+                { label: "Add Department", href: `/${tenant}/admin/department/add` },
             ]
         },
         {
@@ -153,6 +153,29 @@ export default function OperationNavbar() {
 
             ]
         },
+        {
+            id: "con",
+            label: "Config",
+            items: [
+                {
+                    label: "Roles",
+                    href: `/${tenant}/admin/operations/rolesmanagement`
+                },
+                {
+                    label: "Promotion",
+                    href: `/${tenant}/admin/operations/promotion`
+                },
+                {
+                    label: "Holidays",
+                    href: `/${tenant}/admin/operations/holidays`
+                },
+                {
+                    label: "Announcement",
+                    href: `/${tenant}/admin/operations/announcement`
+                }
+
+            ]
+        }
     ];
     return (
         <nav className="sticky top-0 z-40 bg-white border-b border-gray-200">

@@ -4,14 +4,32 @@ import { useState, useRef, useEffect } from 'react';
 import { Info, MapPin, ChevronDown } from 'lucide-react';
 import CustomDropdown from '../CustomDropdown';
 
+import { getAllRoles } from '@/services/roleService';
+import { useTenant } from '@/hooks/useTenant';
 
 const employmentTypes = ['Full-time', 'Part-time', 'Contract', 'Intern'];
-const roles = ['Master Admin', 'HR Admin', 'Manager', 'Staff (Employee)'];
 const departments = ['Product & Experience', 'Engineering', 'Human Resources', 'Finance'];
 const managers = ['John Smith', 'Sarah Jenkins', 'Mike Johnson'];
 const locations = ['Remote (Global)', 'On-site', 'Hybrid'];
 
 export default function JobDetails({ data, updateData }) {
+  const [roleOptions, setRoleOptions] = useState([]);
+  const tenantId = useTenant();
+
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        if (!tenantId) return;
+        const response = await getAllRoles(tenantId);
+        if (response.data && Array.isArray(response.data)) {
+          setRoleOptions(response.data.map(r => ({ label: r.name, value: r.name })));
+        }
+      } catch (error) {
+        console.error("Error fetching roles:", error);
+      }
+    };
+    fetchRoles();
+  }, [tenantId]);
   const handleChange = (e) => updateData({ [e.target.name]: e.target.value });
 
   return (
@@ -46,7 +64,7 @@ export default function JobDetails({ data, updateData }) {
           <div>
             <CustomDropdown
               label="Add Role"
-              options={roles}
+              options={roleOptions}
               value={data.role}
               onChange={(value) => updateData({ role: value })}
               placeholder="Select Role"

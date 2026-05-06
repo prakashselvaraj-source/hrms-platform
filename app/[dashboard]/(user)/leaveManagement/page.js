@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import {
   Calendar, FileText, Upload, ChevronDown, CheckCircle2,
-  Clock, BarChart2, SendHorizontal, X, CheckCircle,
+  Clock, BarChart2, SendHorizontal, X, CheckCircle, AlertCircle,
 } from "lucide-react";
 import Header from "./components/header";
 import {
@@ -11,15 +11,18 @@ import {
   getAllLeaveTypes,
   getAllLeaveTypesWithUserIdAndYear,
   submitLeaveRequest,
+  getMyLeaveRequests,
 } from "@/services/user/leaveService";
 import { useTenant } from "@/hooks/useTenant";
+import { useRouter } from "next/navigation";
 
 // ─── Static data ──────────────────────────────────────────────────────────────
 
-const recentRequests = [
-  { type: "Sick Leave", dates: "OCT 11 – OCT 14", status: "APPROVED", icon: CheckCircle2, iconColor: "text-emerald-500", badgeColor: "bg-emerald-50 text-emerald-700 ring-emerald-200" },
-  { type: "Casual Leave", dates: "SEP 05 – SEP 08", status: "PENDING", icon: Clock, iconColor: "text-amber-500", badgeColor: "bg-amber-50 text-amber-700 ring-amber-200" },
-];
+const statusStyles = {
+  APPROVED: { icon: CheckCircle2, iconColor: "text-emerald-500", badgeColor: "bg-emerald-50 text-emerald-700 ring-emerald-200" },
+  PENDING: { icon: Clock, iconColor: "text-amber-500", badgeColor: "bg-amber-50 text-amber-700 ring-amber-200" },
+  REJECTED: { icon: AlertCircle, iconColor: "text-red-500", badgeColor: "bg-red-50 text-red-700 ring-red-200" },
+};
 
 const policyNotes = [
   "Medical certificate required for sick leave exceeding 3 days.",
@@ -138,14 +141,17 @@ export default function LeaveManagement() {
   const [attachment, setAttachment]         = useState(null);
   const [dragActive, setDragActive]         = useState(false);
   const [showModal, setShowModal]           = useState(false);
+  const [submitError, setSubmitError]       = useState("");
 
-  const [leaveTypes, setLeaveTypes]   = useState([]);
-  const [leavePolicy, setLeavePolicy] = useState([]);
-  const [leaveStats, setLeaveStats]   = useState(null);
-  const [token, setToken]             = useState("");
+  const [leaveTypes, setLeaveTypes]           = useState([]);
+  const [leavePolicy, setLeavePolicy]         = useState([]);
+  const [leaveStats, setLeaveStats]           = useState(null);
+  const [recentRequests, setRecentRequests]   = useState([]);
+  const [token, setToken]                     = useState("");
   const [year]                        = useState(new Date().getFullYear());
 
   const tenantId = useTenant();
+  const router = useRouter();
 
   const selectedLeaveObj  = leaveTypes?.find((t) => t.id === leaveType);
   const selectedLeaveName = selectedLeaveObj?.name?.toLowerCase() || selectedLeaveObj?.code?.toLowerCase() || "";
@@ -174,6 +180,11 @@ export default function LeaveManagement() {
       try {
         const policy = await getAllLeavePolicy(tenantId);
         setLeavePolicy(Array.isArray(policy) ? policy : (policy?.leavePolicy || []));
+      } catch (e) { console.error(e); }
+
+      try {
+        const requests = await getMyLeaveRequests(tenantId, token, 0, 5);
+        setRecentRequests(Array.isArray(requests) ? requests : []);
       } catch (e) { console.error(e); }
     };
 
@@ -219,8 +230,14 @@ export default function LeaveManagement() {
     if (attachment) formData.append("attachment", attachment);
     try {
       await submitLeaveRequest(tenantId, token, formData);
-    } catch (e) { console.error(e); }
-    setShowModal(true);
+      setSubmitError("");
+      setShowModal(true);
+    } catch (e) {
+      console.error(e);
+      const errorMsg = e.response?.data?.error || e.response?.data?.message || e.message || "An unexpected error occurred";
+      setSubmitError(errorMsg);
+      setShowModal(true);
+    }
   };
 
   const fmtDate = (d) => d
@@ -530,25 +547,34 @@ export default function LeaveManagement() {
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-[12px] font-semibold text-gray-900">Recent Requests</span>
-                <button className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 transition-colors">View All</button>
+                <button className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 transition-colors" onClick={() => router.push(`/${tenantId}/leaveManagement/leaverequeststatus`)}>View All</button>
               </div>
               <div className="space-y-2">
-                {recentRequests.map(({ type, dates, status, icon: Icon, iconColor, badgeColor }) => (
-                  <div key={type} className="flex items-center justify-between bg-gray-50 px-3 py-2.5 rounded-xl">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-lg bg-white border border-gray-100 flex items-center justify-center">
-                        <Icon size={14} className={iconColor} />
+                {recentRequests.length === 0 ? (
+                  <p className="text-[11px] text-gray-400 text-center py-4 italic">No recent requests</p>
+                ) : (
+                  recentRequests.map((req) => {
+                    const style = statusStyles[req.status] || statusStyles.PENDING;
+                    const Icon = style.icon;
+                    const fmtRange = `${new Date(req.startDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }).toUpperCase()} – ${new Date(req.endDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }).toUpperCase()}`;
+                    return (
+                      <div key={req.id} className="flex items-center justify-between bg-gray-50 px-3 py-2.5 rounded-xl">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-lg bg-white border border-gray-100 flex items-center justify-center">
+                            <Icon size={14} className={style.iconColor} />
+                          </div>
+                          <div>
+                            <p className="text-[12px] font-medium text-gray-800">{req.leaveType}</p>
+                            <p className="text-[10px] text-gray-400">{fmtRange}</p>
+                          </div>
+                        </div>
+                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ring-1 uppercase tracking-wider ${style.badgeColor}`}>
+                          {req.status}
+                        </span>
                       </div>
-                      <div>
-                        <p className="text-[12px] font-medium text-gray-800">{type}</p>
-                        <p className="text-[10px] text-gray-400">{dates}</p>
-                      </div>
-                    </div>
-                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ring-1 uppercase tracking-wider ${badgeColor}`}>
-                      {status}
-                    </span>
-                  </div>
-                ))}
+                    );
+                  })
+                )}
               </div>
             </div>
 
@@ -588,55 +614,69 @@ export default function LeaveManagement() {
             </button>
 
             {/* Icon */}
-            <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center mb-5">
-              <CheckCircle size={22} className="text-indigo-600" />
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-5 ${submitError ? "bg-red-50" : "bg-indigo-50"}`}>
+              {submitError ? <AlertCircle size={22} className="text-red-600" /> : <CheckCircle size={22} className="text-indigo-600" />}
             </div>
 
-            <h2 className="text-[16px] font-semibold text-gray-900 mb-1">Leave Submitted Successfully</h2>
-            <p className="text-[12px] text-gray-400 mb-6">Your request has been sent for approval.</p>
+            <h2 className="text-[16px] font-semibold text-gray-900 mb-1">
+              {submitError ? "Submission Failed" : "Leave Submitted Successfully"}
+            </h2>
+            <p className="text-[12px] text-gray-400 mb-6">
+              {submitError ? submitError : "Your request has been sent for approval."}
+            </p>
 
-            {/* Requester */}
-            <div className="flex items-center gap-3 mb-5">
-              <img src="https://i.pravatar.cc/40" className="w-9 h-9 rounded-full ring-2 ring-white shadow" alt="avatar" />
-              <div>
-                <p className="text-[13px] font-semibold text-gray-900">Shivani Singh</p>
-                <p className="text-[11px] text-indigo-600 font-medium">EMP-1024</p>
-              </div>
-            </div>
-
-            {/* Timeline */}
-            <div className="flex gap-4 items-start mb-6 pl-1">
-              <div className="flex flex-col items-center gap-1">
-                <div className="w-2.5 h-2.5 rounded-full bg-indigo-400" />
-                <div className="w-px h-8 bg-gray-200" />
-                <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-              </div>
-              <div className="flex flex-col gap-5">
-                <div>
-                  <p className="text-[11px] font-semibold text-gray-700">Submitted</p>
-                  <p className="text-[10px] text-gray-400">Request created</p>
+            {!submitError && (
+              <>
+                {/* Requester */}
+                <div className="flex items-center gap-3 mb-5">
+                  <img src="https://i.pravatar.cc/40" className="w-9 h-9 rounded-full ring-2 ring-white shadow" alt="avatar" />
+                  <div>
+                    <p className="text-[13px] font-semibold text-gray-900">Shivani Singh</p>
+                    <p className="text-[11px] text-indigo-600 font-medium">EMP-1024</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[11px] font-semibold text-amber-600">Pending Approval</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <img src="https://i.pravatar.cc/41" className="w-6 h-6 rounded-full" alt="approver" />
+
+                {/* Timeline */}
+                <div className="flex gap-4 items-start mb-6 pl-1">
+                  <div className="flex flex-col items-center gap-1">
+                    <div className="w-2.5 h-2.5 rounded-full bg-indigo-400" />
+                    <div className="w-px h-8 bg-gray-200" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                  </div>
+                  <div className="flex flex-col gap-5">
                     <div>
-                      <p className="text-[11px] font-medium text-gray-700">Marcus Thorne</p>
-                      <p className="text-[10px] text-indigo-500">CC-EMP-001</p>
+                      <p className="text-[11px] font-semibold text-gray-700">Submitted</p>
+                      <p className="text-[10px] text-gray-400">Request created</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-semibold text-amber-600">Pending Approval</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <img src="https://i.pravatar.cc/41" className="w-6 h-6 rounded-full" alt="approver" />
+                        <div>
+                          <p className="text-[11px] font-medium text-gray-700">Marcus Thorne</p>
+                          <p className="text-[10px] text-indigo-500">CC-EMP-001</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              </>
+            )}
 
             {/* Actions */}
             <div className="flex gap-2.5">
-              <button className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-[12px] font-semibold transition-colors">
-                Send Follow-up Email
-              </button>
+              {!submitError && (
+                <button className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-[12px] font-semibold transition-colors">
+                  Send Follow-up Email
+                </button>
+              )}
               <button
                 onClick={() => setShowModal(false)}
-                className="px-4 py-2.5 rounded-xl border border-red-200 text-red-400 text-[12px] font-semibold hover:bg-red-50 transition-colors"
+                className={`py-2.5 rounded-xl text-[12px] font-semibold transition-colors ${
+                  submitError 
+                    ? "w-full bg-red-600 hover:bg-red-700 text-white" 
+                    : "px-4 border border-red-200 text-red-400 hover:bg-red-50"
+                }`}
               >
                 Close
               </button>

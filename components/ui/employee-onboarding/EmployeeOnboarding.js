@@ -156,7 +156,7 @@ export default function EmployeeOnboarding() {
   employmentProofUrl: data.documents.employment?.url,
 otherDocUrls: data.documents.other?.map(f => f.url) || [],
   // ================= STATUS =================
-  status:"DRAFT"
+  status:"PENDING"
 });
 
 

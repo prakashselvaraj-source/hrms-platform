@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { checkCompanyExists, checkEmailExists, registerCompany } from "@/services/authService";
+import { checkCompanyExists, checkEmailExists, registerCompany, sendOtp, verifyOtp } from "@/services/authService";
 import { useRouter } from "next/navigation";
 
 function Input({ name, label, type = "text", value, onChange, icon }) {
@@ -318,7 +318,7 @@ function SuccessModal({ code, onClose }) {
 
 // ── Step indicator ────────────────────────────────────────────
 function Steps({ current }) {
-  const steps = ["Company", "Admin", "Security"];
+  const steps = ["Company", "Admin", "Security", "Verify"];
   return (
     <div
       style={{
@@ -436,6 +436,7 @@ export default function RegisterForm() {
     adminName: "",
     email: "",
     password: "",
+    otp: "",
   });
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -480,30 +481,50 @@ export default function RegisterForm() {
     }
     if (step === 1){
       if (!form.adminName.trim() || !form.email.trim()) {
-      setError("Please fill in all fields.");
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      console.log("checkEmailExists",form.email);
-      const res = await checkEmailExists(form.email);
-
-      if(res.data === true){
-        setError("Email already registered. Try another");
+        setError("Please fill in all fields.");
         return;
       }
 
-      setError("");
-      setStep(2);
-    } catch {
-      setError("Error checking email.");
-    } finally{
-      setLoading(false);
+      try {
+        setLoading(true);
+
+        console.log("checkEmailExists",form.email);
+        const res = await checkEmailExists(form.email);
+
+        if(res.data === true){
+          setError("Email already registered. Try another");
+          return;
+        }
+
+        setError("");
+        setStep(2);
+      } catch {
+        setError("Error checking email.");
+      } finally{
+        setLoading(false);
+      }
+      return;
     }
-    return;
-  }
+
+    if (step === 2) {
+      if (!form.password || form.password.length < 6) {
+        setError("Password must be at least 6 characters.");
+        return;
+      }
+
+      try {
+        setLoading(true);
+        // Send OTP
+        await sendOtp(form.email);
+        setError("");
+        setStep(3);
+      } catch {
+        setError("Error sending OTP. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
   };
 
   const prevStep = () => {
@@ -513,19 +534,22 @@ export default function RegisterForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.password || form.password.length < 6) {
-      setError("Password must be at least 6 characters.");
+    if (!form.otp || form.otp.length < 4) {
+      setError("Please enter a valid OTP.");
       return;
     }
     setLoading(true);
     setError("");
     try {
+      // Verify OTP first
+      await verifyOtp(form.email, form.otp);
+
       console.log("form data being submitted:", form);
       const res = await registerCompany(form);
       console.log("handleSubmit response:", res);
       setCompanyCode(res.data.companyCode);
-    } catch {
-      setError("Registration failed. Please try again.");
+    } catch (error) {
+      setError(error.response?.data?.message || "OTP Verification or Registration failed.");
     } finally {
       setLoading(false);
     }
@@ -577,6 +601,20 @@ export default function RegisterForm() {
           label="Password"
           type="password"
           value={form.password}
+          onChange={handleChange}
+          icon={LockIcon}
+        />
+      ),
+    },
+    {
+      heading: "Verify Email",
+      sub: `Enter the code sent to ${form.email}`,
+      fields: (
+        <Input
+          name="otp"
+          label="One Time Password"
+          type="text"
+          value={form.otp}
           onChange={handleChange}
           icon={LockIcon}
         />
@@ -863,28 +901,37 @@ export default function RegisterForm() {
                 </button>
               )}
 
-              {step < 2 ? (
+              {step < 3 ? (
                 <button
                   type="button"
                   onClick={nextStep}
+                  disabled={loading}
                   className="rf-btn"
                   style={{ flex: 1 }}
                 >
-                  Continue
-                  <svg
-                    width="15"
-                    height="15"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
-                    />
-                  </svg>
+                  {loading && step === 2 ? (
+                    <>
+                      <span className="rf-spinner" /> Sending OTP...
+                    </>
+                  ) : (
+                    <>
+                      {step === 2 ? "Send OTP" : "Continue"}
+                      <svg
+                        width="15"
+                        height="15"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+                        />
+                      </svg>
+                    </>
+                  )}
                 </button>
               ) : (
                 <button

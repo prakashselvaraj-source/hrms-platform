@@ -301,9 +301,10 @@ export default function EmployeesPage() {
                 </tr>
               </thead>
               <tbody>
-                {employees.map((emp, idx) => (
-                  <TableRow key={emp.id} employee={emp} index={idx} onView={(id) => route.push(`${current_path}/${id}`)} />
-                ))}
+                {employees?.employees?.map((emp, idx) => {
+                  console.log("emp", emp);
+                  return < TableRow key={emp.id} employee={emp} index={idx} onView={(id) => route.push(`${current_path}/${id}`)} />
+                })}
               </tbody>
             </table>
           </div>

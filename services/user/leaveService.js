@@ -65,6 +65,23 @@ export const getAllLeaveRequests = async (tenantId, token, page = 0, size = 10) 
     return res.data;
 };  
 
+
+export const getMyLeaveRequests = async (tenantId, token, page = 0, size = 10) => {
+    const res = await API.get(`/leave-management/employee-leave-requests`,{
+        params:{
+            page,
+            size
+        },
+        headers:{
+            "Content-Type":"application/json",
+            "Authorization":`Bearer ${token}`,
+            "X-Tenant-Id":tenantId
+        }
+    });
+    return res.data;
+};  
+
+
 export const getLeaveRequestById = async (tenantId, token, id) => {
     const res = await API.get(`/leave-management/get-leave-request/${id}`,{
         headers:{

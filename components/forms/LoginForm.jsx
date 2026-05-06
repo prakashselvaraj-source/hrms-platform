@@ -99,10 +99,8 @@ export default function LoginForm() {
       console.log("Tenants response:", tenantsRes);
 
       // Example logic
-      if (tenantsRes.data && res.data.role === "ADMIN") {
-        router.push(`/${tenantsRes.data.companyName}/admin/home/dashboard`);
-      } else {
-        router.push(`/${tenantsRes.data.companyName}/home/overview`);
+      if (tenantsRes.data) {
+        router.push(`/${tenantsRes.data.companyName}/home/dashboard`);
       }
 
     } catch (err) {

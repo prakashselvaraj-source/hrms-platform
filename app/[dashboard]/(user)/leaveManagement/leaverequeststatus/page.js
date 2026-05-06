@@ -10,7 +10,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Header from "../components/header";
 import { useTenant } from "@/hooks/useTenant";
-import { getAllLeaveRequests } from "@/services/user/leaveService";
+import { getAllLeaveRequests, getMyLeaveRequests } from "@/services/user/leaveService";
 
 // ─── Status config ────────────────────────────────────────────────────────────
 
@@ -85,7 +85,7 @@ useEffect(() => {
 
   const fetchRequests = async () => {
     try {
-      const response = await getAllLeaveRequests(
+      const response = await getMyLeaveRequests(
         tenantId,
         token,
         pagination.page,
@@ -101,7 +101,8 @@ useEffect(() => {
             })
           : "—";
 
-      const list = (response?.data || []).map((item) => ({
+          console.log("response.data",response)
+      const list = (response || []).map((item) => ({
         id: item.id,
         status: item.status?.toLowerCase() || "pending",
         employee: item.employeeName,

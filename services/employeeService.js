@@ -1,7 +1,7 @@
 import API from "@/utils/api";
 
-export const getEmployees = (tenantId) => {
-  return API.get('/employees', {
+export const getEmployees = (tenantId, page = 0, size = 10) => {
+  return API.get(`/employees?page=${page}&size=${size}&sort=firstName,asc`, {
     headers: {
       "X-Tenant-Id": tenantId
     }
@@ -35,6 +35,15 @@ export const updateEmployee = (id, data, tenantId) => {
 
 export const deleteEmployee = (id, tenantId) => {
   return API.delete(`/employees/${id}`, {
+    headers: {
+      "X-Tenant-Id": tenantId
+    }
+  });
+};
+
+
+export const getEmployeeProfile = (tenantId) => {
+  return API.get("/employees/profile", {
     headers: {
       "X-Tenant-Id": tenantId
     }

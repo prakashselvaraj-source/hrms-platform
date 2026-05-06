@@ -434,24 +434,44 @@ function DeleteHolidayModal({ open, onClose, holiday, onSuccess }) {
 export default function HolidaysPage() {
     const [modalOpen, setModalOpen] = useState(false);
     const [activeTab, setActiveTab] = useState("List View");
-    const [activePage, setActivePage] = useState(1);
+    const [currentPage, setCurrentPage] = useState(0);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
     const [holidays, setHolidays] = useState([]);
+    const [totalEntries, setTotalEntries] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
     const [selectedHoliday, setSelectedHoliday] = useState(null);
     const [viewOpen, setViewOpen] = useState(false);
     const [deleteOpen, setDeleteOpen] = useState(false);
     const tenantId = useTenant();
     const fetchHolidays = async () => {
         try {
-            const res = await getAllHolidays(tenantId);
-            setHolidays(res.data || []);
+            const res = await getAllHolidays(tenantId, currentPage, rowsPerPage);
+            if (res.data?.holidays) {
+                setHolidays(res.data.holidays);
+                setTotalEntries(res.data.totalElements ?? 0);
+                setTotalPages(res.data.totalPages ?? 0);
+            } else {
+                setHolidays(res.data || []);
+                setTotalEntries((res.data || []).length);
+                setTotalPages(Math.ceil((res.data || []).length / rowsPerPage));
+            }
         } catch (err) {
             console.error(err);
         }
     };
 
     useEffect(() => {
-        fetchHolidays();
-    }, []);
+        if (tenantId) fetchHolidays();
+    }, [tenantId, currentPage, rowsPerPage]);
+
+    const from = totalEntries === 0 ? 0 : currentPage * rowsPerPage + 1;
+    const to = Math.min((currentPage + 1) * rowsPerPage, totalEntries);
+    const pages = Array.from({ length: totalPages }, (_, i) => i).filter(
+        (p) => p >= Math.max(0, currentPage - 1) && p <= Math.min(totalPages - 1, currentPage + 1)
+    );
+    const PER_PAGE_OPTIONS = [10, 20, 50];
+
+    const displayHolidays = holidays;
 
 
     const today = new Date();
@@ -529,53 +549,76 @@ export default function HolidaysPage() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-50">
-                                        {holidays.map((h, index) => (
-                                            <tr key={h.id} className="hover:bg-gray-50/60 transition group">
-                                                <td className="px-5 py-4 text-sm text-[#434655] font-medium">{index + 1}</td>
-                                                <td className="px-5 py-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className={`w-1 h-8 rounded-full flex-shrink-0 ${barColors[h.id]}`} />
-                                                        <span className="text-sm font-bold text-gray-800">{h.holidayName}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-5 py-4 text-sm text-[#191C1E] whitespace-nowrap">{h.date}</td>
-                                                <td className="px-5 py-4"><CategoryBadge category={h.category} /></td>
-                                                <td className="px-5 py-4"><TypeBadge type={h.type} /></td>
-                                                <td className="px-5 py-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <button onClick={() => { setSelectedHoliday(h); setViewOpen(true); }} className="text-[#4A45B6] hover:bg-purple-50 p-1.5 rounded-lg transition"><Eye size={17} /></button>
-                                                        <button onClick={() => { setSelectedHoliday(h); setModalOpen(true); }} className="text-[#4A45B6] hover:bg-purple-50 p-1.5 rounded-lg transition"><Pencil size={17} /></button>
-                                                        <button onClick={() => { setSelectedHoliday(h); setDeleteOpen(true); }} className="text-red-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition"><Trash2 size={17} /></button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
+                                        {displayHolidays.map((h, index) => {
+                                            const globalIndex = currentPage * rowsPerPage + index;
+                                            return (
+                                                <tr key={h.id} className="hover:bg-gray-50/60 transition group">
+                                                    <td className="px-5 py-4 text-sm text-[#434655] font-medium">{globalIndex + 1}</td>
+                                                    <td className="px-5 py-4">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`w-1 h-8 rounded-full flex-shrink-0 ${barColors[h.id]}`} />
+                                                            <span className="text-sm font-bold text-gray-800">{h.holidayName}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-5 py-4 text-sm text-[#191C1E] whitespace-nowrap">{h.date}</td>
+                                                    <td className="px-5 py-4"><CategoryBadge category={h.category} /></td>
+                                                    <td className="px-5 py-4"><TypeBadge type={h.type} /></td>
+                                                    <td className="px-5 py-4">
+                                                        <div className="flex items-center gap-3">
+                                                            <button onClick={() => { setSelectedHoliday(h); setViewOpen(true); }} className="text-[#4A45B6] hover:bg-purple-50 p-1.5 rounded-lg transition"><Eye size={17} /></button>
+                                                            <button onClick={() => { setSelectedHoliday(h); setModalOpen(true); }} className="text-[#4A45B6] hover:bg-purple-50 p-1.5 rounded-lg transition"><Pencil size={17} /></button>
+                                                            <button onClick={() => { setSelectedHoliday(h); setDeleteOpen(true); }} className="text-red-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition"><Trash2 size={17} /></button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>
 
                             {/* Pagination */}
-                            <div className="flex items-center justify-between px-5 py-4 ">
-                                <span className="text-sm text-[#191C1E]">Showing 1 to 5 of 24 results</span>
-                                <div className="flex items-center gap-1">
-                                    <button className="w-8 h-8 rounded-md flex items-center justify-center text-gray-400 bg-[#E0E3E5] transition">
-                                        <ChevronLeft size={15} />
-                                    </button>
-                                    {[1, 2, 3].map((p) => (
-                                        <button
-                                            key={p}
-                                            onClick={() => setActivePage(p)}
-                                            className={`w-8 h-8 rounded-md text-sm font-semibold transition ${activePage === p
-                                                ? "text-white bg-[#4A45B6] shadow"
-                                                : "text-gray-600 bg-[#E0E3E5] hover:bg-gray-200"
-                                                }`}
-
+                            <div className="flex flex-col sm:flex-row items-center justify-between px-5 py-4 border-t border-[#F1F5F9] gap-3">
+                                <div className="flex items-center gap-3 text-sm text-[#6B7280]">
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-[#434655]">Per Page:</span>
+                                        <select
+                                            value={rowsPerPage}
+                                            onChange={(e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(0); }}
+                                            className="rounded-md px-2 py-0.5 text-[12px] text-[#4A45B6] bg-white border border-gray-200 focus:outline-none focus:border-[#4A45B6]"
                                         >
-                                            {p}
+                                            {PER_PAGE_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
+                                        </select>
+                                    </div>
+                                    <span className="text-[#434655]">Showing {from} to {to} of {totalEntries} entries</span>
+                                </div>
+
+                                <div className="flex items-center gap-1">
+                                    <button
+                                        onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+                                        disabled={currentPage === 0}
+                                        className="w-7 h-7 flex items-center justify-center rounded-md border border-[#E2E8F0] text-[#434655] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        <ChevronLeft size={14} />
+                                    </button>
+                                    {pages.map((page) => (
+                                        <button
+                                            key={page}
+                                            onClick={() => setCurrentPage(page)}
+                                            className={`w-7 h-7 flex items-center justify-center rounded-md text-[12px] font-medium transition-colors ${currentPage === page
+                                                ? 'bg-[#4A45B6] text-white'
+                                                : 'border border-[#E2E8F0] text-[#6B7280]'
+                                                }`}
+                                        >
+                                            {page + 1}
                                         </button>
                                     ))}
-                                    <button className="w-8 h-8 rounded-md flex items-center justify-center text-gray-400 bg-[#E0E3E5] transition">
-                                        <ChevronRight size={15} />
+                                    <button
+                                        onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
+                                        disabled={currentPage === totalPages - 1}
+                                        className="w-7 h-7 flex items-center justify-center rounded-md border border-[#E2E8F0] text-[#434655] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        <ChevronRight size={14} />
                                     </button>
                                 </div>
                             </div>

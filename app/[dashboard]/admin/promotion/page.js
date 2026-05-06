@@ -1,82 +1,20 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, SlidersHorizontal, RotateCcw, Plus, FileText,
   Eye, Pencil, RefreshCw, Trash2, X, ChevronLeft,
   ChevronRight, ArrowRight, Calendar, DollarSign, FileCheck,
   ChevronDown, Save, Upload, AlertCircle
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { getAllPromotions, updatePromotion, deletePromotion } from "@/services/promotion";
+import { getEmployees } from "@/services/employeeService";
+import { useTenant } from "@/hooks/useTenant";
+import { uploadImage } from "@/services/uploadService";
 
-
-// ─── Sample Data ─────────────────────────────────────────────────────────────
-const initialPromotions = [
-  {
-    id: 1,
-    employee: { name: "Jane Cooper", email: "jane.c@indigo.com", avatar: "JC" },
-    prevDesignation: "Senior Developer",
-    newDesignation: "Technical Lead",
-    promotionDate: "2023-10-12",
-    effectiveDate: "2023-11-01",
-    salaryAdj: "+15%",
-    salaryRaw: "Rs.72,000.00",
-    status: "APPROVED",
-    reason: "Exceptional performance in Q3 delivery milestones and mentoring junior developers.",
-    document: null,
-  },
-  {
-    id: 2,
-    employee: { name: "Robert Fox", email: "robert.fox@indigo.com", avatar: "RF" },
-    prevDesignation: "Marketing Executive",
-    newDesignation: "Regional Manager",
-    promotionDate: "2023-10-14",
-    effectiveDate: "2023-11-15",
-    salaryAdj: "+22%",
-    salaryRaw: "Rs.95,000.00",
-    status: "PENDING",
-    reason: "Led the west-coast campaign resulting in 38% new client acquisition.",
-    document: null,
-  },
-  {
-    id: 3,
-    employee: { name: "Cody Fisher", email: "cody.f@indigo.com", avatar: "CF" },
-    prevDesignation: "Accountant",
-    newDesignation: "Senior Auditor",
-    promotionDate: "2023-10-18",
-    effectiveDate: "2023-11-01",
-    salaryAdj: "+12%",
-    salaryRaw: "Rs.58,000.00",
-    status: "REJECTED",
-    reason: "Completed advanced training in Corporate Finance and Advanced Auditing.",
-    document: null,
-  },
-  {
-    id: 4,
-    employee: { name: "Warren Jones", email: "warren.j@indigo.com", avatar: "WJ" },
-    prevDesignation: "HR Manager",
-    newDesignation: "HR Director",
-    promotionDate: "2023-09-12",
-    effectiveDate: "2023-10-09",
-    salaryAdj: "+18%",
-    salaryRaw: "Rs.88,500.00",
-    status: "APPROVED",
-    reason: "Spearheaded digital HR transformation reducing onboarding time by 45%.",
-    document: null,
-  },
-  {
-    id: 5,
-    employee: { name: "Leslie Alexander", email: "leslie.a@indigo.com", avatar: "LA" },
-    prevDesignation: "QA Engineer",
-    newDesignation: "QA Lead",
-    promotionDate: "2023-11-02",
-    effectiveDate: "2023-12-01",
-    salaryAdj: "+10%",
-    salaryRaw: "Rs.52,000.00",
-    status: "PENDING",
-    reason: "Introduced automated testing framework reducing regression bugs by 60%.",
-    document: null,
-  },
-];
+// ─── Data ─────────────────────────────────────────────────────────────
+// Initial static data replaced by backend fetch
 
 const DESIGNATIONS = [
   "All Designations",
@@ -157,139 +95,6 @@ function Dropdown({ label, options, value, onChange, className = "", align = "le
   );
 }
 
-// ─── View Modal ───────────────────────────────────────────────────────────────
-function ViewModal({ promo, onClose }) {
-  return (
-    <div
-      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-3 sm:p-4"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div className="bg-white rounded-sm w-full max-w-[90vw] sm:max-w-lg md:max-w-2xl lg:max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl">
-        {/* Sticky Header */}
-        <div className="flex items-center justify-between p-5 border-b border-[#DADADA] bg-white sticky top-0 z-10">
-          <h2 className="text-base sm:text-lg font-semibold text-[#191C1E]">Promotion Details</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-800 transition-colors cursor-pointer p-1 rounded-md hover:bg-gray-100">
-            <X size={20} />
-          </button>
-        </div>
-
-        <div className="p-5 space-y-5">
-          {/* Employee Info */}
-          <div className="flex items-center gap-4">
-            <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-semibold ${avatarColors[promo.employee.avatar] || defaultAvatarColor}`}>
-              {promo.employee.avatar}
-            </div>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2 mb-1">
-                <span className="text-base sm:text-lg font-semibold text-[#191C1E]">{promo.employee.name}</span>
-                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusStyles[promo.status]}`}>{promo.status}</span>
-              </div>
-              <p className="text-sm text-[#434655] truncate">{promo.employee.email}</p>
-            </div>
-          </div>
-
-          {/* Designation Change */}
-          <div>
-            <h3 className="text-sm font-semibold text-[#191C1E] mb-3">Designation Change</h3>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              <div className="flex-1 rounded-xl p-4 bg-red-50">
-                <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-1">Previous Role</p>
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-md bg-red-100 flex items-center justify-center flex-shrink-0">
-                    <FileCheck size={14} className="text-red-400" />
-                  </div>
-                  <span className="font-medium text-gray-700 text-sm">{promo.prevDesignation}</span>
-                </div>
-              </div>
-              <div className="text-[#4648D4] bg-[#4648D4]/5 p-2 rounded-md self-center flex-shrink-0">
-                <ArrowRight size={18} className="sm:block hidden" />
-                <ChevronDown size={18} className="sm:hidden" />
-              </div>
-              <div className="flex-1 rounded-xl p-4 bg-blue-50">
-                <p className="text-xs text-blue-400 font-medium uppercase tracking-wide mb-1">New Role</p>
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-md bg-blue-100 flex items-center justify-center flex-shrink-0">
-                    <FileCheck size={14} className="text-blue-500" />
-                  </div>
-                  <span className="font-medium text-blue-700 text-sm">{promo.newDesignation}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Timeline */}
-          <div>
-            <h3 className="text-sm font-semibold text-[#191C1E] mb-3">Timeline</h3>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1 flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
-                  <Calendar size={14} className="text-white" />
-                </div>
-                <div>
-                  <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Promotion Date</p>
-                  <p className="font-semibold text-[#191C1E] mt-0.5">{fmt(promo.promotionDate)}</p>
-                  <p className="text-xs text-gray-400 mt-1">Official internal notification issued.</p>
-                </div>
-              </div>
-              <div className="flex-1 flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0">
-                  <Calendar size={14} className="text-white" />
-                </div>
-                <div>
-                  <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Effective Date</p>
-                  <p className="font-semibold text-[#191C1E] mt-0.5">{fmt(promo.effectiveDate)}</p>
-                  <p className="text-xs text-gray-400 mt-1">Full transition to new department.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Salary + Document */}
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1 rounded-xl py-4">
-              <p className="text-sm font-semibold text-[#191C1E] mb-3">Salary Adjustment</p>
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-sm bg-blue-100 flex items-center justify-center flex-shrink-0">
-                  <DollarSign size={16} className="text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-lg sm:text-xl font-bold text-blue-600">{promo.salaryRaw}</p>
-                  <p className="text-xs text-gray-400">Annual Gross Adjustment ({promo.salaryAdj})</p>
-                </div>
-              </div>
-            </div>
-            <div className="flex-1 rounded-xl py-4">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-semibold text-[#191C1E]">Document Preview</p>
-              </div>
-              {promo.document ? (
-                <FilePreview file={promo.document} />
-              ) : (
-                <div className="bg-gray-100 rounded-md h-20 flex flex-col items-center justify-center gap-1">
-                  <AlertCircle size={16} className="text-gray-400" />
-                  <p className="text-xs text-gray-400">No document attached</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Reason */}
-          <div className="rounded-xl bg-gray-50 p-4">
-            <div className="flex items-start gap-3">
-              <div className="w-7 h-7 rounded-sm bg-[#13144A] flex items-center justify-center flex-shrink-0 mt-0.5">
-                <FileText size={14} className="text-white" />
-              </div>
-              <div>
-                <p className="text-xs text-[#464554] font-semibold uppercase tracking-wide mb-1">Reason for Promotion</p>
-                <p className="text-sm text-gray-700 leading-relaxed">{promo.reason}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ─── File Preview ─────────────────────────────────────────────────────────────
 function FilePreview({ file }) {
@@ -547,10 +352,81 @@ function AddModal({ onClose, onAdd }) {
 
 }
 
+// ─── Delete Modal ─────────────────────────────────────────────────────────────
+function DeletePromotionModal({ open, onClose, promo, onSuccess, tenantId }) {
+  if (!promo) return null;
+
+  const handleDelete = async () => {
+    try {
+      await deletePromotion(promo.id, tenantId);
+      if (onSuccess) onSuccess();
+      onClose();
+    } catch (error) {
+      console.error("Error deleting promotion:", error);
+      alert("Failed to delete promotion record");
+    }
+  };
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          <motion.div
+            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+          />
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center relative"
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 28 }}
+            >
+              <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 size={32} />
+              </div>
+              <h2 className="text-xl font-bold text-gray-800">Delete Promotion?</h2>
+              <p className="text-gray-500 mt-2 text-sm">
+                Are you sure you want to delete the promotion record for <span className="font-bold text-gray-800">"{promo.employee.name}"</span>?
+              </p>
+
+              <div className="flex flex-col gap-3 mt-8">
+                <button
+                  onClick={handleDelete}
+                  className="w-full py-3 rounded-xl bg-red-500 text-white font-bold shadow-lg shadow-red-200 hover:bg-red-600 transition"
+                >
+                  Delete Permanently
+                </button>
+                <button
+                  onClick={onClose}
+                  className="w-full py-3 rounded-xl bg-gray-100 text-gray-700 font-bold hover:bg-gray-200 transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function PromotionsPage() {
   const route = useRouter();
-  const [promotions, setPromotions] = useState(initialPromotions);
+  const param = useParams();
+  const tenantId = useTenant();
+  const [promotions, setPromotions] = useState([]);
   const [showFilters, setShowFilters] = useState(true);
   const [searchVal, setSearchVal] = useState("");
   const [filterEmployee, setFilterEmployee] = useState("All Employees");
@@ -561,8 +437,9 @@ export default function PromotionsPage() {
   const [perPage, setPerPage] = useState("10");
   const [currentPage, setCurrentPage] = useState(1);
 
-  const [viewPromo, setViewPromo] = useState(null);
   const [editPromo, setEditPromo] = useState(null);
+  const [selectedPromo, setSelectedPromo] = useState(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const [appliedFilters, setAppliedFilters] = useState({
     employee: "All Employees",
@@ -571,6 +448,51 @@ export default function PromotionsPage() {
     dateFrom: "",
     dateTo: "",
   });
+
+  const fetchPromotions = useCallback(async () => {
+    if (!tenantId) return;
+    try {
+      const [promoRes, empRes] = await Promise.all([
+        getAllPromotions(tenantId),
+        getEmployees(tenantId)
+      ]);
+      const employees = empRes.data || [];
+      const mapped = (promoRes.data || []).map(p => {
+        const emp = employees.find(e => e.id === p.employeeId) || p.employee || {};
+        return {
+          id: p.id,
+          employee: {
+            name: emp.firstName ? `${emp.firstName} ${emp.lastName}` : `Employee ${p.employeeId || "Unknown"}`,
+            email: emp.email || "N/A",
+            avatar: emp.firstName ? `${emp.firstName[0]}${emp.lastName?.[0] || ""}`.toUpperCase() : "U",
+          },
+          prevDesignation: p.previousDesignation || "-",
+          newDesignation: p.newDesignation || "-",
+          promotionDate: p.promotionDate || null,
+          effectiveDate: p.promotionDate || null, // Backend doesn't explicitly store effectiveDate
+          salaryAdj: p.salaryAdjustment ? `Rs.${p.salaryAdjustment}` : "-",
+          prevCTC: p.prevAnnualCTC ? `Rs.${p.prevAnnualCTC}` : "-",
+          currentCTC: p.currentAnnualCTC ? `Rs.${p.currentAnnualCTC}` : "-",
+          salaryRaw: p.basicSalary ? `Rs.${p.basicSalary}` : "-",
+          status: p.status || "APPROVED", // Fallback to APPROVED
+          reason: p.reason || "",
+          document: p.promotionLetterUrl || p.promotionLetter ? { name: (p.promotionLetterUrl || p.promotionLetter).split('/').pop(), url: p.promotionLetterUrl || p.promotionLetter } : null,
+        };
+      });
+      setPromotions(mapped);
+    } catch (error) {
+      console.error("Error fetching promotions:", error);
+    }
+  }, [tenantId]);
+
+  useEffect(() => {
+    fetchPromotions();
+  }, [fetchPromotions]);
+
+  const handleDelete = (promo) => {
+    setSelectedPromo(promo);
+    setDeleteOpen(true);
+  };
 
   // Employee dropdown options
   const employeeOptions = ["All Employees", ...Array.from(new Set(promotions.map((p) => p.employee.name)))];
@@ -619,13 +541,42 @@ export default function PromotionsPage() {
     setAppliedFilters({ employee: "All Employees", designation: "All Designations", status: "All Statuses", dateFrom: "", dateTo: "" });
   };
 
-  const handleSaveEdit = useCallback((id, updated) => {
-    setPromotions((prev) => prev.map((p) => p.id === id ? { ...p, ...updated } : p));
-  }, []);
+  const handleSaveEdit = useCallback(async (id, updated) => {
+    if (!tenantId) return;
+    try {
+      let finalDocUrl = null;
+      if (updated.document && updated.document instanceof File) {
+        finalDocUrl = await uploadImage(updated.document);
+        updated.document = { name: updated.document.name, url: finalDocUrl };
+      } else if (updated.document && updated.document.url) {
+        finalDocUrl = updated.document.url;
+      } else if (typeof updated.document === 'string') {
+        finalDocUrl = updated.document;
+      }
 
-  const handleDelete = (id) => {
-    setPromotions((prev) => prev.filter((p) => p.id !== id));
-  };
+      const original = promotions.find(p => p.id === id);
+
+      const payload = {
+        employeeId: original ? original.employeeId : null,
+        previousDesignation: updated.prevDesignation,
+        newDesignation: updated.newDesignation,
+        promotionDate: updated.promotionDate,
+        basicSalary: updated.salaryRaw ? parseFloat(updated.salaryRaw.toString().replace(/[^0-9.-]+/g, "")) : null,
+        salaryAdjustment: updated.salaryAdj ? parseFloat(updated.salaryAdj.toString().replace(/[^0-9.-]+/g, "")) : null,
+        reason: updated.reason,
+        status: updated.status,
+        promotionLetterUrl: finalDocUrl
+      };
+
+      await updatePromotion(id, payload, tenantId);
+
+      setPromotions((prev) => prev.map((p) => p.id === id ? { ...p, ...updated } : p));
+      alert("Promotion updated successfully!");
+    } catch (error) {
+      console.error("Failed to update promotion", error);
+      alert("Failed to update promotion. Please try again.");
+    }
+  }, [tenantId, promotions]);
 
   const handleAdd = useCallback((newPromo) => {
     setPromotions((prev) => [...prev, { id: Date.now(), ...newPromo }]);
@@ -648,7 +599,7 @@ export default function PromotionsPage() {
           <p className="text-sm text-[#434655] mt-0.5">Manage and track employee career advancement</p>
         </div>
         <button
-          onClick={() => route.push("/employeemanagement/promotion/add")}
+          onClick={() => route.push(`/${param.dashboard}/admin/promotion/add`)}
           className="flex items-center gap-1.5 bg-[#4A45B6] hover:bg-[#3835a0] text-white text-sm font-medium px-4 py-2 rounded-md cursor-pointer transition-colors self-start sm:self-auto"
         >
           <Plus size={16} /> Add Promotion
@@ -747,7 +698,7 @@ export default function PromotionsPage() {
           <table className="w-full text-sm min-w-[800px]">
             <thead>
               <tr className="bg-[#ECEEF0]">
-                {["#", "EMPLOYEE", "PREVIOUS DESIGNATION", "NEW DESIGNATION", "PROMOTION DATE", "EFFECTIVE DATE", "SALARY ADJUST.", "STATUS", "DOCS", "ACTIONS"].map((h) => (
+                {["#", "EMPLOYEE", "PREVIOUS DESIGNATION", "NEW DESIGNATION", "PROMOTION DATE", "EFFECTIVE DATE", "PREV CTC", "SALARY ADJUST", "CURRENT CTC", "STATUS", "DOCS", "ACTIONS"].map((h) => (
                   <th key={h} className="text-left text-xs font-semibold text-[#434655] px-4 py-3 whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -782,7 +733,9 @@ export default function PromotionsPage() {
                     </td>
                     <td className="px-4 py-3 text-[#737686] whitespace-nowrap">{fmt(p.promotionDate)}</td>
                     <td className="px-4 py-3 text-[#737686] whitespace-nowrap">{fmt(p.effectiveDate)}</td>
-                    <td className="px-4 py-3 font-semibold text-[#006058] whitespace-nowrap">{p.salaryAdj}</td>
+                    <td className="px-4 py-3 font-semibold text-[#006058] whitespace-nowrap">{p.prevCTC}</td>
+                    <td className="px-4 py-3 font-semibold text-[#712AE2] whitespace-nowrap">+{p.salaryAdj}</td>
+                    <td className="px-4 py-3 font-semibold text-[#006058] whitespace-nowrap">{p.currentCTC}</td>
                     <td className="px-4 py-3">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${statusStyles[p.status]}`}>
                         {p.status}
@@ -791,26 +744,26 @@ export default function PromotionsPage() {
                     <td className="px-4 py-3">
                       <FileText
                         size={16}
-                        className={`cursor-pointer transition-colors text-[#4A45B6]`}
+                        className={`transition-colors ${p.document ? "cursor-pointer text-[#4A45B6] hover:text-[#3835a0]" : "cursor-not-allowed text-gray-300"}`}
                         title={p.document ? p.document.name : "No document"}
+                        onClick={() => p.document && window.open(p.document.url, '_blank')}
                       />
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <button onClick={() => setViewPromo(p)} title="View" className="text-[#4A45B6] hover:text-[#3835a0] transition-colors cursor-pointer hover:bg-[#4A45B6]/5 p-1 rounded">
+                        <button onClick={() => route.push(`/${param.dashboard}/admin/promotion/${p.id}`)} title="View" className="text-[#4A45B6] hover:text-[#3835a0] transition-colors cursor-pointer hover:bg-[#4A45B6]/5 p-1 rounded">
                           <Eye size={15} />
                         </button>
-                        <button onClick={() => setEditPromo(p)} title="Edit" className="text-[#4A45B6] hover:text-[#3835a0] transition-colors hover:bg-[#4A45B6]/5 p-1 rounded">
+                        <button onClick={() => route.push(`/${param.dashboard}/admin/promotion/${p.id}?edit=true`)} title="Edit" className="text-[#4A45B6] hover:text-[#3835a0] transition-colors hover:bg-[#4A45B6]/5 p-1 rounded">
                           <Pencil size={15} />
                         </button>
                         <button
-                          onClick={() => setPromotions((prev) => prev.map((x) => x.id === p.id ? { ...x, status: x.status === "APPROVED" ? "PENDING" : x.status === "PENDING" ? "REJECTED" : "APPROVED" } : x))}
                           title="Cycle Status"
                           className="text-[#4A45B6] hover:text-[#3835a0] transition-colors hover:bg-[#4A45B6]/5 p-1 rounded"
                         >
                           <RefreshCw size={15} />
                         </button>
-                        <button onClick={() => handleDelete(p.id)} title="Delete" className="text-red-400 hover:text-red-600 transition-colors hover:bg-red-50 p-1 rounded">
+                        <button onClick={() => handleDelete(p)} title="Delete" className="text-red-400 hover:text-red-600 transition-colors hover:bg-red-50 p-1 rounded">
                           <Trash2 size={15} />
                         </button>
                       </div>
@@ -858,9 +811,14 @@ export default function PromotionsPage() {
       </div>
 
       {/* Modals */}
-      {viewPromo && <ViewModal promo={viewPromo} onClose={() => setViewPromo(null)} />}
-      {editPromo && <EditModal promo={editPromo} onClose={() => setEditPromo(null)} onSave={handleSaveEdit} />}
-
+      {editPromo && <EditModal promo={editPromo} onClose={() => setEditPromo(null)} onSave={() => { }} />}
+      <DeletePromotionModal
+        open={deleteOpen}
+        onClose={() => { setDeleteOpen(false); setSelectedPromo(null); }}
+        promo={selectedPromo}
+        onSuccess={fetchPromotions}
+        tenantId={tenantId}
+      />
     </div>
   );
 }
