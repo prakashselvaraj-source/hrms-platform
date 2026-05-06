@@ -34,20 +34,20 @@ public class LeavePolicyService {
 
     LeavePolicy policy = repository
         .findByTenantIdAndLeaveType_Id(tenantId, dto.getLeaveTypeId())
-        .orElse(new LeavePolicy());
+        .stream().findFirst().orElse(new LeavePolicy());
 
     policy.setTenantId(tenantId);
     policy.setLeaveType(leaveType);
 
     policy.setName(dto.getName());
 
-    policy.setGeneralConfig(convertToJson(dto.getGeneral()));
-    policy.setAccrualRules(convertToJson(dto.getAccrual()));
-    policy.setUsageRules(convertToJson(dto.getUsage()));
-    policy.setRestrictions(convertToJson(dto.getRestrictions()));
-    policy.setCombinationRules(convertToJson(dto.getCombination()));
-    policy.setEncashmentRules(convertToJson(dto.getEncashment()));
-    policy.setApplicabilityRules(convertToJson(dto.getApplicability()));
+    policy.setGeneralConfig(dto.getGeneral());
+    policy.setAccrualRules(dto.getAccrual());
+    policy.setUsageRules(dto.getUsage());
+    policy.setRestrictions(dto.getRestrictions());
+    policy.setCombinationRules(dto.getCombination());
+    policy.setEncashmentRules(dto.getEncashment());
+    policy.setApplicabilityRules(dto.getApplicability());
 
     // policy.setActive(dto.isActive());
 
@@ -66,7 +66,7 @@ public class LeavePolicyService {
     public LeavePolicyResponseDTO getLeaveConfiguration(String tenantId, String leaveTypeId){
 
         LeavePolicy policy = repository.findByLeaveType_IdAndTenantId(leaveTypeId, tenantId)
-        .orElse(null);
+        .stream().findFirst().orElse(null);
 
         if(policy == null){
             return null;
@@ -77,33 +77,17 @@ public class LeavePolicyService {
     }
 
 
-    private String convertToJson(Map<String, Object> map) {
-        try {
-            return objectMapper.writeValueAsString(map);
-        } catch (Exception e) {
-            throw new RuntimeException("JSON conversion error");
-        }
-    }
-
-    private Map<String, Object> convertToMap(String json) {
-        try {
-            return objectMapper.readValue(json, Map.class);
-        } catch (Exception e) {
-            throw new RuntimeException("JSON parse error");
-        }
-    }
-
     private LeavePolicyResponseDTO mapToDTO(LeavePolicy policy) {
         return LeavePolicyResponseDTO.builder()
                 .id(policy.getId())
                 .name(policy.getName())
-                .general(convertToMap(policy.getGeneralConfig()))
-                .accrual(convertToMap(policy.getAccrualRules()))
-                .usage(convertToMap(policy.getUsageRules()))
-                .restrictions(convertToMap(policy.getRestrictions()))
-                .combination(convertToMap(policy.getCombinationRules()))
-                .encashment(convertToMap(policy.getEncashmentRules()))
-                .applicability(convertToMap(policy.getApplicabilityRules()))
+                .general(policy.getGeneralConfig())
+                .accrual(policy.getAccrualRules())
+                .usage(policy.getUsageRules())
+                .restrictions(policy.getRestrictions())
+                .combination(policy.getCombinationRules())
+                .encashment(policy.getEncashmentRules())
+                .applicability(policy.getApplicabilityRules())
                 .build();
     }
 }

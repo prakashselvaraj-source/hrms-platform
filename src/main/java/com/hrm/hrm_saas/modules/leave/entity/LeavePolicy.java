@@ -3,6 +3,7 @@ package com.hrm.hrm_saas.modules.leave.entity;
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -36,26 +37,33 @@ public class LeavePolicy {
     @JoinColumn(name = "leave_type_id")
     private LeaveType leaveType;
     
+    @Convert(converter = com.hrm.hrm_saas.common.converter.JsonToMapConverter.class)
     @Column(columnDefinition = "TEXT")
-    private String generalConfig;
+    private java.util.Map<String, Object> generalConfig;
     
+    @Convert(converter = com.hrm.hrm_saas.common.converter.JsonToMapConverter.class)
     @Column(columnDefinition = "TEXT")
-    private String accrualRules;
+    private java.util.Map<String, Object> accrualRules;
 
+    @Convert(converter = com.hrm.hrm_saas.common.converter.JsonToMapConverter.class)
     @Column(columnDefinition = "TEXT")
-    private String usageRules;
+    private java.util.Map<String, Object> usageRules;
 
+    @Convert(converter = com.hrm.hrm_saas.common.converter.JsonToMapConverter.class)
     @Column(columnDefinition = "TEXT")
-    private String restrictions;
+    private java.util.Map<String, Object> restrictions;
 
+    @Convert(converter = com.hrm.hrm_saas.common.converter.JsonToMapConverter.class)
     @Column(columnDefinition = "TEXT")
-    private String combinationRules;
+    private java.util.Map<String, Object> combinationRules;
 
+    @Convert(converter = com.hrm.hrm_saas.common.converter.JsonToMapConverter.class)
     @Column(columnDefinition = "TEXT")
-    private String encashmentRules;
+    private java.util.Map<String, Object> encashmentRules;
 
+    @Convert(converter = com.hrm.hrm_saas.common.converter.JsonToMapConverter.class)
     @Column(columnDefinition = "TEXT")
-    private String applicabilityRules;
+    private java.util.Map<String, Object> applicabilityRules;
 
     private boolean accrualEnabled;
     private boolean active;

@@ -52,4 +52,23 @@ public class AuthController {
         authService.resetPassword(request.getToken(), request.getNewPassword());
         return ResponseEntity.ok("Password has been reset successfully");
     }
+
+    @PostMapping("/send-otp")
+    public ResponseEntity<String> sendOtp(@RequestBody java.util.Map<String, String> request) {
+        String email = request.get("email");
+        authService.sendOtp(email);
+        return ResponseEntity.ok("OTP sent successfully");
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<String> verifyOtp(@RequestBody java.util.Map<String, String> request) {
+        String email = request.get("email");
+        String otp = request.get("otp");
+        boolean isValid = authService.verifyOtp(email, otp);
+        if (isValid) {
+            return ResponseEntity.ok("OTP verified successfully");
+        } else {
+            return ResponseEntity.badRequest().body("Invalid or expired OTP");
+        }
+    }
 }

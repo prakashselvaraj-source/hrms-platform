@@ -10,5 +10,7 @@ public interface LeaveTypeRepository extends JpaRepository<LeaveType, String> {
 
     Optional<LeaveType> findByTenantIdAndCode(String tenantId, String Code);
 
+    Optional<LeaveType> findByTenantIdAndName(String tenantId, String name);
+
     Optional<LeaveType> findByIdAndTenantId(String id, String tenantId);
 }

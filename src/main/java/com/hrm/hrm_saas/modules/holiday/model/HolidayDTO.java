@@ -14,13 +14,19 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 public class HolidayDTO {
+    private Long id;
+    
     @NotBlank(message = "HolidayName is required")
     private String holidayName;
+    
     @NotNull(message = "Date is required")
     private LocalDate date;
+    
     @NotBlank(message = "Category is required")
     private String category;
+    
     @NotBlank(message = "type is required")
     private String type;
 
+    private String tenantId;
 }

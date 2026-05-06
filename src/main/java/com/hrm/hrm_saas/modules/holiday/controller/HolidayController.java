@@ -1,97 +1,59 @@
 package com.hrm.hrm_saas.modules.holiday.controller;
 
-import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import jakarta.validation.Valid;
-import java.util.List;
 
 import com.hrm.hrm_saas.modules.holiday.model.HolidayDTO;
-import com.hrm.hrm_saas.modules.holiday.model.Holiday;
+import com.hrm.hrm_saas.modules.holiday.model.HolidayPageResponse;
 import com.hrm.hrm_saas.modules.holiday.service.HolidayService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-
-import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/api/holidays")
-@CrossOrigin
 @RequiredArgsConstructor
 public class HolidayController {
 
     private final HolidayService service;
 
     @PostMapping
-    public ResponseEntity<Holiday> createHoliday(
+    public ResponseEntity<HolidayDTO> createHoliday(
             @Valid @RequestBody HolidayDTO dto,
-            @RequestHeader("X-Tenant-Id") String tenantId,
-            HttpServletRequest request) {
-
-        String tokenTenantId = (String) request.getAttribute("tenantId");
-
-        if (tokenTenantId == null || !tokenTenantId.equals(tenantId)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.createHoliday(dto, tenantId));
+            @RequestHeader("X-Tenant-Id") String tenantId) {
+        return ResponseEntity.ok(service.createHoliday(dto, tenantId));
     }
 
     @GetMapping
-    public ResponseEntity<List<Holiday>> getAllHolidays(
+    public ResponseEntity<HolidayPageResponse> getAllHolidays(
             @RequestHeader("X-Tenant-Id") String tenantId,
-            HttpServletRequest request) {
-
-        String tokenTenantId = (String) request.getAttribute("tenantId");
-
-        if (tokenTenantId == null || !tokenTenantId.equals(tenantId)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-
-        return ResponseEntity.ok(service.getAllHolidays(tenantId));
+            @PageableDefault(size = 10, sort = "date", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(service.getAllHolidays(tenantId, pageable));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Holiday> getHolidayById(
+    public ResponseEntity<HolidayDTO> getHolidayById(
             @PathVariable Long id,
-            @RequestHeader("X-Tenant-Id") String tenantId,
-            HttpServletRequest request) {
-
-        String tokenTenantId = (String) request.getAttribute("tenantId");
-        if (tokenTenantId == null || !tokenTenantId.equals(tenantId)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-
+            @RequestHeader("X-Tenant-Id") String tenantId) {
         return ResponseEntity.ok(service.getHolidayById(id, tenantId));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Holiday> updateHoliday(
+    public ResponseEntity<HolidayDTO> updateHoliday(
             @PathVariable Long id,
             @Valid @RequestBody HolidayDTO dto,
-            @RequestHeader("X-Tenant-Id") String tenantId,
-            HttpServletRequest request) {
-
-        String tokenTenantId = (String) request.getAttribute("tenantId");
-        if (tokenTenantId == null || !tokenTenantId.equals(tenantId)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-
+            @RequestHeader("X-Tenant-Id") String tenantId) {
         return ResponseEntity.ok(service.updateHoliday(id, dto, tenantId));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteHoliday(
+    public ResponseEntity<Void> deleteHoliday(
             @PathVariable Long id,
-            @RequestHeader("X-Tenant-Id") String tenantId,
-            HttpServletRequest request) {
-
-        String tokenTenantId = (String) request.getAttribute("tenantId");
-        if (tokenTenantId == null || !tokenTenantId.equals(tenantId)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-
+            @RequestHeader("X-Tenant-Id") String tenantId) {
         service.deleteHoliday(id, tenantId);
-        return ResponseEntity.ok("Deleted successfully");
+        return ResponseEntity.noContent().build();
     }
 }

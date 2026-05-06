@@ -29,6 +29,27 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
+    private final java.util.Map<String, String> otpStorage = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public void sendOtp(String email) {
+        String otp = String.format("%06d", new java.util.Random().nextInt(999999));
+        otpStorage.put(email, otp);
+        System.out.println("Email send");
+        emailService.sendEmail(
+                email,
+                "Your Verification Code",
+                "Your OTP for WorkSphere registration is: " + otp + "\n\nThis code will expire shortly.");
+    }
+
+    public boolean verifyOtp(String email, String otp) {
+        String storedOtp = otpStorage.get(email);
+        if (storedOtp != null && storedOtp.equals(otp)) {
+            otpStorage.remove(email);
+            return true;
+        }
+        return false;
+    }
+
     public AuthResponse registerCompany(RegisterCompanyRequest request) {
 
         String subdomain = request.getSubdomain();

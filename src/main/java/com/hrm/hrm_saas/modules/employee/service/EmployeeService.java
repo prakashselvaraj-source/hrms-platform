@@ -1,5 +1,6 @@
 package com.hrm.hrm_saas.modules.employee.service;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,7 +13,16 @@ import com.hrm.hrm_saas.modules.user.repository.UserRepository;
 import com.hrm.hrm_saas.modules.exception.DuplicateEmailException;
 import com.hrm.hrm_saas.modules.exception.EmployeeNotFoundException;
 import com.hrm.hrm_saas.modules.user.entity.User;
+import com.hrm.hrm_saas.modules.tenant.entity.Tenant;
+import com.hrm.hrm_saas.modules.tenant.repository.TenantRepository;
+import com.hrm.hrm_saas.modules.role.model.Role;
+import com.hrm.hrm_saas.modules.role.repository.RoleRepository;
+import com.hrm.hrm_saas.modules.exception.TenantNotFoundException;
+import com.hrm.hrm_saas.modules.exception.RoleNotFoundException;
 import lombok.RequiredArgsConstructor;
+
+import com.hrm.hrm_saas.modules.employee.model.EmployeePageResponse;
+import com.hrm.hrm_saas.modules.employee.model.EmployeeProfileDTO;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -25,25 +35,42 @@ public class EmployeeService {
     private final EmployeeRepository repository;
     private final UserRepository userRepository;
     private final EmailService emailService;
+    private final TenantRepository tenantRepository;
+    private final RoleRepository roleRepository;
 
-    public List<EmployeeDTO> getAllEmployees(String tenantId) {
-        return repository.findByTenantId(tenantId).stream()
+    private Tenant getTenant(String companyName) {
+        return tenantRepository.findByCompanyName(companyName)
+                .orElseThrow(() -> new TenantNotFoundException("Tenant not found with code: " + companyName));
+    }
+
+    public EmployeePageResponse getAllEmployees(String tenantId, Pageable pageable) {
+        Tenant tenant = getTenant(tenantId);
+        var page = repository.findByTenant(tenant, pageable);
+        List<EmployeeDTO> employees = page.getContent().stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
+        return new EmployeePageResponse(employees, page.getNumber(), page.getTotalPages(), page.getTotalElements());
     }
 
     public EmployeeDTO getEmployeeById(Long id, String tenantId) {
-        return repository.findByIdAndTenantId(id, tenantId)
+        Tenant tenant = getTenant(tenantId);
+        return repository.findByIdAndTenant(id, tenant)
                 .map(this::toDTO)
                 .orElseThrow(() -> new EmployeeNotFoundException("Employee not found with id: " + id));
     }
 
     public EmployeeDTO createEmployee(EmployeeDTO dto, String tenantId) {
-        if (dto.getWorkEmail() != null && repository.existsByWorkEmailAndTenantId(dto.getWorkEmail(), tenantId)) {
+        Tenant tenant = getTenant(tenantId);
+        if (dto.getWorkEmail() != null && repository.existsByWorkEmailAndTenant(dto.getWorkEmail(), tenant)) {
             throw new DuplicateEmailException("Email already in use for this tenant: " + dto.getWorkEmail());
         }
+
+        Role role = roleRepository.findByNameAndTenantId(dto.getRole(), tenant.getCompanyName())
+                .orElseThrow(() -> new RoleNotFoundException("Role not found with name: " + dto.getRole()));
+
         Employee employee = toEntity(dto);
-        employee.setTenantId(tenantId);
+        employee.setTenant(tenant);
+        employee.setRole(role);
 
         String url = "http://localhost:3000/" + tenantId + "/employee/register?email=" + dto.getWorkEmail() + "&name="
                 + dto.getFirstName() + " " + dto.getLastName();
@@ -54,18 +81,24 @@ public class EmployeeService {
                         + url);
 
         return toDTO(repository.save(employee));
-
     }
 
     public EmployeeDTO updateEmployee(Long id, EmployeeDTO dto, String tenantId) {
-        Employee existing = repository.findByIdAndTenantId(id, tenantId)
+        Tenant tenant = getTenant(tenantId);
+        Employee existing = repository.findByIdAndTenant(id, tenant)
                 .orElseThrow(() -> new EmployeeNotFoundException("Employee not found with id: " + id));
 
         // Check email uniqueness only if changed
         if (dto.getWorkEmail() != null
                 && !dto.getWorkEmail().equals(existing.getWorkEmail())
-                && repository.existsByWorkEmailAndTenantId(dto.getWorkEmail(), tenantId)) {
+                && repository.existsByWorkEmailAndTenant(dto.getWorkEmail(), tenant)) {
             throw new DuplicateEmailException("Email already in use for this tenant: " + dto.getWorkEmail());
+        }
+
+        if (dto.getRole() != null) {
+            Role role = roleRepository.findByNameAndTenantId(dto.getRole(), tenant.getCompanyName())
+                    .orElseThrow(() -> new RoleNotFoundException("Role not found with name: " + dto.getRole()));
+            existing.setRole(role);
         }
 
         updateEntityFromDTO(existing, dto);
@@ -73,23 +106,35 @@ public class EmployeeService {
     }
 
     public void deleteEmployee(Long id, String tenantId) {
-        Employee existing = repository.findByIdAndTenantId(id, tenantId)
+        Tenant tenant = getTenant(tenantId);
+        Employee existing = repository.findByIdAndTenant(id, tenant)
                 .orElseThrow(() -> new EmployeeNotFoundException("Employee not found with id: " + id));
         repository.delete(existing);
-        // UserRepository.deleteByEmail()
     }
 
-    public List<EmployeeDTO> getEmployeesByStatus(OnboardingStatus status, String tenantId) {
-        return repository.findByStatusAndTenantId(status, tenantId).stream()
+    public EmployeePageResponse getEmployeesByStatus(OnboardingStatus status, String tenantId, Pageable pageable) {
+        Tenant tenant = getTenant(tenantId);
+        var page = repository.findByStatusAndTenant(status, tenant, pageable);
+        List<EmployeeDTO> employees = page.getContent().stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
+        return new EmployeePageResponse(employees, page.getNumber(), page.getTotalPages(), page.getTotalElements());
+    }
+
+    public EmployeeProfileDTO getEmployeeProfile(String mail, String tenantId) {
+        Tenant tenant = getTenant(tenantId);
+        return repository.findByWorkEmailAndTenant(mail, tenant)
+                .map(this::toProfileDTO)
+                .orElseThrow(() -> new EmployeeNotFoundException("There No such user with this mail: " + mail));
     }
 
     // ─── Mapper: Entity → DTO ────────────────────────────────────────────────
     private EmployeeDTO toDTO(Employee e) {
         return EmployeeDTO.builder()
                 .id(e.getId())
-                .tenantId(e.getTenantId())
+                .tenantId(e.getTenant() != null ? e.getTenant().getCompanyName() : null)
+                .roleId(e.getRole() != null ? e.getRole().getId() : null)
+                .role(e.getRole() != null ? e.getRole().getName() : null)
                 .firstName(e.getFirstName())
                 .lastName(e.getLastName())
                 .dateOfBirth(e.getDateOfBirth())
@@ -140,7 +185,6 @@ public class EmployeeService {
     // ─── Mapper: DTO → Entity ────────────────────────────────────────────────
     private Employee toEntity(EmployeeDTO dto) {
         return Employee.builder()
-                .tenantId(dto.getTenantId())
                 .firstName(dto.getFirstName())
                 .lastName(dto.getLastName())
                 .dateOfBirth(dto.getDateOfBirth())
@@ -271,5 +315,29 @@ public class EmployeeService {
             e.setOtherDocUrl(dto.getOtherDocUrl());
         if (dto.getStatus() != null)
             e.setStatus(dto.getStatus());
+    }
+
+    private EmployeeProfileDTO toProfileDTO(Employee e) {
+        return EmployeeProfileDTO.builder()
+                .firstName(e.getFirstName())
+                .lastName(e.getLastName())
+                .workEmail(e.getWorkEmail())
+                .dateOfBirth(e.getDateOfBirth())
+                .mobileNumber(e.getMobileNumber())
+                .gender(e.getGender())
+                .currentStreet(e.getCurrentStreet())
+                .currentCity(e.getCurrentCity())
+                .currentState(e.getCurrentState())
+                .currentZip(e.getCurrentZip())
+                .currentCountry(e.getCurrentCountry())
+                .designation(e.getDesignation())
+                .department(e.getDepartment())
+                .dateOfJoining(e.getDateOfJoining())
+                .photoUrl(e.getPhotoUrl())
+                .identityProofUrl(e.getIdentityProofUrl())
+                .educationCertUrl(e.getEducationCertUrl())
+                .employmentProofUrl(e.getEmploymentProofUrl())
+                .otherDocUrl(e.getOtherDocUrl())
+                .build();
     }
 }

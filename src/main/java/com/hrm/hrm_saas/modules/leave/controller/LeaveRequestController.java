@@ -55,6 +55,22 @@ public class LeaveRequestController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/employee-leave-requests")
+    public ResponseEntity<List<LeaveRequestAdminResponseDto>> getMyLeaveRequests(
+            @RequestHeader("X-Tenant-Id") String tenantId,
+            @RequestHeader("Authorization") String token,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        List<LeaveRequestAdminResponseDto> requests = leaveRequestService.getMyLeaveRequests(tenantId, token, page,
+                size);
+        return ResponseEntity.ok()
+                .header("Cache-Control", "no-cache, no-store, must-revalidate")
+                .header("Pragma", "no-cache")
+                .header("Expires", "0")
+                .body(requests);
+    }
+
     @PostMapping("/submit-leave-request")
     public String submitLeaveRequest(
             @RequestHeader("X-Tenant-Id") String tenantId,

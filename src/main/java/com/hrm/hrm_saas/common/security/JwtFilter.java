@@ -35,6 +35,8 @@ public class JwtFilter implements Filter {
                         Collections.emptyList());
 
                 request.setAttribute("tenantId", tenant);
+                request.setAttribute("email", email);
+                request.setAttribute("userId", email);
                 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
                 

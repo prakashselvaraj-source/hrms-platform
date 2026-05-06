@@ -7,4 +7,7 @@ import java.util.Optional;
 
 public interface TenantRepository extends JpaRepository<Tenant, Long> {
     Optional<Tenant> findByCompanyCode(String companyCode);
+
+    Optional<Tenant> findByCompanyName(String companyName);
+
 }

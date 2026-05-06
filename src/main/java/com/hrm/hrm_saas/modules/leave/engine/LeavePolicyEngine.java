@@ -40,40 +40,21 @@ public class LeavePolicyEngine {
         this.accrualValidator = accrualValidator;
     }
 
-    public void validate(String tenantId, String userId, ApplyLeaveDTO dto) {
+    public void validate(String tenantId, com.hrm.hrm_saas.modules.employee.model.Employee employee, ApplyLeaveDTO dto) {
 
-        System.out.println("Validate"+ tenantId + userId + dto);
-        LeavePolicy policy = policyRepository
-                .findByTenantId(tenantId)
-                .stream()
-                .filter(p -> p.getLeaveType().getId().equals(dto.getLeaveTypeId()))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Policy not found"));
+        System.out.println("Validate "+ tenantId + " for employee " + employee.getId() + " dto: " + dto);
+        LeavePolicy policy = policyRepository.findByLeaveType_IdAndTenantId(dto.getLeaveTypeId(), tenantId)
+                .stream().findFirst()
+                .orElseGet(() -> policyRepository.findByLeaveType_Id(dto.getLeaveTypeId())
+                        .stream().findFirst()
+                        .orElseThrow(() -> new RuntimeException("Policy not found for leave type: " + dto.getLeaveTypeId())));
 
                 System.out.print("policy"+policy);
-        Map<String, Object> general = parse(policy.getGeneralConfig());
-        Map<String, Object> usage = parse(policy.getUsageRules());
-        Map<String, Object> restrictions = parse(policy.getRestrictions());
-        Map<String, Object> applicability = parse(policy.getApplicabilityRules());
-        Map<String, Object> accrual = parse(policy.getAccrualRules());
-
         // 🔥 Delegate to validators
-        generalValidator.validateGeneral(general, dto);
-        usageValidator.validateUsage(usage, dto);
-        restrictionValidator.validateRestrictions(restrictions, dto);
-        applicabilityValidator.validateApplicability(applicability, userId);
-        accrualValidator.validateAccrual(accrual, dto);
-    }
-
-    private Map<String, Object> parse(String json) {
-        if (json == null || json.isEmpty()) {
-            return Map.of();
-        }
-        try {
-            return objectMapper.readValue(json, Map.class);
-        } catch (Exception e) {
-            System.err.println("JSON parse error for: " + json);
-            return Map.of();
-        }
+        generalValidator.validateGeneral(policy.getGeneralConfig(), dto);
+        usageValidator.validateUsage(policy.getUsageRules(), dto);
+        restrictionValidator.validateRestrictions(policy.getRestrictions(), dto, employee);
+        applicabilityValidator.validateApplicability(policy.getApplicabilityRules(), employee);
+        accrualValidator.validateAccrual(policy.getAccrualRules(), dto);
     }
 }

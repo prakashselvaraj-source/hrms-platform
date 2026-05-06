@@ -2,6 +2,9 @@ package com.hrm.hrm_saas.modules.employee.controller;
 
 import java.util.List;
 
+import com.hrm.hrm_saas.modules.employee.model.EmployeePageResponse;
+import com.hrm.hrm_saas.modules.employee.model.EmployeeProfileDTO;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -15,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.data.domain.Pageable;
 
 import com.hrm.hrm_saas.modules.employee.model.EmployeeDTO;
 import com.hrm.hrm_saas.modules.employee.model.Employee.OnboardingStatus;
@@ -32,9 +36,10 @@ public class EmployeeController {
     private final EmployeeService service;
 
     @GetMapping
-    public ResponseEntity<List<EmployeeDTO>> getAllEmployees(
+    public ResponseEntity<EmployeePageResponse> getAllEmployees(
             @RequestParam(required = false) OnboardingStatus status,
             @RequestHeader("X-Tenant-Id") String tenantId,
+            Pageable pageable,
             HttpServletRequest request) {
 
         String tokenTenantId = (String) request.getAttribute("tenantId");
@@ -43,10 +48,9 @@ public class EmployeeController {
         }
 
         if (status != null) {
-            return ResponseEntity.ok(service.getEmployeesByStatus(status, tenantId));
+            return ResponseEntity.ok(service.getEmployeesByStatus(status, tenantId, pageable));
         }
-        System.out.println("EmployeeController");
-        return ResponseEntity.ok(service.getAllEmployees(tenantId));
+        return ResponseEntity.ok(service.getAllEmployees(tenantId, pageable));
     }
 
     @GetMapping("/{id}")
@@ -69,9 +73,9 @@ public class EmployeeController {
             @Valid @RequestBody EmployeeDTO dto,
             @RequestHeader("X-Tenant-Id") String tenantId,
             HttpServletRequest request) {
-        
+
         String tokenTenantId = (String) request.getAttribute("tenantId");
-        System.out.println("tokenTenantId"+tokenTenantId);
+        System.out.println("tokenTenantId" + tokenTenantId);
         if (tokenTenantId == null || !tokenTenantId.equals(tenantId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
@@ -83,7 +87,7 @@ public class EmployeeController {
     @PutMapping("/{id}")
     public ResponseEntity<EmployeeDTO> updateEmployee(
             @PathVariable Long id,
-            @RequestBody EmployeeDTO dto,
+            @Valid @RequestBody EmployeeDTO dto,
             @RequestHeader("X-Tenant-Id") String tenantId,
             HttpServletRequest request) {
 
@@ -109,4 +113,21 @@ public class EmployeeController {
         service.deleteEmployee(id, tenantId);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/profile")
+    public ResponseEntity<EmployeeProfileDTO> getEmployeeProfile(
+            HttpServletRequest request,
+            @RequestHeader("X-Tenant-Id") String tenantId) {
+
+        String tokenTenantId = (String) request.getAttribute("tenantId");
+        if (tokenTenantId == null || !tokenTenantId.equals(tenantId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        String mail = (String) request.getAttribute("email");
+        
+        System.out.println(mail);
+        return ResponseEntity.ok(service.getEmployeeProfile(mail, tenantId));
+    }
+
 }

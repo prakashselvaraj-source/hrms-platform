@@ -5,6 +5,9 @@ import lombok.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import com.hrm.hrm_saas.modules.role.model.Role;
+import com.hrm.hrm_saas.modules.tenant.entity.Tenant;
+
 @Entity
 @Table(name = "employees")
 @Data
@@ -17,22 +20,35 @@ public class Employee {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String tenantId;
+    @ManyToOne
+    @JoinColumn(name = "tenantId", nullable = false)
+    private Tenant tenant;
 
     // Personal Info
+    @Column(nullable = false)
     private String firstName;
+    @Column(nullable = false)
     private String lastName;
+    @Column(nullable = false)
     private LocalDate dateOfBirth;
+    @Column(nullable = false)
     private String gender;
+    @Column(nullable = false)
     private String workEmail;
+    @Column(nullable = false)
     private String mobileNumber;
     private String photoUrl;
 
     // Contact - Current Address
+    @Column(nullable = false)
     private String currentStreet;
+    @Column(nullable = false)
     private String currentCity;
+    @Column(nullable = false)
     private String currentState;
+    @Column(nullable = false)
     private String currentZip;
+    @Column(nullable = false)
     private String currentCountry;
 
     // Contact - Permanent Address
@@ -41,29 +57,51 @@ public class Employee {
     private String permanentState;
 
     // Emergency Contact
+    @Column(nullable = false)
     private String emergencyContactName;
+    @Column(nullable = false)
     private String emergencyContactRelationship;
+    @Column(nullable = false)
     private String emergencyContactMobile;
 
     // Job Details
+    @Column(nullable = false)
     private LocalDate dateOfJoining;
+    @Column(nullable = false)
     private String reportingManager;
+    @Column(nullable = false)
     private String workLocation;
+    @Column(nullable = false)
     private String employmentType;
+    @Column(nullable = false)
     private String designation;
+    @Column(nullable = false)
     private String department;
 
+    @ManyToOne
+    @JoinColumn(name = "roleId", nullable = false)
+    private Role role;
+
     // Banking
+    @Column(nullable = false)
     private String accountHolderName;
+    @Column(nullable = false)
     private String bankName;
+    @Column(nullable = false)
     private String branchName;
+    @Column(nullable = false)
     private String accountNumber;
+    @Column(nullable = false)
     private String ifscSwiftCode;
+    @Column(nullable = false)
     private String aadharNumber;
+    @Column(nullable = false)
     private String panNumber;
+    @Column(nullable = false)
     private String disbursementMethod;
 
     // Salary
+    @Column(nullable = false)
     private Double annualCtc;
     private Double monthlyGross;
     private Double basicSalary;
@@ -81,6 +119,7 @@ public class Employee {
     private java.util.List<String> otherDocUrl;
     // Meta
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 50)
     private OnboardingStatus status;
 
     @Column(updatable = false)
@@ -92,7 +131,7 @@ public class Employee {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
         if (status == null)
-            status = OnboardingStatus.DRAFT;
+            status = OnboardingStatus.PENDING;
     }
 
     @PreUpdate
@@ -101,6 +140,6 @@ public class Employee {
     }
 
     public enum OnboardingStatus {
-        DRAFT, ACTIVE, INACTIVE
+        PENDING, APPROVED, REJECTED, DRAFT
     }
 }

@@ -9,7 +9,6 @@ import lombok.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -18,6 +17,7 @@ public class EmployeeDTO {
 
     private Long id;
     private String tenantId;
+    private Long roleId;
 
     // Personal Info
     @NotBlank(message = "First name is required")
@@ -112,24 +112,30 @@ public class EmployeeDTO {
     @NotNull(message = "Annual CTC is required")
     @Positive(message = "CTC must be positive")
     private Double annualCtc;
-    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    @NotNull(message = "Monthly gross is required")
     private Double monthlyGross;
 
-    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    @NotNull(message = "Basic salary is required")
     private Double basicSalary;
 
-    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    @NotNull(message = "Performance bonus is required")
     private Double performanceBonus;
 
-    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    @NotNull(message = "Professional tax is required")
     private Double professionalTax;
 
     // Documents
+    @NotBlank(message = "Identity proof URL is required")
     private String identityProofUrl;
+    @NotBlank(message = "Education certificate URL is required")
     private String educationCertUrl;
+    @NotBlank(message = "Employment proof URL is required")
     private String employmentProofUrl;
+
     private java.util.List<String> otherDocUrl;
     // Meta
+    @NotBlank(message = "Role is required")
+    private String role;
     @NotNull(message = "Status is required")
     private OnboardingStatus status;
 

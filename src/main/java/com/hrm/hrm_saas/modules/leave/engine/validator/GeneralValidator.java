@@ -20,7 +20,7 @@ public class GeneralValidator {
             throw new RuntimeException("Invalid leave duration");
         }
 
-        if (!allowHalfDay && days == 0.5) {
+        if (Boolean.FALSE.equals(allowHalfDay) && days == 0.5) {
             throw new RuntimeException("Half day not allowed");
         }
     }

@@ -20,11 +20,15 @@ public class LeaveService {
 
     private final LeaveRepository leaveRepository;
     private final LeavePolicyEngine policyEngine;
+    private final com.hrm.hrm_saas.modules.employee.repository.EmployeeRepository employeeRepository;
 
     public LeaveResponseDTO applyLeave(String tenantId, String userId, ApplyLeaveDTO dto) {
 
+        com.hrm.hrm_saas.modules.employee.model.Employee employee = employeeRepository.findById(Long.parseLong(userId))
+                .orElseThrow(() -> new RuntimeException("Employee not found"));
+
         System.out.println("LeaveResponseDto"+tenantId +userId + dto);
-        policyEngine.validate(tenantId, userId, dto);
+        policyEngine.validate(tenantId, employee, dto);
 
         int totalDays = (int) (dto.getEndDate().toEpochDay() - dto.getStartDate().toEpochDay()) + 1;
 
