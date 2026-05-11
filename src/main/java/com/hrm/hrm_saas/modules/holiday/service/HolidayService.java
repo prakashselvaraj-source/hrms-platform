@@ -12,6 +12,8 @@ import com.hrm.hrm_saas.modules.holiday.repository.HolidayRepository;
 import com.hrm.hrm_saas.modules.tenant.entity.Tenant;
 import com.hrm.hrm_saas.modules.tenant.repository.TenantRepository;
 import lombok.RequiredArgsConstructor;
+
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -34,19 +36,33 @@ public class HolidayService {
         return toDTO(repository.save(holiday));
     }
 
-    public HolidayPageResponse getAllHolidays(String tenantId, Pageable pageable) {
-        Page<Holiday> page = repository.findByTenantCompanyName(tenantId, pageable);
-        
+    public HolidayPageResponse getUpcomingHolidays(String tenantId, Pageable pageable) {
+        LocalDate today = LocalDate.now();
+
+        Page<Holiday> page = repository.findByTenantCompanyNameAndDateGreaterThanEqual(tenantId, today, pageable);
         List<HolidayDTO> holidays = page.getContent().stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
 
         return new HolidayPageResponse(
-            holidays,
-            page.getNumber(),
-            page.getTotalPages(),
-            page.getTotalElements()
-        );
+                holidays,
+                page.getNumber(),
+                page.getTotalPages(),
+                page.getTotalElements());
+    }
+
+    public HolidayPageResponse getAllHolidays(String tenantId, Pageable pageable) {
+        Page<Holiday> page = repository.findByTenantCompanyName(tenantId, pageable);
+
+        List<HolidayDTO> holidays = page.getContent().stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+
+        return new HolidayPageResponse(
+                holidays,
+                page.getNumber(),
+                page.getTotalPages(),
+                page.getTotalElements());
     }
 
     public HolidayDTO getHolidayById(Long id, String tenantId) {

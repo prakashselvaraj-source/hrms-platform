@@ -126,9 +126,10 @@ public class AuthService {
         Optional<User> userOpt = userRepository.findByEmail(email);
 
         if (userOpt.isEmpty()) {
+            System.out.println("FORGOT PASSWORD FAILURE: No user found with email: " + email);
             return;
         }
-
+        System.out.println("Hai");
         User user = userOpt.get();
 
         String token = UUID.randomUUID().toString();
@@ -144,6 +145,8 @@ public class AuthService {
                 user.getEmail(),
                 "Reset Your Password",
                 "Click the link to reset your password:\n" + resetLink);
+
+        System.out.println("You Goddamn right");
     }
 
     public void resetPassword(String token, String newPassword) {
