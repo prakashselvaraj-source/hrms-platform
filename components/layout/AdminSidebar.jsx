@@ -46,12 +46,13 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     { label: "Payroll", href: `/${tenant}/payroll`, icon: Briefcase },
     { label: "Resignation", href: `/${tenant}/resignation`, icon: FileText },
     { label: "Attendance", href: `/${tenant}/attendance`, icon: BarChart2 },
-    { label: "Support", href: `/${tenant}/support`, icon: MessageSquare },
+    { label: "Tasks", href: `/${tenant}/tasks/MyTasks`, icon: BarChart2 },
   ];
 
   const bottomItems = [
     { label: "Settings", href: `/${tenant}/settings`, icon: Settings },
-    { label: "Logout", href: "/logout", icon: LogOut },
+    { label: "Support", href: `/${tenant}/support`, icon: MessageSquare },
+
   ];
 
   return (

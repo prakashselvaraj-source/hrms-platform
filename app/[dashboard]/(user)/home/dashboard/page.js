@@ -327,6 +327,7 @@ export default function HRDashboard() {
                 Apply Leave
               </button>
               <button
+                onClick={() => router.push(`/${tenantId}/createTicket`)}
                 className="px-4 py-2.5 text-[12.5px] font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer border-0 text-white"
                 style={{ backgroundColor: "var(--gradient-brand-btn)" }}
                 onMouseEnter={e => e.currentTarget.style.backgroundColor = "var(--gradient-brand-btn-hover)"}
@@ -511,6 +512,7 @@ export default function HRDashboard() {
                       </p>
                     </div>
                   </div>
+                  
                   <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: "var(--bar-track)" }}>
                     <div className="h-full rounded-full transition-all"
                       style={{ width: `${p.pct}%`, backgroundColor: "var(--bar-primary)" }} />

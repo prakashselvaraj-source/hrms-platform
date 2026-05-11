@@ -1,16 +1,15 @@
 import API from "@/utils/api";
 
 
-export const getAllLeaveTypesWithUserIdAndYear = async (tenantId, token, year) => {
+export const getAllLeaveTypesWithUserIdAndYear = async (tenantId, year) => {
     const res = await API(`/leave-management/get-all-leave-types/${year}`,{
         headers:{
             "Content-Type":"application/json",
-            "Authorization":`Bearer ${token}`,
             "X-Tenant-Id":tenantId
         }
     });
     return res.data;
-};  
+}; 
     
 export const submitLeaveRequest = async(tenantId, token, payload) => {
 

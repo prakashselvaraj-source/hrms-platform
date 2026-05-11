@@ -127,6 +127,7 @@ function CustomSelect({ options, value, onChange, placeholder, icon: Icon }) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function LeaveManagement() {
+  
   const [leaveType, setLeaveType]           = useState("");
   const [fromDate, setFromDate]             = useState("");
   const [toDate, setToDate]                 = useState("");
@@ -168,7 +169,7 @@ export default function LeaveManagement() {
 
     const run = async () => {
       try {
-        const stats = await getAllLeaveTypesWithUserIdAndYear(tenantId, token, year);
+        const stats = await getAllLeaveTypesWithUserIdAndYear(tenantId, year);
         setLeaveStats(stats?.summary || null);
       } catch (e) { console.error(e); }
 
