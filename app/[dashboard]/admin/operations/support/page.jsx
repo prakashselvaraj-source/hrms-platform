@@ -4,7 +4,7 @@ import { useState, Fragment, useEffect } from "react";
 import Link from "next/link";
 import { useTenant } from "@/hooks/useTenant";
 import { ChevronLeft, ChevronRight, Loader2, Filter, CheckCircle2, Clock, AlertCircle, UserPlus, XCircle, Send, CircleQuestionMark, Eye } from "lucide-react";
-import { getAllTickets, updateTicketStatus, assignTicket, takeTicket, resolveTicket } from "@/services/ticketService";
+import { getAllTickets, updateTicketStatus, assignTicket, takeTicket, resolveTicket } from './../../../../../services/ticketService';
 import { getEmployees } from "@/services/employeeService";
 
 // ─── Status Badge ────────────────────────────────────────────────────────────

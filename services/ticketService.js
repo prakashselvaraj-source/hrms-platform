@@ -6,19 +6,40 @@ export const createTicket = (tenantId, payload) => {
   });
 };
 
-export const getTickets = (tenantId, params = {}) => {
-  const query = new URLSearchParams();
-  if (params.page) query.set("page", params.page);
-  if (params.size) query.set("size", params.size);
-  if (params.status) query.set("status", params.status);
-  const qs = query.toString();
-  return API.get(`/tickets${qs ? `?${qs}` : ""}`, {
+export const getAllTickets = (tenantId, page = 0, size = 10) => {
+  return API.get(`/tickets?page=${page}&size=${size}`, {
     headers: { "X-Tenant-Id": tenantId },
   });
 };
 
-export const getTicketById = (tenantId, id) => {
+export const getTickets = getAllTickets; // Alias for compatibility
+
+export const getTicketById = (id, tenantId) => {
   return API.get(`/tickets/${id}`, {
+    headers: { "X-Tenant-Id": tenantId },
+  });
+};
+
+export const updateTicketStatus = (id, status, tenantId) => {
+  return API.patch(`/tickets/${id}/status?status=${status}`, {}, {
+    headers: { "X-Tenant-Id": tenantId },
+  });
+};
+
+export const assignTicket = (id, assignedTo, tenantId) => {
+  return API.put(`/tickets/assign/${id}`, { assignedTo }, {
+    headers: { "X-Tenant-Id": tenantId },
+  });
+};
+
+export const takeTicket = (id, tenantId) => {
+  return API.put(`/tickets/take/${id}`, {}, {
+    headers: { "X-Tenant-Id": tenantId },
+  });
+};
+
+export const resolveTicket = (id, note, tenantId) => {
+  return API.put(`/tickets/resolve/${id}`, { note }, {
     headers: { "X-Tenant-Id": tenantId },
   });
 };
