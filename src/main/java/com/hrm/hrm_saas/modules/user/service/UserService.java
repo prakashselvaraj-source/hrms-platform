@@ -47,7 +47,9 @@ public class UserService {
                         throw new RuntimeException("User Already exists");
                 }
 
+                System.out.println("Attempting to find tenant with identifier: " + dto.getTenant());
                 Tenant tenant = tenantRepository.findByCompanyCode(dto.getTenant())
+                                .or(() -> tenantRepository.findByCompanyName(dto.getTenant()))
                                 .orElseThrow(() -> new RuntimeException("Tenant not found"));
 
                 Employee employee = employeeRepository.findByWorkEmail(dto.getEmail())

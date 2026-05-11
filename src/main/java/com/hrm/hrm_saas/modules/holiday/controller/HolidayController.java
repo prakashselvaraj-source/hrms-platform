@@ -41,6 +41,14 @@ public class HolidayController {
         return ResponseEntity.ok(service.getHolidayById(id, tenantId));
     }
 
+    @GetMapping("/upcoming")
+    public ResponseEntity<HolidayPageResponse> getUpcomingHolidays(
+            @RequestHeader ("X-Tenant-Id") String tenantId,
+            @PageableDefault(size = 10, sort = "date", direction = Sort.Direction.ASC) Pageable pageable){
+        return ResponseEntity.ok(service.getUpcomingHolidays(tenantId,pageable));
+    }
+    
+
     @PutMapping("/{id}")
     public ResponseEntity<HolidayDTO> updateHoliday(
             @PathVariable Long id,

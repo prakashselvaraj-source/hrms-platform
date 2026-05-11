@@ -29,6 +29,10 @@ public class JwtUtil {
         return (String) getClaims(token).get("tenant");
     }
 
+    public static String extractRole(String token) {
+        return (String) getClaims(token).get("role");
+    }
+
     private static Claims getClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(KEY)
