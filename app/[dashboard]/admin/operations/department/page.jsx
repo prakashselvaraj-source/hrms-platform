@@ -33,9 +33,9 @@ function Breadcrumb() {
 // ─── Page Header ─────────────────────────────────────────────────────────────
 function PageHeader({ onAdd }) {
     return (
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center justify-between gap-4">
             <div>
-                <Breadcrumb />
+                
                 <h1 className="mt-2 text-2xl font-semibold text-gray-800 tracking-tight">
                     Departments
                 </h1>
@@ -211,7 +211,7 @@ function DepartmentTable({ departments, onEdit, onDelete, deletingId }) {
                                 </span>
                             </td>
                             <td className="py-3.5 px-3 text-gray-600">
-                                {dept.headOfDepartment || <span className="text-gray-300 italic">Not assigned</span>}
+                                {dept.manager || <span className="text-gray-300 italic">Not assigned</span>}
                             </td>
                             <td className="py-3.5 px-3">
                                 <StatusBadge active={dept.isActive} />
@@ -309,7 +309,7 @@ function DeleteModal({ department, onConfirm, onCancel, loading }) {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-            <div className="w-full max-w-sm rounded-2xl bg-white shadow-xl p-6 mx-4">
+            <div className="w-full flex flex-col max-w-sm rounded-2xl bg-white shadow-xl p-6 mx-4 items-center">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50 mb-4">
                     <Trash2 size={20} className="text-red-500" />
                 </div>
@@ -317,7 +317,6 @@ function DeleteModal({ department, onConfirm, onCancel, loading }) {
                 <p className="mt-2 text-sm text-gray-500">
                     Are you sure you want to delete{" "}
                     <span className="font-semibold text-gray-700">{department.name}</span>?
-                    This action cannot be undone.
                 </p>
                 <div className="mt-6 flex gap-3 justify-end">
                     <button
@@ -431,10 +430,10 @@ export default function DepartmentListPage() {
 
     return (
         <div className="min-h-screen bg-gray-50/60 px-4 py-8 sm:px-6 lg:px-10">
-            <div className="w-full max-w-5xl space-y-6">
+            <div className="w-full space-y-6">
 
                 {/* Header */}
-                <PageHeader onAdd={() => router.push(`/${tenantId}/admin/department/add`)} />
+                <PageHeader onAdd={() => router.push(`/${tenantId}/admin/operations/department/add`)} />
 
                 {/* Stats */}
                 <StatsCards
@@ -481,7 +480,7 @@ export default function DepartmentListPage() {
                     ) : (
                         <DepartmentTable
                             departments={paginated}
-                            onEdit={(dept) => router.push(`/departments/edit/${dept.id}`)}
+                            onEdit={(dept) => router.push(`/${tenantId}/admin/operations/department/edit/${dept.id}`)}
                             onDelete={(dept) => setDeleteTarget(dept)}
                             deletingId={deletingId}
                         />

@@ -1,5 +1,4 @@
 "use client";
-import { ThemeProvider } from "../../../lib/theme-provider";
 import AdminSidebar from "@/components/layout/AdminSidebar";
 import Navbar from "@/components/layout/navbar";
 import { useState } from "react";
@@ -10,7 +9,6 @@ export default function RootLayout({ children }) {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <ThemeProvider>
         <AdminSidebar isOpen={isOpen} setIsOpen={setIsOpen} />
 
         <div className="flex flex-1 flex-col overflow-hidden">
@@ -19,7 +17,6 @@ export default function RootLayout({ children }) {
             {children}
           </main>
         </div>
-      </ThemeProvider>
     </div>
   );
 }

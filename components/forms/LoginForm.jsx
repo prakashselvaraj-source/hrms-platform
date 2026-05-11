@@ -93,6 +93,7 @@ export default function LoginForm() {
 
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("role", res.data.role);
+      localStorage.setItem("userEmail", form.email);
 
       const tenantsRes = await tenantsData();
 

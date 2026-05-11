@@ -12,9 +12,9 @@ import {
     ChevronDown,
     Loader2,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { useTenant } from "@/hooks/useTenant";
-import { createDepartment } from "@/services/departmentService";
+import { getDepartmentById, updateDepartment } from "@/services/departmentService";
 import { getEmployees } from "@/services/employeeService";
 
 function Breadcrumb() {
@@ -24,7 +24,7 @@ function Breadcrumb() {
                 Department
             </span>
             <ChevronRight size={14} className="text-gray-500" />
-            <span className="text-[#4A45B6] font-semibold">Department management</span>
+            <span className="text-[#4A45B6] font-semibold">Edit Department</span>
         </nav>
     );
 }
@@ -35,7 +35,7 @@ function PageHeader({ route }) {
             <div>
                 <Breadcrumb />
                 <h1 className="mt-2 text-2xl font-semibold text-gray-800 tracking-tight">
-                    Add Department
+                    Edit Department
                 </h1>
             </div>
             <button
@@ -75,8 +75,6 @@ function TextInput({ placeholder, value, onChange, name }) {
 }
 
 function ManagerSelect({ value, onChange, managers, loadingManagers }) {
-
-
     return (
         <div className="relative">
             <div className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center">
@@ -86,13 +84,13 @@ function ManagerSelect({ value, onChange, managers, loadingManagers }) {
             </div>
             <select
                 name="manager"
-                value={value}
+                value={value || ""}
                 onChange={onChange}
                 disabled={loadingManagers}
                 className="w-full appearance-none rounded-lg border border-gray-200 bg-gray-50 pl-9 pr-10 py-2.5 text-sm text-gray-800 outline-none transition-all duration-150 focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
                 <option value="">{loadingManagers ? "Loading managers..." : "Select Manager"}</option>
-                {managers.map((m) => (
+                {managers?.map((m) => (
                     <option key={m.id} value={m?.firstName + " " + m?.lastName}>
                         {m?.firstName} {m?.lastName}
                     </option>
@@ -174,13 +172,14 @@ function FooterActions({ onCancel, isSubmitting }) {
                 className="flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 active:bg-indigo-800 transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
             >
                 {isSubmitting && <Loader2 size={14} className="animate-spin" />}
-                {isSubmitting ? "Saving..." : "Save Department"}
+                {isSubmitting ? "Updating..." : "Update Department"}
             </button>
         </div>
     );
 }
 
-export default function AddDepartmentPage() {
+export default function EditDepartmentPage() {
+    const { id } = useParams();
     const [form, setForm] = useState({
         departmentName: "",
         departmentCode: "",
@@ -189,18 +188,45 @@ export default function AddDepartmentPage() {
     });
     const [managers, setManagers] = useState([]);
     const [loadingManagers, setLoadingManagers] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState(null);
 
     const tenantId = useTenant();
-    const route = useRouter();
+    const router = useRouter();
+
+    // Fetch department details
+    useEffect(() => {
+        if (!tenantId || !id) return;
+
+        async function fetchData() {
+            setIsLoading(true);
+            try {
+                const res = await getDepartmentById(tenantId, id);
+                const dept = res.data;
+                setForm({
+                    departmentName: dept.name || "",
+                    departmentCode: dept.code || "",
+                    manager: dept.manager || "",
+                    statusActive: dept.isActive ?? true,
+                });
+            } catch (err) {
+                console.error("Failed to load department:", err);
+                setError("Failed to load department details.");
+            } finally {
+                setIsLoading(false);
+            }
+        }
+
+        fetchData();
+    }, [tenantId, id]);
 
     // Fetch employees to populate manager dropdown
     useEffect(() => {
         if (!tenantId) return;
         setLoadingManagers(true);
         getEmployees(tenantId)
-            .then((res) => setManagers(res.data || []))
+            .then((res) => setManagers(res.data.employees || []))
             .catch((err) => console.error("Failed to load managers:", err))
             .finally(() => setLoadingManagers(false));
     }, [tenantId]);
@@ -222,36 +248,36 @@ export default function AddDepartmentPage() {
             const payload = {
                 name: form.departmentName,
                 code: form.departmentCode,
-                headOfDepartment: form.manager || null,
+                manager: form.manager || null,
                 isActive: form.statusActive,
             };
-            console.log("payload", payload);
-            await createDepartment(tenantId, payload);
-            alert("Department created successfully!");
-            // route.back();
+            await updateDepartment(tenantId, id, payload);
+            alert("Department updated successfully!");
+            router.push(`/${tenantId}/admin/operations/department`);
         } catch (err) {
-            console.error("Failed to create department:", err);
-            setError(err.response?.data?.message || "Failed to save department. Please try again.");
+            console.error("Failed to update department:", err);
+            setError(err.response?.data?.message || "Failed to update department. Please try again.");
         } finally {
             setIsSubmitting(false);
         }
     }
 
-    function handleCancel() {
-        setForm({
-            departmentName: "",
-            departmentCode: "",
-            manager: "",
-            statusActive: true,
-        });
-        setError(null);
+    if (isLoading) {
+        return (
+            <div className="flex h-screen items-center justify-center bg-gray-50">
+                <div className="flex flex-col items-center gap-3 text-gray-400">
+                    <Loader2 size={32} className="animate-spin text-indigo-500" />
+                    <p className="text-sm font-medium">Loading department details...</p>
+                </div>
+            </div>
+        );
     }
 
     return (
         <div className="min-h-screen bg-gray-50/60 px-4 py-8 sm:px-6 lg:px-10">
-            <div className=" w-full max-w-3xl space-y-6">
+            <div className=" w-full space-y-6">
                 {/* Header */}
-                <PageHeader route={route} />
+                <PageHeader route={router} />
 
                 {/* Form Card */}
                 <form onSubmit={handleSubmit}>
@@ -304,7 +330,7 @@ export default function AddDepartmentPage() {
                         )}
 
                         {/* Footer Buttons */}
-                        <FooterActions onCancel={handleCancel} isSubmitting={isSubmitting} />
+                        <FooterActions onCancel={() => router.back()} isSubmitting={isSubmitting} />
                     </FormCard>
                 </form>
             </div>

@@ -1,11 +1,13 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import {
   Pencil, BadgeCheck, MapPin, Mail, MessageSquare, Sun, Menu, X,
   MenuIcon,
 } from "lucide-react";
 import ThemeToggle from "@/components/ui/theme-toggle";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
+import { div } from "framer-motion/client";
+import { getAllHolidays } from "@/services/holidayService";
 
 const leaveTabs = ["Apply Leaves", "Attendance Report", "Request Status", "Upcoming Holidays", "Career History"];
 
@@ -243,6 +245,13 @@ export default function HRDashboard() {
     e.currentTarget.style.color = entering ? "#fff" : "var(--brand-accent)";
   };
 
+  useEffect(()=>{
+    const fetchHolidays = async() =>{
+      const response = await getAllHolidays();
+      console.log(response);
+    }
+  })
+
   return (
     <div
       className="flex flex-col min-h-screen"
@@ -259,7 +268,7 @@ export default function HRDashboard() {
             {["Overview", "Dashboard"].map((tab) => (
               <button
                 key={tab}
-                onClick={() => {setActiveTab(tab);console.log(tab);router.push(tab==="Overview" ? "/home/overview" : `/home/${tab.toLowerCase()}`)}}
+                onClick={() => {setActiveTab(tab);console.log(tab);router.push(tab==="Overview" ? `/${tenantId}/admin/home/overview` : `/${tenantId}/admin/home/${tab.toLowerCase()}`)}}
                 className="px-4 py-3 text-[13px] font-medium border-b-2 transition-colors cursor-pointer bg-transparent outline-none"
                 style={{
                   borderBottomColor: activeTab === tab ? "var(--tab-active-border)" : "transparent",
@@ -392,6 +401,7 @@ export default function HRDashboard() {
             </div>
 
             {/* Leave table */}
+            { activeLeaveTab == 'Apply Leaves' && (
             <div className="overflow-x-auto">
               <table className="w-full text-sm" style={{ minWidth: "400px" }}>
                 <tbody>
@@ -457,6 +467,20 @@ export default function HRDashboard() {
                 </tbody>
               </table>
             </div>
+            )}
+            {activeLeaveTab == 'Upcoming Holidays' && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm" style={{minWidth: "400px"}}>
+                  <tbody>
+                    { }
+                    <tr>
+
+                    </tr>
+                  </tbody>
+                </table>
+
+              </div>
+            )}
           </div>
         </div>
 

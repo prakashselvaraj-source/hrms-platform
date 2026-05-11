@@ -15,23 +15,23 @@ import {
 } from "lucide-react";
 import { useTenant } from "@/hooks/useTenant";
 
-const navItems = [
-  { label: "Home", href: "/home/overview", icon: LayoutGrid },
-  { label: "Profile", href: "/profile", icon: User },
-  { label: "Leave", href: "/leaveManagement", icon: CalendarDays },
-  { label: "Payroll", href: "/payroll", icon: Briefcase },
-  { label: "Performance", href: "/performance", icon: BarChart2 },
-  { label: "Support", href: "/support", icon: MessageSquare },
-];
-
-const bottomItems = [
-  { label: "Settings", href: "/settings", icon: Settings },
-  { label: "Logout", href: "/logout", icon: LogOut },
-];
-
 export default function Sidebar({ isOpen, setIsOpen }) {
   const pathname = usePathname();
   const tenant = useTenant();
+
+  const navItems = [
+    { label: "Home", href: `/${tenant}/home/overview`, icon: LayoutGrid },
+    { label: "Profile", href: `/${tenant}/profile`, icon: User },
+    { label: "Leave", href: `/${tenant}/leaveManagement`, icon: CalendarDays },
+    { label: "Payroll", href: `/${tenant}/payroll`, icon: Briefcase },
+    { label: "Performance", href: `/${tenant}/performance`, icon: BarChart2 },
+    { label: "Support", href: `/${tenant}/support`, icon: MessageSquare },
+  ];
+
+  const bottomItems = [
+    { label: "Settings", href: `/${tenant}/settings`, icon: Settings },
+    { label: "Logout", href: "/logout", icon: LogOut },
+  ];
 
   return (
     <>
