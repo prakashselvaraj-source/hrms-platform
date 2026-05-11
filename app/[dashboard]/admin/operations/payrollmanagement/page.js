@@ -1,232 +1,385 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useTenant } from "@/hooks/useTenant";
 import {
   Download,
   Play,
   DollarSign,
   Users,
-  Minus,
   AlertCircle,
   CheckCircle2,
-  Circle,
   Lock,
   AlertTriangle,
-  Info,
-  CircleMinus,
+  Zap,
+  ChevronRight,
+  ArrowUpRight,
+  Settings,
+  History,
+  FileText,
+  Calculator,
+  Loader2,
+  PieChart,
+  Calendar,
+  RefreshCw
 } from "lucide-react";
+import { motion } from "framer-motion";
+import { getAdminPayrollOverview, seedPayrollData } from "@/services/payrollService";
 
-const statsCards = [
-  {
-    icon: <DollarSign size={18} className="text-blue-500" />,
-    iconBg: "bg-blue-50",
-    label: "TOTAL PAYROLL COST",
-    value: "$1,284,500",
-    subtext: "Cycle: April 2025",
-    badge: "+4.2%",
-    badgeColor: "text-green-600 bg-green-50",
-    borderColor: "border-t-4 border-[#4A45B6]"
-  },
-  {
-    icon: <Users size={18} className="text-green-500" />,
-    iconBg: "bg-green-50",
-    label: "EMPLOYEES PROCESSED",
-    value: "1,240 / 1,240",
-    subtext: "All departments synced",
-    badge: "100%",
-    badgeColor: "text-green-600 bg-green-50",
-    borderColor: "border-t-4 border-[#10B981]"
-  },
-  {
-    icon: <CircleMinus size={18} className="text-orange-500" />,
-    iconBg: "bg-orange-50",
-    label: "TOTAL DEDUCTIONS",
-    value: "$342,100",
-    subtext: "Includes PF, TDS & Health",
-    badge: "-2.1%",
-    badgeColor: "text-red-600 bg-red-50",
-    borderColor: "border-t-4 border-[#F97316]"
-  },
-  {
-    icon: <AlertCircle size={18} className="text-red-500" />,
-    iconBg: "bg-red-50",
-    label: "LOP CASES",
-    value: "42",
-    subtext: "Pending verification",
-    badge: "+12 new",
-    badgeColor: "text-orange-600 bg-orange-50",
-    borderColor: "border-t-4 border-[#EF4444]"
-  },
-];
+export default function AdminPayrollDashboard() {
+  const router = useRouter();
+  const tenant = useTenant();
+  const [loading, setLoading] = useState(true);
+  const [overview, setOverview] = useState(null);
 
-const timelineSteps = [
-  { label: "SALARY\nSTRUCTURE", status: "done" },
-  { label: "ATTENDANCE\nSYNC", status: "done" },
-  { label: "INPUT\nREVIEW", status: "done" },
-  { label: "RUN\nPAYROLL", status: "active" },
-  { label: "COMPLIANCE\nCHECK", status: "pending" },
-  { label: "FUNDS\nTRANSFER", status: "pending" },
-  { label: "PAYOUT\nCOMPLETE", status: "pending" },
-];
+  useEffect(() => {
+    if (!tenant) return;
+    const fetchOverview = async () => {
+      try {
+        const res = await getAdminPayrollOverview(tenant);
+        setOverview(res.data);
+      } catch (err) {
+        console.error("Failed to fetch admin payroll overview:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchOverview();
+  }, [tenant]);
 
-const alerts = [
-  {
-    type: "error",
-    dot: "bg-red-500",
-    bg: "bg-[#FEF2F2] border-[#FEE2E2]",
-    title: "Ravi Kumar — 7 LOP days",
-    desc: "Requires manual review for sick leave.",
-  },
-  {
-    type: "warning",
-    dot: "bg-yellow-500",
-    bg: "bg-[#FFF7ED] border-[#FFEDD5]",
-    title: "3 employees missing attendance",
-    desc: "IT Department — sync pending.",
-  },
-  {
-    type: "info",
-    dot: "bg-blue-500",
-    bg: "bg-[#EFF6FF] border-[#DBEAFE]",
-    title: "Bank account mismatch",
-    desc: "1 new joiner needs verification.",
-  },
-];
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { 
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  };
 
-function StepIcon({ status }) {
-  if (status === "done")
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { y: 0, opacity: 1 }
+  };
+
+  // Mock data for demonstration if backend is empty
+  const displayData = overview || {
+    totalPayrollCost: 1284500,
+    employeesProcessed: 1240,
+    totalEmployees: 1240,
+    totalDeductions: 342100,
+    lopCases: 42,
+    currentMonth: "April 2025",
+    cycleStatus: "IN_PROGRESS", // DRAFT, IN_PROGRESS, LOCKED, COMPLETED
+    currentStep: 4, // 1 to 7
+    alerts: [
+      { id: 1, type: "error", title: "Ravi Kumar — 7 LOP days", desc: "Requires manual review for sick leave.", category: "Attendance" },
+      { id: 2, type: "warning", title: "3 employees missing attendance", desc: "IT Department — sync pending.", category: "Sync" },
+      { id: 3, type: "info", title: "Bank account mismatch", desc: "1 new joiner needs verification.", category: "Compliance" },
+    ]
+  };
+
+  const timelineSteps = [
+    { id: 1, label: "Salary Structure", status: "completed" },
+    { id: 2, label: "Attendance Sync", status: "completed" },
+    { id: 3, label: "Input Review", status: "completed" },
+    { id: 4, label: "Run Payroll", status: "active" },
+    { id: 5, label: "Compliance Check", status: "pending" },
+    { id: 6, label: "Funds Transfer", status: "pending" },
+    { id: 7, label: "Payout Complete", status: "pending" },
+  ];
+
+  if (loading && !overview) {
     return (
-      <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center z-10">
-        <CheckCircle2 size={16} className="text-white" />
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8FAFC]">
+        <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
+        <p className="mt-4 text-slate-500 font-bold font-sans tracking-tight">Initializing Payroll Command Center...</p>
       </div>
     );
-  if (status === "active")
-    return (
-      <div className="w-8 h-8 rounded-full border-2 border-indigo-600 bg-white flex items-center justify-center z-10">
-        <div className="w-3 h-3 rounded-full bg-indigo-600" />
-      </div>
-    );
+  }
+
   return (
-    <div className="w-8 h-8 rounded-full border-2 border-gray-300 bg-white flex items-center justify-center z-10">
-      <Circle size={10} className="text-gray-300" />
+    <div className="min-h-screen bg-[#F8FAFC] p-4 sm:p-8 lg:p-10 font-sans text-slate-900">
+      <motion.div 
+        initial="hidden"
+        animate="visible"
+        variants={containerVariants}
+        className="max-w-7xl mx-auto space-y-8"
+      >
+        {/* Header Section */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <motion.div variants={itemVariants} className="space-y-1">
+            <h1 className="text-3xl font-black tracking-tight text-slate-900">
+              Payroll Management
+            </h1>
+            <p className="text-slate-500 text-sm font-medium">
+              Enterprise Control Center • {displayData.currentMonth} Cycle
+            </p>
+          </motion.div>
+
+          <motion.div variants={itemVariants} className="flex flex-wrap gap-3">
+            <button 
+              onClick={async () => {
+                if(confirm("This will generate sample payroll records for testing. Continue?")) {
+                  try { await seedPayrollData(tenant); window.location.reload(); } catch(e) { alert(e.message); }
+                }
+              }}
+              className="flex items-center gap-2 bg-white border border-slate-200 px-5 py-3 rounded-2xl font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm active:scale-95"
+            >
+              <Zap className="w-4 h-4 text-amber-500" />
+              <span>Seed Data</span>
+            </button>
+            <button className="flex items-center gap-2 bg-white border border-slate-200 px-5 py-3 rounded-2xl font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm active:scale-95">
+              <Download className="w-4 h-4" />
+              <span>Global Report</span>
+            </button>
+            <button 
+              onClick={() => router.push(`/${tenant}/admin/operations/payrollmanagement/payrollprocessing`)}
+              className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold shadow-xl shadow-slate-200 hover:bg-black transition-all active:scale-95"
+            >
+              <Play className="w-4 h-4 fill-current" />
+              <span>Execute Cycle</span>
+            </button>
+          </motion.div>
+        </div>
+
+        {/* Status Dashboard Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <StatCard 
+            label="Total Payroll Cost" 
+            value={`$${displayData.totalPayrollCost.toLocaleString()}`} 
+            icon={<DollarSign className="w-5 h-5" />} 
+            trend="+4.2%" 
+            subtext="vs Last Month"
+            color="indigo"
+          />
+          <StatCard 
+            label="Processed Employees" 
+            value={`${displayData.employeesProcessed}/${displayData.totalEmployees}`} 
+            icon={<Users className="w-5 h-5" />} 
+            trend="100%" 
+            subtext="All Departments Synced"
+            color="emerald"
+          />
+          <StatCard 
+            label="Statutory Deductions" 
+            value={`$${displayData.totalDeductions.toLocaleString()}`} 
+            icon={<PieChart className="w-5 h-5" />} 
+            trend="-2.1%" 
+            subtext="PF, TDS & Compliance"
+            color="amber"
+          />
+          <StatCard 
+            label="Critical LOP Cases" 
+            value={displayData.lopCases} 
+            icon={<AlertCircle className="w-5 h-5" />} 
+            trend="+12 New" 
+            subtext="Manual Review Required"
+            color="rose"
+          />
+        </div>
+
+        {/* Main Content Layout */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+          
+          {/* Left: Cycle Progress & Workflow */}
+          <div className="xl:col-span-2 space-y-8">
+            <motion.div variants={itemVariants} className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm p-8 lg:p-10">
+              <div className="flex items-center justify-between mb-10">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
+                    <Calendar className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-slate-900">Current Cycle Workflow</h3>
+                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-0.5">Status: {displayData.cycleStatus.replace('_', ' ')}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                   <button className="flex items-center font-bold gap-2 text-xs text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-xl px-4 py-2 transition-all">
+                    <Lock className="w-3 h-3" />
+                    Lock Cycle
+                  </button>
+                </div>
+              </div>
+
+              {/* Stepper Component */}
+              <div className="relative flex items-start justify-between">
+                {/* Connector Line */}
+                <div className="absolute top-5 left-10 right-10 h-0.5 bg-slate-100 z-0" />
+                <div 
+                  className="absolute top-5 left-10 h-0.5 bg-indigo-500 z-0 transition-all duration-1000" 
+                  style={{ width: `${(displayData.currentStep - 1) * 16.6}%` }} 
+                />
+
+                {timelineSteps.map((step) => (
+                  <div key={step.id} className="relative z-10 flex flex-col items-center group flex-1">
+                    <StepIcon status={step.id < displayData.currentStep ? 'completed' : step.id === displayData.currentStep ? 'active' : 'pending'} />
+                    <p className={`mt-4 text-[10px] font-black uppercase tracking-widest text-center px-1 transition-colors ${
+                      step.id <= displayData.currentStep ? 'text-slate-900' : 'text-slate-300'
+                    }`}>
+                      {step.label}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* Module Navigation Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <ModuleCard 
+                title="Salary Structure" 
+                desc="Manage components, grades & salary slabs." 
+                icon={<Calculator className="w-6 h-6 text-indigo-600" />}
+                onClick={() => router.push(`/${tenant}/admin/operations/payrollmanagement/salarystructure`)}
+              />
+              <ModuleCard 
+                title="Processing Center" 
+                desc="Execute & review current cycle payouts." 
+                icon={<RefreshCw className="w-6 h-6 text-emerald-600" />}
+                onClick={() => router.push(`/${tenant}/admin/operations/payrollmanagement/payrollprocessing`)}
+              />
+              <ModuleCard 
+                title="Payroll History" 
+                desc="Archived cycles, reports & historical data." 
+                icon={<History className="w-6 h-6 text-amber-600" />}
+                onClick={() => router.push(`/${tenant}/admin/operations/payrollmanagement/payrollhistory`)}
+              />
+            </div>
+          </div>
+
+          {/* Right: Alerts & Real-time Anomalies */}
+          <div className="space-y-8">
+            <motion.div variants={itemVariants} className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm p-8 space-y-8">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5 text-rose-500" />
+                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Active Anomalies</h3>
+                </div>
+                <span className="bg-rose-50 text-rose-600 text-[10px] font-black px-3 py-1 rounded-full">{displayData.alerts.length}</span>
+              </div>
+
+              <div className="space-y-4">
+                {displayData.alerts.map((alert) => (
+                  <div key={alert.id} className="group p-4 rounded-3xl border border-slate-100 hover:border-indigo-100 hover:bg-indigo-50/30 transition-all cursor-pointer">
+                    <div className="flex items-start gap-4">
+                      <div className={`mt-1 w-2 h-2 rounded-full shrink-0 ${
+                        alert.type === 'error' ? 'bg-rose-500' : alert.type === 'warning' ? 'bg-amber-500' : 'bg-blue-500'
+                      }`} />
+                      <div className="space-y-1">
+                        <p className="text-sm font-black text-slate-800">{alert.title}</p>
+                        <p className="text-xs text-slate-400 font-medium leading-relaxed">{alert.desc}</p>
+                        <div className="flex items-center gap-2 mt-2">
+                           <span className="text-[9px] font-black uppercase text-slate-400 bg-slate-50 px-2 py-1 rounded-md">{alert.category}</span>
+                           <ArrowUpRight className="w-3 h-3 text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button className="w-full py-4 text-[10px] font-black text-slate-400 bg-slate-50 rounded-2xl hover:text-indigo-600 hover:bg-indigo-50 transition-all uppercase tracking-widest border border-dashed border-slate-200">
+                View All Verification Required
+              </button>
+            </motion.div>
+
+            {/* Quick Config */}
+            <motion.div variants={itemVariants} className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl shadow-slate-300">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16" />
+              <div className="relative z-10 space-y-6">
+                <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center">
+                  <Settings className="w-6 h-6 text-indigo-400" />
+                </div>
+                <div className="space-y-2">
+                  <h4 className="text-lg font-black">System Config</h4>
+                  <p className="text-slate-400 text-xs leading-relaxed font-medium">
+                    Manage payroll dates, tax slabs, and statutory contribution percentages.
+                  </p>
+                </div>
+                <button 
+                  onClick={() => router.push(`/${tenant}/admin/operations/payrollmanagement/payrollsystemconfig`)}
+                  className="w-full py-3 text-xs font-black bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-900/20"
+                >
+                  Configure Rules
+                </button>
+              </div>
+            </motion.div>
+          </div>
+
+        </div>
+      </motion.div>
     </div>
   );
 }
 
-export default function PayrollOverview() {
+function StatCard({ label, value, icon, trend, subtext, color }) {
+  const colors = {
+    indigo: "bg-indigo-50 text-indigo-600 border-indigo-100",
+    emerald: "bg-emerald-50 text-emerald-600 border-emerald-100",
+    amber: "bg-amber-50 text-amber-600 border-amber-100",
+    rose: "bg-rose-50 text-rose-600 border-rose-100",
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6 font-sans">
-      <div className="max-w-7xl mx-auto space-y-6">
-
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-semibold text-[#0F172A]">Payroll Overview</h1>
-            <p className="text-sm text-[#64748B] mt-0.5">
-              Manage and monitor the current month's disbursement cycle
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#334155] border border-[#E2E8F0] rounded-sm bg-[#FFFFFF]">
-              <Download size={15} />
-              Export Report
-            </button>
-            <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#4A45B6] rounded-md">
-              Run Payroll Cycle
-            </button>
-          </div>
+    <motion.div 
+      variants={{ hidden: { opacity: 0, scale: 0.95 }, visible: { opacity: 1, scale: 1 }}}
+      className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all group"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 ${colors[color]}`}>
+          {icon}
         </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {statsCards.map((card, i) => (
-            <div key={i} className={`bg-white rounded-md shadow-sm p-5 ${card.borderColor}`}>
-              <div className="flex items-center justify-between mb-3">
-                <div className={`w-8 h-8 rounded-lg ${card.iconBg} flex items-center justify-center`}>
-                  {card.icon}
-                </div>
-                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${card.badgeColor}`}>
-                  {card.badge}
-                </span>
-              </div>
-              <p className="text-xs font-semibold text-[#64748B] tracking-wide mb-3">{card.label}</p>
-              <p className="text-2xl font-bold text-[#0F172A] mb-3">{card.value}</p>
-              <p className="text-xs text-[#94A3B8]">{card.subtext}</p>
-            </div>
-          ))}
+        <div className="text-right">
+          <span className={`text-xs font-black ${trend.startsWith('+') ? 'text-emerald-500' : 'text-rose-500'}`}>
+            {trend}
+          </span>
+          <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">{subtext}</p>
         </div>
-
-        {/* Payroll Timeline */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8">
-            <h2 className="text-sm font-semibold text-gray-800">
-              Payroll timeline — April 2025
-            </h2>
-            <div className="flex items-center gap-2">
-              <button className="flex items-center font-semibold gap-1.5 text-xs text-[#4A45B6] bg-[#EFF6FF] rounded-sm px-3 py-1.5">
-                <Lock size={12} />
-                Lock Payroll
-              </button>
-              <span className="text-xs font-semibold text-[#2563EB] bg-[#EFF6FF] px-3 py-1.5 rounded-sm">
-                IN PROGRESS
-              </span>
-            </div>
-          </div>
-
-          {/* Stepper */}
-          <div className="relative flex items-start justify-between overflow-x-auto pb-2">
-            {/* Background line */}
-            <div className="absolute top-4 left-4 right-4 h-0.5 bg-gray-200 z-0" />
-            {/* Progress line */}
-            <div
-              className="absolute top-4 left-4 h-0.5 bg-indigo-600 z-0"
-              style={{ width: `calc(${(3 / 6) * 100}% - 8px)` }}
-            />
-
-            {timelineSteps.map((step, i) => (
-              <div key={i} className="flex flex-col items-center flex-1 min-w-[60px]">
-                <StepIcon status={step.status} />
-                <p
-                  className={`text-center mt-2 whitespace-pre-line leading-tight text-[10px] font-semibold tracking-wide ${
-                    step.status === "pending" ? "text-[#64748B]" : "text-[#334155]"
-                  }`}
-                >
-                  {step.label}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Alerts & Anomalies */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <AlertTriangle size={16} className="text-orange-500" />
-            <h2 className="text-sm font-semibold text-gray-800">Alerts & anomalies</h2>
-          </div>
-
-          <div className="space-y-3">
-            {alerts.map((alert, i) => (
-              <div
-                key={i}
-                className={`flex items-start gap-3 p-4 rounded-lg border ${alert.bg}`}
-              >
-                <div className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${alert.dot}`} />
-                <div>
-                  <p className="text-sm font-semibold text-gray-800">{alert.title}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{alert.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-5 flex justify-center">
-            <button className="text-sm uppercase font-bold text-[#64748B]">
-              VIEW ALL ALERTS
-            </button>
-          </div>
-        </div>  
-
       </div>
+      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{label}</p>
+      <h3 className="text-2xl font-black text-slate-900">{value}</h3>
+    </motion.div>
+  );
+}
+
+function ModuleCard({ title, desc, icon, onClick }) {
+  return (
+    <motion.div 
+      whileHover={{ y: -5 }}
+      onClick={onClick}
+      className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm hover:shadow-lg hover:border-indigo-100 transition-all cursor-pointer group"
+    >
+      <div className="w-14 h-14 bg-slate-50 rounded-[1.5rem] flex items-center justify-center mb-6 group-hover:bg-indigo-50 transition-colors">
+        {icon}
+      </div>
+      <h4 className="text-sm font-black text-slate-900 mb-2">{title}</h4>
+      <p className="text-xs text-slate-400 leading-relaxed font-medium">{desc}</p>
+      <div className="mt-6 flex items-center gap-2 text-indigo-600">
+        <span className="text-[10px] font-black uppercase tracking-widest">Open Module</span>
+        <ChevronRight className="w-3 h-3 transition-transform group-hover:translate-x-1" />
+      </div>
+    </motion.div>
+  );
+}
+
+function StepIcon({ status }) {
+  if (status === "completed") {
+    return (
+      <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-100 group-hover:scale-110 transition-transform">
+        <CheckCircle2 className="w-5 h-5 text-white" />
+      </div>
+    );
+  }
+  if (status === "active") {
+    return (
+      <div className="w-10 h-10 rounded-2xl border-4 border-indigo-600 bg-white flex items-center justify-center shadow-xl shadow-indigo-100 group-hover:scale-110 transition-transform">
+        <div className="w-3 h-3 rounded-full bg-indigo-600 animate-pulse" />
+      </div>
+    );
+  }
+  return (
+    <div className="w-10 h-10 rounded-2xl border-2 border-slate-100 bg-white flex items-center justify-center text-slate-200 group-hover:border-slate-300 transition-colors">
+      <div className="w-2 h-2 rounded-full bg-slate-100" />
     </div>
   );
 }

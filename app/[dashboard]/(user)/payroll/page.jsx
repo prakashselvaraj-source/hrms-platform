@@ -1,226 +1,442 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Download, FileText, Banknote, Building2, Upload, Bell, HelpCircle } from "lucide-react";
-
-const payslips = [
-  { label: "LATEST", month: "Mar 2026", net: "$8,450.00", status: "latest" },
-  { label: "PROCESSED", month: "Feb 2026", net: "$8,450.00", status: "processed" },
-  { label: "PROCESSED", month: "Jan 2026", net: "$8,200.00", status: "processed" },
-];
-
-const earnings = [
-  { name: "Basic Pay", amount: "$6,500.00", sign: "" },
-  { name: "Performance Bonus", amount: "$800.00", sign: "+" },
-];
-
-const deductions = [
-  { name: "Provident Fund (PF)", amount: "$780.00" },
-  { name: "Income Tax (TDS)", amount: "$950.00" },
-  { name: "Professional Tax", amount: "$70.00" },
-];
+import { useTenant } from "@/hooks/useTenant";
+import { 
+  Download, 
+  FileText, 
+  Banknote, 
+  Building2, 
+  ArrowUpRight, 
+  TrendingUp, 
+  ShieldCheck, 
+  ChevronRight,
+  ExternalLink,
+  Printer,
+  Eye,
+  Loader2,
+  Calendar,
+  DollarSign,
+  PieChart,
+  ArrowDownCircle,
+  CreditCard
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { getPayrollOverview, getPayslips, seedPayrollData } from "@/services/payrollService";
 
 export default function PayrollPage() {
   const router = useRouter();
-  const [activePayslip, setActivePayslip] = useState(0);
+  const tenant = useTenant();
+  const [loading, setLoading] = useState(true);
+  const [overview, setOverview] = useState(null);
+  const [payslips, setPayslips] = useState([]);
+  const [activePayslip, setActivePayslip] = useState(null);
 
-  const grossEarnings = 10250;
-  const totalDeductions = 1800;
-  const netTakeHome = 8450;
+  useEffect(() => {
+    if (!tenant) return;
+    const fetchData = async () => {
+      try {
+        const [overviewRes, payslipsRes] = await Promise.allSettled([
+          getPayrollOverview(tenant),
+          getPayslips(tenant, { size: 5 })
+        ]);
+
+        if (overviewRes.status === "fulfilled") setOverview(overviewRes.value.data);
+        if (payslipsRes.status === "fulfilled") {
+          const data = payslipsRes.value.data;
+          const slips = Array.isArray(data) ? data : data?.content || data?.payslips || [];
+          setPayslips(slips);
+          if (slips.length > 0) setActivePayslip(slips[0]);
+        }
+      } catch (err) {
+        console.error("Failed to load payroll data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [tenant]);
+
+  // Fallback / Mock Data if backend returns empty (for demonstration)
+  const displayOverview = overview || {
+    netTakeHome: 8450,
+    ytdEarnings: 98400,
+    ytdTax: 12500,
+    nextPayDay: "Mar 31, 2026",
+    bankName: "Chase Bank",
+    accountLastFour: "4201"
+  };
+
+  const displayPayslips = payslips.length > 0 ? payslips : [
+    { id: 1, month: "March 2026", period: "Mar 01 - Mar 31", amount: 8450, status: "Processed", date: "2026-03-31" },
+    { id: 2, month: "February 2026", period: "Feb 01 - Feb 28", amount: 8450, status: "Processed", date: "2026-02-28" },
+    { id: 3, month: "January 2026", period: "Jan 01 - Jan 31", amount: 8200, status: "Processed", date: "2026-01-31" },
+  ];
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { 
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { y: 0, opacity: 1 }
+  };
+
+  if (loading && !overview) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8FAFC]">
+        <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
+        <p className="mt-4 text-slate-500 font-medium">Preparing your financial overview...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen w-full  font-sans">
-
-      {/* ── Top Bar ── */}
-
-
-      {/* ── Main Content ── */}
-      <div className="w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-5 sm:space-y-6">
-
-        {/* ── Page Header + Buttons ── */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h1 className="text-base sm:text-xl font-bold text-[#1E293B] tracking-tight">
-              Payroll &amp; Salary
+    <div className="min-h-screen bg-[#F8FAFC] p-4 sm:p-6 lg:p-10 font-sans text-slate-900">
+      <motion.div 
+        initial="hidden"
+        animate="visible"
+        variants={containerVariants}
+        className="max-w-7xl mx-auto space-y-8"
+      >
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <motion.div variants={itemVariants} className="space-y-2">
+            <h1 className="text-3xl md:text-4xl font-black tracking-tight bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-transparent">
+              Payroll & Earnings
             </h1>
-            <p className="text-gray-500 text-sm">
-              Manage your earnings, deductions, and tax compliance documents.
+            <p className="text-slate-500 text-lg max-w-xl">
+              Track your salary, view payslips, and manage your financial compliance.
             </p>
-          </div>
-          <div className="flex gap-2 sm:gap-3 shrink-0">
-            <button onClick={() => router.push('/Bankdetails')} className="flex items-center gap-1.5 px-3 sm:px-4 py-2 border border-[#712AE2] 
-            text-[#712AE2] rounded-lg text-xs sm:text-sm font-medium hover:bg-indigo-50 transition-colors whitespace-nowrap">
-              <Building2 size={14} />
-              Bank Details
+          </motion.div>
+          
+          <motion.div variants={itemVariants} className="flex flex-wrap gap-3">
+            <button 
+              onClick={async () => {
+                try {
+                  await seedPayrollData(tenant);
+                  window.location.reload();
+                } catch (err) {
+                  alert("Failed to seed data: " + err.message);
+                }
+              }}
+              className="flex items-center gap-2 bg-indigo-50 text-indigo-600 border border-indigo-100 px-5 py-3 rounded-2xl font-bold hover:bg-indigo-100 transition-all active:scale-95"
+            >
+              <TrendingUp className="w-4 h-4" />
+              <span>Seed Data</span>
             </button>
-            <button className="flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-[#712AE2] text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-[#4F46E5] transition-colors shadow-sm whitespace-nowrap">
-              <Upload size={14} />
-              Export Report
+            <button 
+              onClick={() => router.push(`/${tenant}/Bankdetails`)}
+              className="flex items-center gap-2 bg-white border border-slate-200 px-5 py-3 rounded-2xl font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm active:scale-95"
+            >
+              <Building2 className="w-4 h-4" />
+              <span>Bank Details</span>
             </button>
-          </div>
+            <button className="flex items-center gap-2 bg-slate-900 text-white px-5 py-3 rounded-2xl font-bold shadow-lg shadow-slate-200 hover:bg-black transition-all active:scale-95">
+              <Printer className="w-4 h-4" />
+              <span>Tax Summary</span>
+            </button>
+          </motion.div>
         </div>
 
-        {/* ── Recent Payslips ── */}
+        {/* Stats Grid */}
+        <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <OverviewCard 
+            title="Net Salary" 
+            value={`$${displayOverview.netTakeHome.toLocaleString()}`} 
+            subText="Current Month"
+            icon={<Banknote className="w-6 h-6 text-emerald-600" />}
+            color="bg-emerald-50"
+            trend="+2.4% vs last month"
+          />
+          <OverviewCard 
+            title="YTD Earnings" 
+            value={`$${displayOverview.ytdEarnings.toLocaleString()}`} 
+            subText="Total for 2026"
+            icon={<TrendingUp className="w-6 h-6 text-indigo-600" />}
+            color="bg-indigo-50"
+          />
+          <OverviewCard 
+            title="Taxes Paid" 
+            value={`$${displayOverview.ytdTax.toLocaleString()}`} 
+            subText="Year-to-date"
+            icon={<ShieldCheck className="w-6 h-6 text-rose-600" />}
+            color="bg-rose-50"
+          />
+          <OverviewCard 
+            title="Next Payday" 
+            value={displayOverview.nextPayDay} 
+            subText="Scheduled"
+            icon={<Calendar className="w-6 h-6 text-amber-600" />}
+            color="bg-amber-50"
+          />
+        </motion.div>
 
-        <div className="bg-[#F2F4F6] rounded-2xl  border border-gray-100 p-4 sm:p-6">
-          <div className="flex items-center gap-2 mb-4 sm:mb-5">
-            <FileText size={16} className="text-[#712AE2]" />
-            <h2 className="font-semibold text-[#1E293B] text-sm sm:text-base">Recent Payslips</h2>
-          </div>
-
-          {/* 1 col on mobile → 3 cols on sm+ */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-            {payslips.map((slip, i) => (
-              <div
-                key={i}
-                onClick={() => setActivePayslip(i)}
-                className={`rounded-xl  border-l-4 p-4 sm:p-5 cursor-pointer transition-all duration-200 ${activePayslip === i
-                    ? "border-[#712AE2] bg-[#F5F3FF]"
-                    : "border-gray-100  bg-white hover:border-indigo-200 hover:bg-indigo-50/30 "
-                  }`}
-              >
-                {/* Mobile: horizontal layout */}
-                <div className="flex items-center justify-between sm:block">
-                  <div>
-                    <span
-                      className={`text-[10px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-full ${slip.status === "latest"
-                          ? "bg-[#712AE2] text-white"
-                          : "bg-gray-100 text-gray-500"
-                        }`}
-                    >
-                      {slip.label}
-                    </span>
-                    <p className="text-[#1E293B] font-bold text-base sm:text-lg mt-2 sm:mt-3 leading-none">
-                      {slip.month}
-                    </p>
-                    <p className="text-gray-500 text-xs sm:text-sm mt-1">{slip.net} Net</p>
-                  </div>
-
-                  {/* Mobile: icon-only button */}
-                  <button
-                    className="sm:hidden flex items-center justify-center w-9 h-9 rounded-lg border border-[#712AE2] text-[#712AE2] hover:bg-indigo-50 transition-colors shrink-0"
-                    aria-label="Download payslip"
-                  >
-                    <Download size={15} />
-                  </button>
-                </div>
-
-                {/* Desktop: full-width button */}
-                <button className="hidden sm:flex mt-4 w-full items-center justify-center bg-[#E2DFFF] gap-2 py-2 rounded-lg border border-[#712AE2] text-[#712AE2] text-sm font-medium hover:bg-indigo-50 transition-colors">
-                  <Download size={14} />
-                  Download Payslip
+        {/* Main Content Area */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* Left Column: Payslips */}
+          <motion.div variants={itemVariants} className="lg:col-span-2 space-y-6">
+            <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <h2 className="text-xl font-black flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-indigo-600" />
+                  Recent Payslips
+                </h2>
+                <button className="text-xs font-bold text-indigo-600 hover:underline uppercase tracking-widest">
+                  View All History
                 </button>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ── Salary Breakdown ── */}
-        <div className="bg-white rounded-2xl border-l-5 border-[#712AE2] p-4 sm:p-6">
-
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-5 sm:mb-6">
-            <div>
-              <h2 className="font-semibold text-[#1E293B] text-sm sm:text-base">Salary Breakdown</h2>
-              <p className="text-gray-400 text-xs mt-0.5">Monthly structural analysis (Current cycle)</p>
-            </div>
-            <div className="sm:text-right">
-              <p className="text-[10px] sm:text-xs font-semibold text-gray-400 uppercase tracking-widest">
-                Gross Earnings
-              </p>
-              <p className="text-xl sm:text-2xl font-bold text-[#712AE2] mt-0.5">
-                ${grossEarnings.toLocaleString()}.00
-              </p>
-            </div>
-          </div>
-
-          {/* 1 col on mobile → 2 col on sm+ */}
-          <div className="grid grid-cols-1  sm:grid-cols-2 gap-6 sm:gap-8">
-
-            {/* Earnings */}
-            <div className="p-3">
-              <div className="flex items-center  gap-2 mb-4">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#712AE2] shrink-0"></span>
-                <span className="text-[10px] sm:text-xs font-bold tracking-widest uppercase text-emerald-500">
-                  Earnings &amp; Allowances
-                </span>
-
-              </div>
-              <div className="space-y-3 sm:space-y-4">
-                {earnings.map((item, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between py-2.5 sm:py-3 border-b border-gray-50"
-                  >
-                    <span className="text-[#1E293B] text-sm">{item.name}</span>
-                    <span
-                      className={`font-semibold text-sm ${item.sign === "+" ? "text-emerald-500" : "text-[#1E293B]"
-                        }`}
+              
+              <div className="p-6">
+                <div className="space-y-3">
+                  {displayPayslips.map((slip) => (
+                    <div 
+                      key={slip.id}
+                      onClick={() => setActivePayslip(slip)}
+                      className={`group flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer ${
+                        activePayslip?.id === slip.id 
+                          ? "bg-indigo-600 border-indigo-600 text-white shadow-xl shadow-indigo-100" 
+                          : "bg-white border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/30"
+                      }`}
                     >
-                      {item.sign}{item.amount}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Deductions */}
-            <div className=" bg-[#F2F4F680] p-3 rounded">
-
-              <div className="flex items-center gap-2 mb-4">
-                <span className="w-2.5 h-2.5 rounded-full bg-red-400 shrink-0"></span>
-                <span className="text-[10px] sm:text-xs font-bold tracking-widest uppercase  text-red-500">
-                  Deductions
-                </span>
-              </div>
-              <div className="space-y-3 sm:space-y-4">
-                {deductions.map((item, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between py-2.5 sm:py-3 border-b border-gray-50"
-                  >
-                    <span className="text-[#1E293B] text-sm">{item.name}</span>
-                    <span className="font-semibold text-sm text-red-500">-${item.amount}</span>
-                  </div>
-                ))}
-                <div className="flex items-center justify-between pt-2">
-                  <span className="text-[#1E293B] font-semibold text-sm">Total Deductions</span>
-                  <span className="font-bold text-red-500">-${totalDeductions.toLocaleString()}.00</span>
+                      <div className="flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                          activePayslip?.id === slip.id ? "bg-white/20" : "bg-slate-50 text-slate-400 group-hover:bg-white"
+                        }`}>
+                          <DollarSign className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <p className={`text-sm font-black ${activePayslip?.id === slip.id ? "text-white" : "text-slate-900"}`}>
+                            {slip.month}
+                          </p>
+                          <p className={`text-[10px] font-bold ${activePayslip?.id === slip.id ? "text-indigo-100" : "text-slate-400"}`}>
+                            {slip.period}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-6">
+                        <div className="hidden sm:block text-right">
+                          <p className={`text-sm font-black ${activePayslip?.id === slip.id ? "text-white" : "text-slate-900"}`}>
+                            ${slip.amount.toLocaleString()}.00
+                          </p>
+                          <span className={`text-[10px] font-bold uppercase tracking-widest ${
+                            activePayslip?.id === slip.id ? "text-indigo-100" : "text-emerald-500"
+                          }`}>
+                            {slip.status}
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          <button className={`p-2 rounded-lg transition-all ${
+                            activePayslip?.id === slip.id ? "bg-white/20 hover:bg-white/30" : "bg-slate-50 text-slate-400 hover:text-indigo-600"
+                          }`}>
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button className={`p-2 rounded-lg transition-all ${
+                            activePayslip?.id === slip.id ? "bg-white text-indigo-600" : "bg-slate-50 text-slate-400 hover:text-indigo-600"
+                          }`}>
+                            <Download className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-
             </div>
 
+            {/* Dynamic Breakdown based on active payslip */}
+            <AnimatePresence mode="wait">
+              {activePayslip && (
+                <motion.div 
+                  key={activePayslip.id}
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden"
+                >
+                  <div className="p-8">
+                    <div className="flex items-start justify-between mb-8">
+                      <div>
+                        <h3 className="text-2xl font-black text-slate-900">Salary Breakdown</h3>
+                        <p className="text-slate-500 text-sm mt-1">Detailed structural analysis for {activePayslip.month}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Gross Total</p>
+                        <p className="text-2xl font-black text-indigo-600">$10,250.00</p>
+                      </div>
+                    </div>
 
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                      {/* Earnings */}
+                      <div className="space-y-6">
+                        <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                          <TrendingUp className="w-4 h-4 text-emerald-500" />
+                          <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Earnings & Allowances</h4>
+                        </div>
+                        <div className="space-y-4">
+                          <BreakdownItem label="Basic Pay" value="$6,500.00" />
+                          <BreakdownItem label="House Rent Allowance (HRA)" value="$2,100.00" />
+                          <BreakdownItem label="Special Allowance" value="$850.00" />
+                          <BreakdownItem label="Performance Bonus" value="$800.00" highlight />
+                        </div>
+                      </div>
 
-          </div>
+                      {/* Deductions */}
+                      <div className="space-y-6">
+                        <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                          <ArrowDownCircle className="w-4 h-4 text-rose-500" />
+                          <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Statutory Deductions</h4>
+                        </div>
+                        <div className="space-y-4">
+                          <BreakdownItem label="Provident Fund (PF)" value="-$780.00" negative />
+                          <BreakdownItem label="Income Tax (TDS)" value="-$950.00" negative />
+                          <BreakdownItem label="Professional Tax" value="-$70.00" negative />
+                          <div className="pt-4 border-t border-slate-50 flex items-center justify-between">
+                            <span className="text-sm font-black text-slate-900">Total Deductions</span>
+                            <span className="text-sm font-black text-rose-500">-$1,800.00</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
 
-          {/* ── Net Take-Home Banner ── */}
-          <div className=" mt-3 rounded-2xl p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 ">
-            <div className="flex items-center gap-4">
-              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
-                <Banknote size={20} className="text-white" />
+                    {/* Net Take Home Banner */}
+                    <div className="mt-10 p-6 bg-emerald-600 rounded-3xl text-white flex flex-col sm:flex-row items-center justify-between gap-6 shadow-xl shadow-emerald-100">
+                      <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center shrink-0">
+                          <Banknote className="w-8 h-8" />
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">Net Take-Home Pay</p>
+                          <p className="text-3xl font-black">${activePayslip.amount.toLocaleString()}.00</p>
+                        </div>
+                      </div>
+                      <div className="text-center sm:text-right">
+                        <p className="text-xs font-medium opacity-90 leading-relaxed max-w-[240px]">
+                          Payment was successfully credited to your **{displayOverview.bankName}** account (••••{displayOverview.accountLastFour}) on **{new Date(activePayslip.date).toLocaleDateString()}**.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+
+          {/* Right Column: Sidebar */}
+          <motion.div variants={itemVariants} className="space-y-6">
+            {/* Payment Method Card */}
+            <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm p-8 space-y-6">
+              <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-indigo-600" />
+                Payment Method
+              </h3>
+              <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 flex items-center gap-4">
+                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center border border-slate-200">
+                  <Building2 className="w-6 h-6 text-slate-400" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-black text-slate-900 truncate">{displayOverview.bankName}</p>
+                  <p className="text-[10px] font-bold text-slate-400">Checking ••••{displayOverview.accountLastFour}</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => router.push(`/${tenant}/Bankdetails`)}
+                className="w-full py-4 text-xs font-black text-indigo-600 bg-indigo-50 rounded-2xl hover:bg-indigo-100 transition-all"
+              >
+                Manage Payment Methods
+              </button>
+            </div>
+
+            {/* Savings & Retirement */}
+            <div className="bg-slate-900 rounded-[2rem] p-8 text-white space-y-6 relative overflow-hidden shadow-xl shadow-slate-200">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16" />
+              <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                <PieChart className="w-4 h-4 text-indigo-400" />
+                Retirement Fund
+              </h3>
+              <div className="space-y-1">
+                <p className="text-3xl font-black">$12,450.20</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Employer & Employee PF Contribution</p>
+              </div>
+              <div className="pt-4 space-y-3">
+                <div className="flex justify-between text-xs font-bold">
+                  <span className="text-slate-400">Monthly Contribution</span>
+                  <span>$1,250.00</span>
+                </div>
+                <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                  <div className="w-2/3 h-full bg-indigo-500" />
+                </div>
+              </div>
+              <button className="w-full py-3 text-xs font-bold border border-white/20 rounded-xl hover:bg-white/5 transition-all flex items-center justify-center gap-2">
+                View PF Statement <ExternalLink className="w-3 h-3" />
+              </button>
+            </div>
+
+            {/* Support Link */}
+            <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm p-8 text-center space-y-4">
+              <div className="w-12 h-12 bg-indigo-50 rounded-full flex items-center justify-center mx-auto text-indigo-600">
+                <ShieldCheck className="w-6 h-6" />
               </div>
               <div>
-                <p className=" text-[10px] sm:text-xs font-semibold uppercase tracking-widest">
-                  Net Take-Home
-                </p>
-                <p className=" font-bold text-2xl sm:text-3xl mt-0.5">
-                  ${netTakeHome.toLocaleString()}.00
+                <h4 className="text-sm font-black text-slate-900">Salary Discrepancy?</h4>
+                <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                  If you notice any issues with your payment, please raise a ticket with HR immediately.
                 </p>
               </div>
+              <button 
+                onClick={() => router.push(`/${tenant}/support`)}
+                className="text-xs font-bold text-indigo-600 hover:underline"
+              >
+                Contact Payroll Support
+              </button>
             </div>
-
-            <p className="text-xs leading-relaxed sm:text-right sm:max-w-[230px]">
-              Estimated payment scheduled for Mar 31, 2026 via Direct Deposit to ending ••••4201.
-            </p>
-          </div>
-
+          </motion.div>
         </div>
+      </motion.div>
+    </div>
+  );
+}
 
-
+function OverviewCard({ title, value, subText, icon, color, trend }) {
+  return (
+    <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col gap-4 transition-transform hover:-translate-y-1 group">
+      <div className="flex items-center justify-between">
+        <div className={`w-12 h-12 ${color} rounded-2xl flex items-center justify-center shrink-0`}>
+          {icon}
+        </div>
+        <ArrowUpRight className="w-5 h-5 text-slate-200 group-hover:text-slate-400 transition-colors" />
       </div>
+      <div>
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">{title}</p>
+        <p className="text-2xl font-black text-slate-900 mt-1">{value}</p>
+        <div className="flex items-center gap-2 mt-2">
+          <p className="text-[10px] font-bold text-slate-500">{subText}</p>
+          {trend && (
+            <span className="text-[10px] font-black text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full">
+              {trend}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BreakdownItem({ label, value, negative, highlight }) {
+  return (
+    <div className="flex items-center justify-between group">
+      <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900 transition-colors">{label}</span>
+      <span className={`text-sm font-black ${
+        negative ? "text-rose-500" : highlight ? "text-indigo-600" : "text-slate-900"
+      }`}>
+        {value}
+      </span>
     </div>
   );
 }

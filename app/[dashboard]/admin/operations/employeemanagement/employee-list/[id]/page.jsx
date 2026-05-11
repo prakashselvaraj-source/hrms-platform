@@ -5,9 +5,10 @@ import { FileText, Eye } from "lucide-react";
 import { getEmployeeById } from "@/services/employeeService";
 import { useParams, useRouter } from "next/navigation";
 import { useTenant } from "@/hooks/useTenant";
+import { getAdminSalaryStructure, updateAdminSalaryStructure, getAllPayslips } from "@/services/payrollService";
 
 // ─── Static Data ──────────────────────────────────────────────────────────────
-const TAB_LIST = ["Basic Information", "Employment", "Contact", "Banking", "Certification", "Documents"];
+const TAB_LIST = ["Basic Information", "Employment", "Contact", "Banking", "Salary Structure", "Payroll History", "Certification", "Documents"];
 
 // ─── Shared: FieldItem + FieldGrid ───────────────────────────────────────────
 function FieldItem({ label, value }) {
@@ -152,11 +153,208 @@ function Documents({ documentCards }) {
   );
 }
 
+// ─── Salary Structure Section ────────────────────────────────────────────────
+function SalaryStructureTab({ employeeId, tenantId }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState({});
+
+  useEffect(() => {
+    fetchData();
+  }, [employeeId, tenantId]);
+
+  const fetchData = async () => {
+    try {
+      const res = await getAdminSalaryStructure(tenantId, employeeId);
+      setData(res.data);
+      setFormData(res.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdate = async () => {
+    try {
+      await updateAdminSalaryStructure(tenantId, employeeId, formData);
+      setIsEditing(false);
+      fetchData();
+      alert("Salary structure updated successfully.");
+    } catch (err) {
+      alert("Failed to update salary structure.");
+    }
+  };
+
+  if (loading) return <div className="animate-pulse space-y-4"><div className="h-4 bg-gray-100 rounded w-1/4"></div><div className="h-32 bg-gray-50 rounded"></div></div>;
+
+  return (
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <h3 className="text-[14px] font-black text-slate-900 uppercase tracking-widest">Salary Architecture</h3>
+        {!isEditing ? (
+          <button onClick={() => setIsEditing(true)} className="px-4 py-1.5 bg-indigo-50 text-indigo-600 text-[11px] font-black uppercase rounded-lg hover:bg-indigo-100 transition-colors">Edit Structure</button>
+        ) : (
+          <div className="flex gap-2">
+            <button onClick={handleUpdate} className="px-4 py-1.5 bg-slate-900 text-white text-[11px] font-black uppercase rounded-lg hover:bg-black transition-colors">Save Changes</button>
+            <button onClick={() => setIsEditing(false)} className="px-4 py-1.5 bg-slate-100 text-slate-500 text-[11px] font-black uppercase rounded-lg hover:bg-slate-200 transition-colors">Cancel</button>
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+        {/* Earnings */}
+        <div className="space-y-5">
+          <h4 className="text-[10px] font-black text-indigo-500 uppercase tracking-widest border-b border-indigo-50 pb-2">Earnings Components</h4>
+          <EditableField label="Basic Salary" value={formData.basicSalary} name="basicSalary" isEditing={isEditing} onChange={setFormData} />
+          <EditableField label="HRA" value={formData.hra} name="hra" isEditing={isEditing} onChange={setFormData} />
+          <EditableField label="Travel Allowance" value={formData.travelAllowance} name="travelAllowance" isEditing={isEditing} onChange={setFormData} highlight />
+          <EditableField label="Medical Allowance" value={formData.medicalAllowance} name="medicalAllowance" isEditing={isEditing} onChange={setFormData} />
+          <EditableField label="Special Allowance" value={formData.specialAllowance} name="specialAllowance" isEditing={isEditing} onChange={setFormData} />
+          <EditableField label="Performance Bonus" value={formData.performanceBonus} name="performanceBonus" isEditing={isEditing} onChange={setFormData} />
+          <div className="pt-3 border-t border-slate-100 flex justify-between items-center">
+            <span className="text-xs font-black text-slate-900 uppercase">Monthly Gross</span>
+            <span className="text-sm font-black text-indigo-600">
+              ₹{((Number(formData.basicSalary||0)+Number(formData.hra||0)+Number(formData.medicalAllowance||0)+Number(formData.travelAllowance||0)+Number(formData.specialAllowance||0)+Number(formData.performanceBonus||0))).toLocaleString("en-IN")}
+            </span>
+          </div>
+        </div>
+
+        {/* Deductions */}
+        <div className="space-y-5">
+          <h4 className="text-[10px] font-black text-rose-500 uppercase tracking-widest border-b border-rose-50 pb-2">Deductions & Compliance</h4>
+          <EditableField label="PF Contribution" value={formData.pfContribution} name="pfContribution" isEditing={isEditing} onChange={setFormData} color="rose"
+            note={!formData.pfContribution ? `Auto: ₹${(Number(formData.basicSalary||0)*0.12).toLocaleString("en-IN")}` : ""} />
+          <EditableField label="ESI Contribution" value={formData.esiContribution} name="esiContribution" isEditing={isEditing} onChange={setFormData} color="rose" />
+          <EditableField label="Professional Tax" value={formData.professionalTax} name="professionalTax" isEditing={isEditing} onChange={setFormData} color="rose" />
+          <EditableField label="TDS (Income Tax)" value={formData.tds} name="tds" isEditing={isEditing} onChange={setFormData} color="rose" />
+          <EditableField label="Loan Deduction" value={formData.loanDeduction} name="loanDeduction" isEditing={isEditing} onChange={setFormData} color="rose" />
+          <div className="pt-3 border-t border-slate-100 flex justify-between items-center">
+            <span className="text-xs font-black text-slate-900 uppercase">Total Deductions</span>
+            <span className="text-sm font-black text-rose-500">
+              ₹{((formData.pfContribution ? Number(formData.pfContribution) : Number(formData.basicSalary||0)*0.12)+Number(formData.esiContribution||0)+Number(formData.professionalTax||0)+Number(formData.tds||0)+Number(formData.loanDeduction||0)).toLocaleString("en-IN")}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Summary Banner */}
+      {(() => {
+        const gross = Number(formData.basicSalary||0)+Number(formData.hra||0)+Number(formData.medicalAllowance||0)+Number(formData.travelAllowance||0)+Number(formData.specialAllowance||0)+Number(formData.performanceBonus||0);
+        const pf = formData.pfContribution ? Number(formData.pfContribution) : Number(formData.basicSalary||0)*0.12;
+        const deductions = pf+Number(formData.esiContribution||0)+Number(formData.professionalTax||0)+Number(formData.tds||0)+Number(formData.loanDeduction||0);
+        return (
+          <div className="bg-slate-900 rounded-3xl p-8 text-white grid grid-cols-2 sm:grid-cols-4 gap-6 shadow-xl shadow-slate-200">
+            <div><p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Monthly Gross</p><p className="text-2xl font-black">₹{gross.toLocaleString("en-IN")}</p></div>
+            <div><p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Deductions</p><p className="text-2xl font-black text-rose-400">₹{deductions.toLocaleString("en-IN")}</p></div>
+            <div><p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Net Pay</p><p className="text-2xl font-black text-emerald-400">₹{(gross-deductions).toLocaleString("en-IN")}</p></div>
+            <div><p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1">Annual CTC</p><p className="text-2xl font-black text-indigo-300">₹{(gross*12).toLocaleString("en-IN")}</p></div>
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
+function EditableField({ label, value, name, isEditing, onChange, color = "indigo", highlight, note }) {
+  return (
+    <div>
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{label}</span>
+          {highlight && <span className="text-[9px] font-black bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full">Per Employee</span>}
+        </div>
+        {isEditing ? (
+          <input
+            type="number"
+            value={value ?? ""}
+            onChange={(e) => onChange(prev => ({ ...prev, [name]: e.target.value }))}
+            className={`w-32 bg-slate-50 border rounded-lg px-3 py-1.5 text-xs font-black text-slate-900 outline-none text-right transition-all ${color === "rose" ? "border-rose-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100" : "border-slate-200 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"}`}
+          />
+        ) : (
+          <span className={`text-xs font-black ${color === "rose" ? "text-rose-600" : "text-slate-900"}`}>
+            ₹{Number(value || 0).toLocaleString("en-IN")}
+          </span>
+        )}
+      </div>
+      {note && <p className="text-[10px] text-slate-400 font-medium mt-0.5 text-right">{note}</p>}
+    </div>
+  );
+}
+
+
+// ─── Payroll History Section ────────────────────────────────────────────────
+function PayrollHistoryTab({ employeeId, tenantId }) {
+  const [payslips, setPayslips] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const res = await getAllPayslips(tenantId, { employeeId });
+        setPayslips(res.data.content || res.data || []);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchHistory();
+  }, [employeeId, tenantId]);
+
+  if (loading) return <div className="space-y-4"><div className="h-10 bg-gray-50 rounded"></div><div className="h-10 bg-gray-50 rounded"></div></div>;
+
+  return (
+    <div className="overflow-hidden">
+      <table className="w-full text-left border-collapse">
+        <thead>
+          <tr className="bg-slate-50/50">
+            <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Cycle Month</th>
+            <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Gross</th>
+            <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Deductions</th>
+            <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Net Pay</th>
+            <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+            <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Document</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-50">
+          {payslips.map((ps) => (
+            <tr key={ps.id} className="hover:bg-slate-50/50 transition-colors">
+              <td className="px-6 py-5 text-[13px] font-black text-slate-900">{ps.month}</td>
+              <td className="px-6 py-5 text-[12px] font-bold text-slate-600">₹{ps.grossEarnings?.toLocaleString()}</td>
+              <td className="px-6 py-5 text-[12px] font-bold text-rose-500">₹{ps.totalDeductions?.toLocaleString()}</td>
+              <td className="px-6 py-5 text-[13px] font-black text-slate-900">₹{ps.netSalary?.toLocaleString()}</td>
+              <td className="px-6 py-5">
+                 <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-md ${
+                   ps.status === 'PAID' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+                 }`}>
+                   {ps.status}
+                 </span>
+              </td>
+              <td className="px-6 py-5 text-right">
+                <button className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"><Eye size={16} /></button>
+              </td>
+            </tr>
+          ))}
+          {payslips.length === 0 && (
+            <tr>
+              <td colSpan="6" className="px-6 py-20 text-center text-slate-400 font-bold uppercase tracking-widest text-xs">No payroll history found for this employee</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 const TAB_CONTENT_MAP = {
   "Basic Information": BasicInformation,
   Employment: Employment,
   Contact: Contact,
   Banking: Banking,
+  "Salary Structure": SalaryStructureTab,
+  "Payroll History": PayrollHistoryTab,
   Certification: Certification,
   Documents: Documents,
 };
@@ -293,7 +491,13 @@ export default function EmployeeDetailsPage() {
 
           {/* Tab content */}
           <div className="p-6 mb-6">
-            <TabComponent employee={employee} certCards={certCards} documentCards={documentCards} />
+            <TabComponent 
+              employee={employee} 
+              certCards={certCards} 
+              documentCards={documentCards} 
+              employeeId={id}
+              tenantId={tenantId}
+            />
           </div>
         </div>
 
