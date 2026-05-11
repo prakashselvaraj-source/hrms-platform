@@ -33,6 +33,8 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
     Optional<Employee> findByWorkEmail(String workEmail);
 
+    Optional<Employee> findByWorkEmailIgnoreCase(String workEmail);
+
     default Optional<Employee> findByIdAndTenantId(Long id, String tenantId) {
         return findByIdAndTenant_CompanyName(id, tenantId);
     }
@@ -51,9 +53,8 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
     Employee findByTenant_CompanyNameAndWorkEmail(String companyName, String workEmail);
 
-    // task
-    @Query("SELECT e FROM Employee e WHERE e.tenant.id = :tenantId AND e.workEmail = :workEmail")
-    Optional<Employee> findByTenantIdAndWorkEmail(
-            @Param("tenantId") String tenantId,
-            @Param("workEmail") String workEmail);
+    Employee findByTenant_CompanyNameIgnoreCaseAndWorkEmailIgnoreCase(String companyName, String workEmail);
+
+    Employee findByTenant_CompanyCodeIgnoreCaseAndWorkEmailIgnoreCase(String companyCode, String workEmail);
+
 }
