@@ -6,14 +6,17 @@ import CustomDropdown from '../CustomDropdown';
 
 import { getAllRoles } from '@/services/roleService';
 import { useTenant } from '@/hooks/useTenant';
+import { getDepartments } from '@/services/departmentService';
+import { getEmployees } from '@/services/employeeService';
 
 const employmentTypes = ['Full-time', 'Part-time', 'Contract', 'Intern'];
-const departments = ['Product & Experience', 'Engineering', 'Human Resources', 'Finance'];
+// const departments = ['Product & Experience', 'Engineering', 'Human Resources', 'Finance'];
 const managers = ['John Smith', 'Sarah Jenkins', 'Mike Johnson'];
 const locations = ['Remote (Global)', 'On-site', 'Hybrid'];
 
 export default function JobDetails({ data, updateData }) {
   const [roleOptions, setRoleOptions] = useState([]);
+  const [departments,setDepartments]= useState([]);
   const tenantId = useTenant();
 
   useEffect(() => {
@@ -29,7 +32,21 @@ export default function JobDetails({ data, updateData }) {
       }
     };
     fetchRoles();
-  }, [tenantId]);
+
+    const fetchDepartments = async () => {
+      try{
+        if (!tenantId) return;
+        const response = await getDepartments(tenantId);
+        const dept = response.data.map(d => d.name);
+        setDepartments(dept);
+        console.log(response.data);
+      } catch (err){
+        console.log(err);
+      }
+    };
+    fetchDepartments();
+
+  }, []);
   const handleChange = (e) => updateData({ [e.target.name]: e.target.value });
 
   return (

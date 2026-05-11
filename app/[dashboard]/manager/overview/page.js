@@ -5,7 +5,7 @@ import {
   MenuIcon,
 } from "lucide-react";
 import ThemeToggle from "@/components/ui/theme-toggle";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 
 const leaveTabs = ["Apply Leaves", "Attendance Report", "Request Status", "Upcoming Holidays", "Career History"];
 
@@ -229,6 +229,8 @@ function SidebarContent({ teamMembers }) {
 }
 
 export default function HRDashboard() {
+  const params = useParams();
+  const tenantId = params?.dashboard;
 
   const [activeLeaveTab, setActiveLeaveTab] = useState("Apply Leaves");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -258,7 +260,7 @@ export default function HRDashboard() {
             {["Overview", "Dashboard"].map((tab) => (
               <button
                 key={tab}
-                onClick={() => { setActiveTab(tab); console.log(tab); router.push(tab === "Overview" ? "/home/overview" : `/home/${tab.toLowerCase()}`) }}
+                onClick={() => { setActiveTab(tab); console.log(tab); router.push(tab === "Overview" ? `/${tenantId}/manager/overview` : `/${tenantId}/manager/${tab.toLowerCase()}`) }}
                 className="px-4 py-3 text-[13px] font-medium border-b-2 transition-colors cursor-pointer bg-transparent outline-none"
                 style={{
                   borderBottomColor: activeTab === tab ? "var(--tab-active-border)" : "transparent",

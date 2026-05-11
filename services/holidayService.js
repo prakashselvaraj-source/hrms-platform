@@ -16,6 +16,14 @@ export const getAllHolidays = (tenantId) => {
   });
 };
 
+export const getUpcomingHolidays = (tenantId) => {
+  return API.get('/holidays/upcoming', {
+    headers: {
+      "X-Tenant-Id": tenantId,
+    }
+  });
+};
+
 export const getHolidayById = (id, tenantId) => {
   return API.get(`/holidays/${id}`, {
     headers: {

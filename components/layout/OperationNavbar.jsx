@@ -100,8 +100,8 @@ export default function OperationNavbar() {
                 { label: "Termination", href: `/${tenant}/admin/operations/employeemanagement/termination` },
                 { label: "Advancement", href: `/${tenant}/admin/operations/employeemanagement/advancement` },
 
-                { label: "Departments", href: `/${tenant}/admin/department` },
-                { label: "Add Department", href: `/${tenant}/admin/department/add` },
+                { label: "Departments", href: `/${tenant}/admin/operations/department` },
+                { label: "Add Department", href: `/${tenant}/admin/operations/department/add` },
             ]
         },
         {
@@ -173,7 +173,16 @@ export default function OperationNavbar() {
                     label: "Announcement",
                     href: `/${tenant}/admin/operations/announcement`
                 }
-
+            ]
+        },
+        {
+            id: "sup",
+            label: "Support",
+            items: [
+                {
+                    label: "Ticket Management",
+                    href: `/${tenant}/admin/operations/support`
+                }
             ]
         }
     ];

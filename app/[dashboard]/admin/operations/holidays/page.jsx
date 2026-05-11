@@ -21,7 +21,7 @@ import {
     Sparkles,
 } from "lucide-react";
 import HolidayCalendarPage from "@/components/holidays/holidaycalender";
-import { createHoliday, getAllHolidays, updateHoliday, deleteHoliday } from "@/services/holidayService";
+import { createHoliday, getAllHolidays, updateHoliday, deleteHoliday, getUpcomingHolidays } from "@/services/holidayService";
 
 
 
@@ -432,6 +432,7 @@ function DeleteHolidayModal({ open, onClose, holiday, onSuccess }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function HolidaysPage() {
+    const [upcomingHolidays,setUpcomingHolidays] = useState([]);
     const [modalOpen, setModalOpen] = useState(false);
     const [activeTab, setActiveTab] = useState("List View");
     const [currentPage, setCurrentPage] = useState(0);
@@ -464,6 +465,15 @@ export default function HolidaysPage() {
         if (tenantId) fetchHolidays();
     }, [tenantId, currentPage, rowsPerPage]);
 
+    useEffect(()=>{
+        const fetchUpcomingHolidays = async()=>{
+            const response = await getUpcomingHolidays(tenantId);
+            console.log(response.data.holidays);
+            setUpcomingHolidays(response.data.holidays);
+        }
+        fetchUpcomingHolidays();
+    },[])
+
     const from = totalEntries === 0 ? 0 : currentPage * rowsPerPage + 1;
     const to = Math.min((currentPage + 1) * rowsPerPage, totalEntries);
     const pages = Array.from({ length: totalPages }, (_, i) => i).filter(
@@ -474,26 +484,7 @@ export default function HolidaysPage() {
     const displayHolidays = holidays;
 
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const upcomingHolidays = holidays
-        .filter((h) => {
-            const holidayDate = new Date(h.date);
-            return holidayDate > today;
-        })
-        .sort((a, b) => new Date(a.date) - new Date(b.date))
-        .slice(0, 4)
-        .map((h) => {
-            const d = new Date(h.date);
-
-            return {
-                month: d.toLocaleString("en-US", { month: "short" }).toUpperCase(),
-                day: d.getDate().toString().padStart(2, "0"),
-                name: h.holidayName,
-                sub: `${h.category} • ${h.type === "RESTRICTED" ? "Restricted" : "Holiday"}`,
-            };
-        });
+    
     return (
         <div className="min-h-screen p-4 sm:p-6 lg:p-8">
             <div className="max-w-6xl mx-auto space-y-6">
@@ -658,12 +649,12 @@ export default function HolidaysPage() {
                                     {upcomingHolidays.map((h) => (
                                         <div key={`${h.month}-${h.day}`} className="flex items-start gap-3 border border-[#C3C6D726] p-2 rounded-md">
                                             <div className="text-center min-w-[40px] bg-[#F2F4F6] px-2 py-1 rounded-md">
-                                                <div className="text-xs font-bold text-purple-500">{h.month}</div>
-                                                <div className="text-2xl font-extrabold text-gray-800 leading-tight">{h.day}</div>
+                                                <div className="text-xs font-bold text-purple-500">{h.date}</div>
+                                                <div className="text-2xl font-extrabold text-gray-800 leading-tight">{h.type}</div>
                                             </div>
                                             <div>
-                                                <div className="text-sm font-bold text-[#191C1E]">{h.name}</div>
-                                                <div className="text-xs text-[#434655] mt-0.5">{h.sub}</div>
+                                                <div className="text-sm font-bold text-[#191C1E]">{h.holidayName}</div>
+                                                <div className="text-xs text-[#434655] mt-0.5">{h.category}</div>
                                             </div>
                                         </div>
                                     ))}

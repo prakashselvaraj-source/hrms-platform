@@ -169,27 +169,8 @@ export default function PersonalInformation({ data, updateData }) {
               name="mobileNumber"
               value={data.mobileNumber}
               onChange={handleChange}
+              maxLength={10}
               placeholder="+1 (555) 000-0000"
-              className="w-full  bg-[#F2F4F6] rounded-md px-3 py-2.5 text-sm text-[#6B7280] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#712AE2] focus:border-transparent"
-            />
-          </div>
-          <div>
-            <CustomDropdown
-              label="Department"
-              options={departments}
-              value={data.department}
-              onChange={(value) => updateData({ department: value })}
-              placeholder="Select Department"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-[#737686] uppercase tracking-wide mb-1.5">Designation</label>
-            <input
-              type="text"
-              name="designation"
-              value={data.designation}
-              onChange={handleChange}
-              placeholder="e.g. Senior Creative Lead"
               className="w-full  bg-[#F2F4F6] rounded-md px-3 py-2.5 text-sm text-[#6B7280] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#712AE2] focus:border-transparent"
             />
           </div>

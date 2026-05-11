@@ -11,6 +11,7 @@ import Salary from './tabs/Salary';
 import LeaveSetup from './tabs/LeaveSetup';
 import Documents from './tabs/Documents';
 import { useTenant } from '@/hooks/useTenant';
+import { useRouter } from 'next/navigation';
 
 const tabs = [
   { id: 'personal', label: 'Personal Information', icon: User },
@@ -27,9 +28,9 @@ export default function EmployeeOnboarding() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('personal');
   const tenant = useTenant();
-
+  const route = useRouter();
   const [formData, setFormData] = useState({
-    personal: { firstName: '', lastName: '', dateOfBirth: '', gender: '', workEmail: '', mobileNumber: '', department: '', designation: '', photo: null },
+    personal: { firstName: '', lastName: '', dateOfBirth: '', gender: '', workEmail: '', mobileNumber: '', photo: null, photoUrl: '' },
     contact: {
       current: { street: '', city: '', state: '', zip: '', country: 'United States' },
       permanent: { street: '', city: '', state: '', zip: '', country: '' },
@@ -201,6 +202,8 @@ otherDocUrls: data.documents.other?.map(f => f.url) || [],
       } finally {
         setIsSubmitting(false);
       }
+      route.back();
+
     }
   };
 

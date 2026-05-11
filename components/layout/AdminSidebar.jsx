@@ -40,7 +40,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
   const payRollPath = role === "ADMIN" ? `${basePath}/payrollmanagement` : `${basePath}/payroll`;
 
   const navItems = [
-    { label: "Home", href: `/${tenant}/home/overview`, icon: LayoutGrid },
+    { label: "Home", href: `/${tenant}/admin/home/overview`, icon: LayoutGrid },
     { label: "Profile", href: `/${tenant}/profile`, icon: User },
     { label: "Leave", href: `/${tenant}/leaveManagement`, icon: CalendarDays },
     { label: "Payroll", href: `/${tenant}/payroll`, icon: Briefcase },

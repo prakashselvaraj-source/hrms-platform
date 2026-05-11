@@ -7,6 +7,7 @@ import { getUserDashboard } from "@/services/dashboardService";
 import { getAllHolidays } from "@/services/holidayService";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 /* ── Circular Progress ── */
 function CircularProgress({ value = 92 }) {
@@ -326,14 +327,14 @@ export default function HRDashboard() {
                 onMouseLeave={e => e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.18)"}>
                 Apply Leave
               </button>
-              <button
-                onClick={() => router.push(`/${tenantId}/createTicket`)}
-                className="px-4 py-2.5 text-[12.5px] font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer border-0 text-white"
+              <Link
+                href={`/${tenantId}/support/raise-ticket`}
+                className="px-4 py-2.5 text-[12.5px] font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer border-0 text-white no-underline"
                 style={{ backgroundColor: "var(--gradient-brand-btn)" }}
                 onMouseEnter={e => e.currentTarget.style.backgroundColor = "var(--gradient-brand-btn-hover)"}
                 onMouseLeave={e => e.currentTarget.style.backgroundColor = "var(--gradient-brand-btn)"}>
                 <TicketIcon /> Raise Ticket
-              </button>
+              </Link>
             </div>
           </div>
         </div>
