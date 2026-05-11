@@ -62,6 +62,7 @@ public class SecurityConfig {
         // ✅ Allow localhost and all subdomains (e.g. companyname.localhost:3000)
         config.setAllowedOriginPatterns(List.of(
                 "http://localhost:3000",
+                "http://localhost:3001",
                 "http://*.localhost:3000"));
 
         config.setAllowedHeaders(List.of("*"));

@@ -13,7 +13,10 @@ import com.hrm.hrm_saas.modules.attendance.entity.Attendance;
 public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
 
     Optional<Attendance> findByEmployeeIdAndDateAndTenantId(String employeeId, LocalDate date, String tenantId);
+
     Page<Attendance> findByTenantId(String tenantId, Pageable pageable);
+
     Page<Attendance> findByEmployeeIdAndTenantId(String employeeId, String tenantId, Pageable pageable);
+
     List<Attendance> findByEmployeeIdAndTenantId(String employeeId, String tenantId);
 }

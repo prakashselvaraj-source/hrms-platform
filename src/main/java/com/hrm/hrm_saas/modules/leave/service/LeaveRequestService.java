@@ -98,13 +98,14 @@ public class LeaveRequestService {
                         System.out.println("Step 6 (findById): " + policyOpt);
                 }
 
-                // 5. If still not found, check if the LeaveType exists at all (with or without tenant)
+                // 5. If still not found, check if the LeaveType exists at all (with or without
+                // tenant)
                 if (policyOpt.isEmpty()) {
                         Optional<?> leaveTypeExists = leaveTypeRepository.findByIdAndTenantId(leaveTypeId, tenantId);
                         if (leaveTypeExists.isPresent()) {
                                 throw new RuntimeException(
-                                        "Leave type exists but no leave policy is configured for it. " +
-                                        "Please ask admin to configure a leave policy for this leave type.");
+                                                "Leave type exists but no leave policy is configured for it. " +
+                                                                "Please ask admin to configure a leave policy for this leave type.");
                         }
                 }
 
@@ -555,4 +556,5 @@ public class LeaveRequestService {
                         return ((Number) value).intValue();
                 return 0;
         }
+
 }
