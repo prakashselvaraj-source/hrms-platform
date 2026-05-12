@@ -49,7 +49,8 @@ public class PayrollDataInitializer implements ApplicationRunner {
                 
                 // Check if already exists for this employee and month (case-insensitive)
                 boolean exists = payslipRepository.findByTenantId(tenantId).stream()
-                        .anyMatch(p -> p.getEmployee().getId().equals(employee.getId()) && 
+                        .anyMatch(p -> p.getEmployee() != null && 
+                                     p.getEmployee().getId().equals(employee.getId()) && 
                                      p.getMonth() != null && 
                                      (p.getMonth().equalsIgnoreCase(monthYear)));
                 

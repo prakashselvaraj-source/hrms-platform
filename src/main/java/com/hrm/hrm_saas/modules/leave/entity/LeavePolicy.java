@@ -24,51 +24,51 @@ import lombok.NoArgsConstructor;
 @Builder
 @Table(name = "leave_policies")
 public class LeavePolicy {
-    
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private String id;
-    
-    private String tenantId;
-    
-    private String name;
-    
-    @ManyToOne
-    @JoinColumn(name = "leave_type_id")
-    private LeaveType leaveType;
-    
-    @Convert(converter = com.hrm.hrm_saas.common.converter.JsonToMapConverter.class)
-    @Column(columnDefinition = "TEXT")
-    private java.util.Map<String, Object> generalConfig;
-    
-    @Convert(converter = com.hrm.hrm_saas.common.converter.JsonToMapConverter.class)
-    @Column(columnDefinition = "TEXT")
-    private java.util.Map<String, Object> accrualRules;
 
-    @Convert(converter = com.hrm.hrm_saas.common.converter.JsonToMapConverter.class)
-    @Column(columnDefinition = "TEXT")
-    private java.util.Map<String, Object> usageRules;
+  @Id
+  @GeneratedValue(strategy = GenerationType.UUID)
+  private String id;
 
-    @Convert(converter = com.hrm.hrm_saas.common.converter.JsonToMapConverter.class)
-    @Column(columnDefinition = "TEXT")
-    private java.util.Map<String, Object> restrictions;
+  private String tenantId;
 
-    @Convert(converter = com.hrm.hrm_saas.common.converter.JsonToMapConverter.class)
-    @Column(columnDefinition = "TEXT")
-    private java.util.Map<String, Object> combinationRules;
+  private String name;
 
-    @Convert(converter = com.hrm.hrm_saas.common.converter.JsonToMapConverter.class)
-    @Column(columnDefinition = "TEXT")
-    private java.util.Map<String, Object> encashmentRules;
+  @ManyToOne
+  @JoinColumn(name = "leave_type_id")
+  private LeaveType leaveType;
 
-    @Convert(converter = com.hrm.hrm_saas.common.converter.JsonToMapConverter.class)
-    @Column(columnDefinition = "TEXT")
-    private java.util.Map<String, Object> applicabilityRules;
+  @Convert(converter = com.hrm.hrm_saas.common.converter.JsonToMapConverter.class)
+  @Column(columnDefinition = "TEXT")
+  private java.util.Map<String, Object> generalConfig;
 
-    private boolean accrualEnabled;
-    private boolean active;
-    private Integer version;
+  @Convert(converter = com.hrm.hrm_saas.common.converter.JsonToMapConverter.class)
+  @Column(columnDefinition = "TEXT")
+  private java.util.Map<String, Object> accrualRules;
 
-      private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+  @Convert(converter = com.hrm.hrm_saas.common.converter.JsonToMapConverter.class)
+  @Column(columnDefinition = "TEXT")
+  private java.util.Map<String, Object> usageRules;
+
+  @Convert(converter = com.hrm.hrm_saas.common.converter.JsonToMapConverter.class)
+  @Column(columnDefinition = "TEXT")
+  private java.util.Map<String, Object> restrictions;
+
+  @Convert(converter = com.hrm.hrm_saas.common.converter.JsonToMapConverter.class)
+  @Column(columnDefinition = "TEXT")
+  private java.util.Map<String, Object> combinationRules;
+
+  @Convert(converter = com.hrm.hrm_saas.common.converter.JsonToMapConverter.class)
+  @Column(columnDefinition = "TEXT")
+  private java.util.Map<String, Object> encashmentRules;
+
+  @Convert(converter = com.hrm.hrm_saas.common.converter.JsonToMapConverter.class)
+  @Column(columnDefinition = "TEXT")
+  private java.util.Map<String, Object> applicabilityRules;
+
+  private boolean accrualEnabled;
+  private boolean active;
+  private Integer version;
+
+  private LocalDateTime createdAt;
+  private LocalDateTime updatedAt;
 }

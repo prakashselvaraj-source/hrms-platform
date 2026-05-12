@@ -512,12 +512,12 @@ public class PayrollServiceImpl implements PayrollService {
             for (Employee emp : employees) {
                 // Check if already exists for THIS specific employee and month
                 boolean exists = payslipRepository.findByMonthAndTenantId(monthYear, tenantId).stream()
-                        .anyMatch(p -> p.getEmployee().getId().equals(emp.getId()));
+                        .anyMatch(p -> p.getEmployee() != null && p.getEmployee().getId().equals(emp.getId()));
 
                 if (!exists) {
                     // Fallback to uppercase check for older data
                     exists = payslipRepository.findByMonthAndTenantId(monthYear.toUpperCase(), tenantId).stream()
-                            .anyMatch(p -> p.getEmployee().getId().equals(emp.getId()));
+                            .anyMatch(p -> p.getEmployee() != null && p.getEmployee().getId().equals(emp.getId()));
                 }
 
                 if (!exists) {
