@@ -44,6 +44,7 @@ public class Ticket {
 
     private String assignedTo;
     private String resolutionNote;
+    private String additionalInfo;
     private LocalDateTime assignedAt;
     private LocalDateTime resolvedAt;
 
@@ -53,11 +54,19 @@ public class Ticket {
     @Column(updatable = false)
     private LocalDateTime createdAt;
 
+    private LocalDateTime updatedAt;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
         if (this.status == null) {
-            this.status = "OPEN";
+            this.status = TicketStatus.OPEN.name();
         }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
 }

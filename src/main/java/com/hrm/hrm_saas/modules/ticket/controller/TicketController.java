@@ -68,10 +68,10 @@ public class TicketController {
         return ResponseEntity.ok(ticketService.getTicketById(id, tenantId));
     }
 
-    @PatchMapping("/{id}/status")
-    public ResponseEntity<TicketDTO> updateTicketStatus(
+    @PatchMapping("/{id}/update")
+    public ResponseEntity<TicketDTO> updateTicket(
             @PathVariable Long id,
-            @RequestParam String status,
+            @RequestBody TicketDTO dto,
             @RequestHeader("X-Tenant-Id") String tenantId,
             HttpServletRequest request) {
 
@@ -79,7 +79,7 @@ public class TicketController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
-        return ResponseEntity.ok(ticketService.updateTicketStatus(id, status, tenantId));
+        return ResponseEntity.ok(ticketService.updateTicket(id, dto, tenantId));
     }
 
     @PutMapping("/assign/{id}")
@@ -124,5 +124,21 @@ public class TicketController {
 
         String note = body.get("note");
         return ResponseEntity.ok(ticketService.resolveTicket(id, note, tenantId));
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<TicketDTO> updateTicketStatus(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body,
+            @RequestHeader("X-Tenant-Id") String tenantId,
+            HttpServletRequest request) {
+
+        if (isTenantForbidden(tenantId, request)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        String status = body.get("status");
+        TicketDTO dto = TicketDTO.builder().status(status).build();
+        return ResponseEntity.ok(ticketService.updateTicket(id, dto, tenantId));
     }
 }

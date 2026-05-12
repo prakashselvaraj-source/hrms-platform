@@ -20,6 +20,7 @@ public class TicketDTO {
     private String description;
     private String status;
     private String raisedBy;
+    private String additionalInfo;
     private String raisedByName;
     private String raisedByPhotoUrl;
     private LocalDateTime createdAt;
