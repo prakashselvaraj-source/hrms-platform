@@ -8,7 +8,7 @@ import {
   CheckCircle, AlertCircle, MapPin, Building, IndianRupee,
   User, Settings, TrendingUp, Shield
 } from "lucide-react";
-import { getEmployees } from "@/services/employeeService";
+import { getEmployees, updateEmployee, getEmployeeById } from "@/services/employeeService";
 import { getAdminSalaryStructure, updateAdminSalaryStructure, getPayrollPolicy, updatePayrollPolicy } from "@/services/payrollService";
 
 // ─── Default empty structure ──────────────────────────────────────────────────
@@ -89,8 +89,15 @@ export default function SalaryStructurePage() {
     setSelected(emp);
     setModalLoading(true);
     try {
-      const res = await getAdminSalaryStructure(tenant, emp.id);
-      const d = res.data || {};
+      const [structRes, empRes] = await Promise.all([
+        getAdminSalaryStructure(tenant, emp.id),
+        getEmployeeById(emp.id, tenant)
+      ]);
+
+      // Ensure we have the full employee record for the eventual update
+      setSelected(empRes.data || emp);
+      
+      const d = structRes.data || {};
       setForm({
         basicSalary: d.basicSalary ?? "",
         hra: d.hra ?? "",
@@ -118,8 +125,23 @@ export default function SalaryStructurePage() {
     setSaving(true);
     try {
       await updateAdminSalaryStructure(tenant, selected.id, form);
+      
+      console.log("form",form);
+
+      const gross = calcGross(form);
+      const ctc = gross * 12;
+      const basic = num(form.basicSalary);
+
+      await updateEmployee(selected.id, {
+        ...selected,
+        monthlyGross: gross,
+        annualCtc: ctc,
+        basicSalary: basic
+      }, tenant);
+
       setSavedIds((prev) => new Set(prev).add(selected.id));
       setSelected(null);
+      fetchEmployees(); // Refresh the roster to show the new 'Configured' state
     } catch (err) {
       alert("Failed to save: " + (err.response?.data?.message || err.message));
     } finally {

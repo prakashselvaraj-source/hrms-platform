@@ -48,3 +48,32 @@ export const updateLeavePolicy = (tenantId, configId, payload) => {
     },
   });
 };
+
+// Leave Request Management
+export const getAllLeaveRequests = (tenantId, page = 0, size = 10) => {
+  return API.get(`/leave-management/get-all-leave-requests`, {
+    params: { page, size },
+    headers: {
+      "X-Tenant-Id": tenantId,
+    },
+  });
+};
+
+export const getLeaveRequestById = (tenantId, id) => {
+  return API.get(`/leave-management/get-leave-request/${id}`, {
+    headers: {
+      "X-Tenant-Id": tenantId,
+    },
+  });
+};
+
+export const updateLeaveStatus = (tenantId, id, status) => {
+  return API.put(`/leave-management/update-leave-status/${id}`, 
+    { status }, 
+    {
+      headers: {
+        "X-Tenant-Id": tenantId,
+      },
+    }
+  );
+};

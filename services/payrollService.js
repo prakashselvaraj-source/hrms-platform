@@ -99,3 +99,14 @@ export const updateAdminSalaryStructure = (tenantId, employeeId, data) => {
     headers: { "X-Tenant-Id": tenantId },
   });
 };
+
+export const getPayrollHistory = (tenantId, params = {}) => {
+  const query = new URLSearchParams();
+  if (params.page !== undefined) query.set("page", params.page);
+  if (params.size) query.set("size", params.size);
+  if (params.year) query.set("year", params.year);
+  const qs = query.toString();
+  return API.get(`/payroll/admin/history${qs ? `?${qs}` : ""}`, {
+    headers: { "X-Tenant-Id": tenantId },
+  });
+};

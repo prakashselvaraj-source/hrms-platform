@@ -37,7 +37,7 @@ function StatChip({ value, label, active }) {
 
 function ProfileCard() {
 
-    const [profile, setProfile] = useState([]);
+    const [profile, setProfile] = useState(null);
     const tenantId = useTenant();
 
     useEffect(() => {
@@ -50,6 +50,8 @@ function ProfileCard() {
         fetchUser();
     }, []);
 
+    if (!profile) return null;
+
     return (
         <div>
             <SideCard>
@@ -61,7 +63,7 @@ function ProfileCard() {
                     <div className="flex items-center gap-3">
                         <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-black text-lg flex-shrink-0"
                             style={{ background: "linear-gradient(135deg, #a78bfa, #ec4899)" }}>
-                            {profile?.firstName?.charAt(0) + profile?.lastName?.charAt(0)}
+                            {(profile?.firstName?.charAt(0) || '') + (profile?.lastName?.charAt(0) || '')}
                         </div>
                         <div>
                             <h3 className="text-sm font-bold leading-tight" style={{ color: "var(--text-primary)" }}>
