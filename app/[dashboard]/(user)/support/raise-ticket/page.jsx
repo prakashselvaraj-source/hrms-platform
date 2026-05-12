@@ -101,7 +101,7 @@ export default function RaiseTicketPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      await createTicket(formData, tenantId);
+      await createTicket(tenantId, formData);
       router.push(`/${tenantId}/support`);
     } catch (err) {
       console.error("Failed to submit ticket", err);

@@ -4,8 +4,9 @@ import { useState, Fragment, useEffect } from "react";
 import Link from "next/link";
 import { useTenant } from "@/hooks/useTenant";
 import { ChevronLeft, ChevronRight, Loader2, Filter, CheckCircle2, Clock, AlertCircle, UserPlus, XCircle, Send, CircleQuestionMark, Eye } from "lucide-react";
-import { getAllTickets, updateTicketStatus, assignTicket, takeTicket, resolveTicket } from './../../../../../services/ticketService';
+import { getAllTickets, updateTicket, assignTicket, takeTicket, resolveTicket } from './../../../../../services/ticketService';
 import { getEmployees } from "@/services/employeeService";
+import socketService from "@/services/websocketService";
 
 // ─── Status Badge ────────────────────────────────────────────────────────────
 function StatusBadge({ status }) {
@@ -140,6 +141,29 @@ export default function AdminSupportPage() {
 
   useEffect(() => {
     fetchTickets();
+
+    // WebSocket Setup for real-time list updates
+    socketService.connect(() => {
+      socketService.subscribe("/topic/tickets", (updatedTicket) => {
+        setTickets((prev) => {
+          const index = prev.findIndex(t => t.id === updatedTicket.id);
+          if (index !== -1) {
+            const newTickets = [...prev];
+            newTickets[index] = updatedTicket;
+            return newTickets;
+          }
+          // If it's a new ticket and we are on the first page, add it
+          if (page === 1) {
+            return [updatedTicket, ...prev].slice(0, rowsPerPage);
+          }
+          return prev;
+        });
+      });
+    });
+
+    return () => {
+      socketService.unsubscribe("/topic/tickets");
+    };
   }, [tenantId, page, rowsPerPage]);
 
   const handleAssign = async (userId) => {
@@ -163,7 +187,7 @@ export default function AdminSupportPage() {
       setActionLoading(true);
       await takeTicket(ticketId, tenantId);
       // Update status to IN_PROGRESS when assigning to self
-      await updateTicketStatus(ticketId, "IN_PROGRESS", tenantId);
+      await updateTicket(ticketId, { status: "IN_PROGRESS" }, tenantId);
       fetchTickets();
     } catch (err) {
       console.error("Take ownership failed", err);

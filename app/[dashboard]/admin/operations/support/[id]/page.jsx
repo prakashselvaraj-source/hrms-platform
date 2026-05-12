@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, Clock, User, FileText, XCircle, Loader2, UserPlus, CircleQuestionMark, Send, AlertCircle } from "lucide-react";
-import { getTicketById, updateTicketStatus, assignTicket, takeTicket, resolveTicket } from "@/services/ticketService";
+import { ChevronLeft, Clock, User, FileText, XCircle, Loader2, UserPlus, CircleQuestionMark, Send, AlertCircle, MessageSquare, ShieldCheck } from "lucide-react";
+import { getTicketById, updateTicket, assignTicket, takeTicket, resolveTicket, getTicketMessages } from "@/services/ticketService";
 import { getEmployees } from "@/services/employeeService";
 import { useTenant } from "@/hooks/useTenant";
+import socketService from "@/services/websocketService";
 
 function StatusBadge({ status }) {
   const statusConfig = {
@@ -32,11 +33,13 @@ export default function TicketDetailPage() {
   const tenantId = useTenant();
 
   const [ticket, setTicket] = useState(null);
+  const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Current user state
   const [currentUserEmail, setCurrentUserEmail] = useState(null);
+  const [currentUserName, setCurrentUserName] = useState(null);
   const [role, setRole] = useState(null);
 
   // Modals & Action state
@@ -45,20 +48,27 @@ export default function TicketDetailPage() {
   const [resolutionNote, setResolutionNote] = useState("");
   const [userList, setUserList] = useState([]);
   const [actionLoading, setActionLoading] = useState(false);
+  const [replyText, setReplyText] = useState("");
 
   useEffect(() => {
     const storedRole = localStorage.getItem("role");
     const storedEmail = localStorage.getItem("userEmail");
+    const storedName = localStorage.getItem("userName") || "Support Agent";
     setRole(storedRole);
     setCurrentUserEmail(storedEmail);
+    setCurrentUserName(storedName);
   }, [tenantId]);
 
-  const fetchTicket = async () => {
+  const fetchTicketAndHistory = async () => {
     if (!tenantId || !id) return;
     try {
       setLoading(true);
-      const res = await getTicketById(id, tenantId);
-      setTicket(res.data);
+      const [ticketRes, historyRes] = await Promise.all([
+        getTicketById(id, tenantId),
+        getTicketMessages(id, tenantId)
+      ]);
+      setTicket(ticketRes.data);
+      setMessages(historyRes.data);
     } catch (err) {
       console.error("Failed to fetch ticket detail", err);
       setError("Unable to load ticket details.");
@@ -67,13 +77,52 @@ export default function TicketDetailPage() {
     }
   };
 
+  useEffect(() => {
+    fetchTicketAndHistory();
+
+    // WebSocket Setup
+    socketService.connect(() => {
+      socketService.subscribe(`/topic/ticket/${id}`, (data) => {
+        if (data.content) {
+          // Chat message
+          setMessages((prev) => {
+            if (prev.find(m => m.id === data.id)) return prev;
+            return [...prev, data];
+          });
+        } else {
+          // Status update
+          setTicket(data);
+        }
+      });
+    });
+
+    return () => {
+      socketService.unsubscribe(`/topic/ticket/${id}`);
+    };
+  }, [tenantId, id]);
+
+  const handleSendMessage = () => {
+    if (!replyText.trim()) return;
+
+    const chatMessage = {
+      ticketId: id,
+      senderEmail: currentUserEmail,
+      senderName: currentUserName,
+      content: replyText,
+      isAdmin: true // Admin side
+    };
+
+    socketService.sendMessage("/app/chat.sendMessage", chatMessage);
+    setReplyText("");
+  };
+
   const handleAssign = async (userId) => {
     if (!ticket || !tenantId) return;
     try {
       setActionLoading(true);
       await assignTicket(ticket.id, userId, tenantId);
       setShowAssignModal(false);
-      fetchTicket();
+      fetchTicketAndHistory();
     } catch (err) {
       console.error("Assign failed", err);
       alert("Failed to assign ticket.");
@@ -88,8 +137,8 @@ export default function TicketDetailPage() {
       setActionLoading(true);
       await takeTicket(ticketId, tenantId);
       // Update status to IN_PROGRESS when assigning to self
-      await updateTicketStatus(ticketId, "IN_PROGRESS", tenantId);
-      fetchTicket();
+      await updateTicket(ticketId, { status: "IN_PROGRESS" }, tenantId);
+      fetchTicketAndHistory();
     } catch (err) {
       console.error("Take ownership failed", err);
       alert("Failed to take ownership.");
@@ -105,7 +154,7 @@ export default function TicketDetailPage() {
       await resolveTicket(ticket.id, resolutionNote, tenantId);
       setShowResolveModal(false);
       setResolutionNote("");
-      fetchTicket();
+      fetchTicketAndHistory();
     } catch (err) {
       console.error("Resolve failed", err);
       alert("Failed to resolve ticket.");
@@ -125,9 +174,7 @@ export default function TicketDetailPage() {
     }
   };
 
-  useEffect(() => {
-    fetchTicket();
-  }, [tenantId, id]);
+
 
   if (loading) {
     return (
@@ -275,6 +322,90 @@ export default function TicketDetailPage() {
               ) : (
                 <p className="text-gray-500">No resolution note yet.</p>
               )}
+            </div>
+          </div>
+
+          {/* Conversation / Activity Feed */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-50 bg-gray-50/50 flex items-center justify-between">
+              <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-indigo-600" />
+                Communication History
+              </h3>
+              <span className="text-[10px] font-bold text-gray-400 bg-white px-2 py-1 rounded border border-gray-100">
+                {messages.length} Messages
+              </span>
+            </div>
+            <div className="p-6">
+              <div className="space-y-6 mb-8 max-h-[500px] overflow-y-auto pr-2">
+                {messages.length > 0 ? (
+                  <div className="space-y-8 relative before:absolute before:left-5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100">
+                    {messages.map((msg, i) => (
+                      <div key={i} className="flex gap-4 relative z-10">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm border-2 ${msg.isAdmin ? "bg-white border-indigo-100" : "bg-white border-gray-100"}`}>
+                          {msg.isAdmin ? (
+                            <ShieldCheck className="w-5 h-5 text-indigo-600" />
+                          ) : (
+                            <User className="w-5 h-5 text-gray-400" />
+                          )}
+                        </div>
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-black text-gray-900">
+                              {msg.senderName} {msg.senderEmail === currentUserEmail ? "(You)" : ""}
+                            </p>
+                            <span className="text-[10px] font-bold text-gray-400 flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {new Date(msg.createdAt).toLocaleString()}
+                            </span>
+                          </div>
+                          <div className={`p-4 rounded-2xl text-sm leading-relaxed ${msg.isAdmin
+                            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100"
+                            : "bg-gray-50 text-gray-700 border border-gray-100"
+                            }`}>
+                            {msg.content}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-10">
+                    <p className="text-sm text-gray-400">No messages yet. Start the conversation!</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Reply Box */}
+              <div className="mt-8 pt-8 border-t border-slate-100">
+                <div className="flex gap-4 items-start">
+                  <div className="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center flex-shrink-0">
+                    <ShieldCheck className="w-5 h-5 text-indigo-600" />
+                  </div>
+                  <div className="flex-1 space-y-4">
+                    <textarea
+                      placeholder="Add a comment or update the employee..."
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all min-h-[100px] resize-none"
+                    />
+                    <div className="flex justify-end gap-3">
+                      <button
+                        className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 transition-colors"
+                        onClick={() => setReplyText("")}
+                      >
+                        Discard
+                      </button>
+                      <button
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 shadow-sm flex items-center gap-2"
+                        onClick={handleSendMessage}
+                      >
+                        <Send size={14} /> Post Update
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
