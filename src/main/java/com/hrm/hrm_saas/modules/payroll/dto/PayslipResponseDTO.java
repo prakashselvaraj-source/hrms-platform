@@ -15,6 +15,10 @@ import java.util.List;
 @Builder
 public class PayslipResponseDTO {
     private String id;
+    private String employeeId;
+    private String employeeName;
+    private String employeeDepartment;
+    private String employeeDesignation;
     private String month;
     private String period;
     private BigDecimal amount;

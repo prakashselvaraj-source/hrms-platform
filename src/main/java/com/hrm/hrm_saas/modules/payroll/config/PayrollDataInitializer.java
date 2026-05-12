@@ -28,39 +28,47 @@ public class PayrollDataInitializer implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        if (payslipRepository.count() > 0) {
-            log.info("Payroll data already exists, skipping seed (count={})", payslipRepository.count());
-            return;
-        }
-
         List<Employee> employees = employeeRepository.findAll();
         if (employees.isEmpty()) {
             log.warn("No employees found, cannot seed payroll data");
             return;
         }
 
-        log.info("Seeding payroll data for {} employees...", employees.size());
+        log.info("Checking/Seeding payroll data for {} employees...", employees.size());
 
-        String[] months = { "January 2026", "February 2026", "March 2026" };
-        LocalDate[] payDates = { LocalDate.of(2026, 1, 31), LocalDate.of(2026, 2, 28), LocalDate.of(2026, 3, 31) };
+        LocalDate now = LocalDate.now();
+        int currentYear = now.getYear();
+        int currentMonthValue = now.getMonthValue();
 
         for (Employee employee : employees) {
             String tenantId = employee.getTenant() != null ? employee.getTenant().getCompanyName() : "default";
 
-            for (int i = 0; i < months.length; i++) {
+            for (int m = 1; m <= currentMonthValue; m++) {
+                String monthLabel = java.time.Month.of(m).name();
+                String monthYear = monthLabel.substring(0, 1) + monthLabel.substring(1).toLowerCase() + " " + currentYear;
+                
+                // Check if already exists for this employee and month (case-insensitive)
+                boolean exists = payslipRepository.findByTenantId(tenantId).stream()
+                        .anyMatch(p -> p.getEmployee().getId().equals(employee.getId()) && 
+                                     p.getMonth() != null && 
+                                     (p.getMonth().equalsIgnoreCase(monthYear)));
+                
+                if (exists) continue;
+
+                LocalDate payDate = LocalDate.of(currentYear, m, java.time.Month.of(m).length(now.isLeapYear()));
                 double monthlyGross = employee.getMonthlyGross() != null ? employee.getMonthlyGross() : 50000.0;
 
                 Payslip payslip = Payslip.builder()
                         .tenantId(tenantId)
                         .employee(employee)
-                        .month(months[i])
-                        .startDate(payDates[i].withDayOfMonth(1))
-                        .endDate(payDates[i])
-                        .paymentDate(payDates[i])
+                        .month(monthYear)
+                        .startDate(LocalDate.of(currentYear, m, 1))
+                        .endDate(payDate)
+                        .paymentDate(payDate)
                         .grossEarnings(BigDecimal.valueOf(monthlyGross))
                         .totalDeductions(BigDecimal.valueOf(monthlyGross * 0.1))
                         .netSalary(BigDecimal.valueOf(monthlyGross * 0.9))
-                        .status(PayslipStatus.PAID)
+                        .status(m < currentMonthValue ? PayslipStatus.PAID : PayslipStatus.DRAFT)
                         .build();
 
                 List<SalaryComponent> components = new ArrayList<>();
@@ -77,9 +85,10 @@ public class PayrollDataInitializer implements ApplicationRunner {
 
                 payslip.setComponents(components);
                 payslipRepository.save(payslip);
+                log.info("Generated missing payroll record for {} - {}", employee.getFirstName(), monthYear);
             }
         }
 
-        log.info("Payroll data seeded successfully");
+        log.info("Payroll data check/seed completed");
     }
 }

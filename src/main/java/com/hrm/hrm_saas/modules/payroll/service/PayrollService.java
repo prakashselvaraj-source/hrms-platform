@@ -22,6 +22,7 @@ public interface PayrollService {
     void runPayrollCycle(String tenantId);
     PayrollPolicy getPayrollPolicy(String tenantId);
     PayrollPolicy updatePayrollPolicy(String tenantId, PayrollPolicy policy);
+    com.hrm.hrm_saas.modules.payroll.dto.PayrollHistoryResponseDTO getPayrollHistory(String tenantId, int page, int size, String year);
 
     // Salary Structure Methods
     com.hrm.hrm_saas.modules.payroll.dto.SalaryStructureDTO getEmployeeSalaryStructure(Long employeeId, String tenantId);

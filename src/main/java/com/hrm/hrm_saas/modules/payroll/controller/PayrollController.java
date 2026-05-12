@@ -151,4 +151,14 @@ public class PayrollController {
 
         return ResponseEntity.ok(payrollService.updateEmployeeSalaryStructure(employeeId, tenantId, dto));
     }
+
+    @GetMapping("/admin/history")
+    public ResponseEntity<com.hrm.hrm_saas.modules.payroll.dto.PayrollHistoryResponseDTO> getAllPayrollHistory(
+            @RequestHeader("X-Tenant-Id") String tenantId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String year) {
+        return ResponseEntity.ok(payrollService.getPayrollHistory(tenantId, page, size, year));
+    }
 }
+

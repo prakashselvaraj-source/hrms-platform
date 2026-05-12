@@ -15,4 +15,6 @@ public interface SalaryStructureRepository extends JpaRepository<SalaryStructure
     List<SalaryStructure> findByTenantId(String tenantId);
     
     Optional<SalaryStructure> findByEmployeeIdAndTenantIdAndStatus(Long employeeId, String tenantId, SalaryStructure.SalaryStructureStatus status);
+    
+    List<SalaryStructure> findByTenantIdAndStatus(String tenantId, SalaryStructure.SalaryStructureStatus status);
 }

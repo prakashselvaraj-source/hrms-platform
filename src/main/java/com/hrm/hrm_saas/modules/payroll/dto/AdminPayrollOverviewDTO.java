@@ -10,6 +10,7 @@ import java.util.List;
 @Builder
 public class AdminPayrollOverviewDTO {
     private BigDecimal totalPayrollCost;
+    private BigDecimal totalNetPayout;
     private Long employeesProcessed;
     private Long totalEmployees;
     private BigDecimal totalDeductions;

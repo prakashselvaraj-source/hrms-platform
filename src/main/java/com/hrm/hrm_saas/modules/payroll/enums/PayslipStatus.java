@@ -4,5 +4,7 @@ public enum PayslipStatus {
     DRAFT,
     PROCESSED,
     PAID,
-    VOID
+    SENT,
+    VOID,
+    FAILED
 }
