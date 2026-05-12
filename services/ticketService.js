@@ -20,8 +20,8 @@ export const getTicketById = (id, tenantId) => {
   });
 };
 
-export const updateTicketStatus = (id, status, tenantId) => {
-  return API.patch(`/tickets/${id}/status?status=${status}`, {}, {
+export const updateTicket = (id, payload, tenantId) => {
+  return API.patch(`/tickets/${id}/update`, payload, {
     headers: { "X-Tenant-Id": tenantId },
   });
 };
@@ -54,6 +54,12 @@ export const uploadTicketAttachment = (file) => {
 
 export const getTicketStats = (tenantId) => {
   return API.get("/tickets/stats", {
+    headers: { "X-Tenant-Id": tenantId },
+  });
+};
+
+export const getTicketMessages = (id, tenantId) => {
+  return API.get(`/tickets/${id}/messages`, {
     headers: { "X-Tenant-Id": tenantId },
   });
 };

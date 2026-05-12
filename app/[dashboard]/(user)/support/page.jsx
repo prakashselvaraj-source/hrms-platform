@@ -3,8 +3,8 @@
 import { useState, Fragment, useEffect } from "react";
 import Link from "next/link";
 import { useTenant } from "@/hooks/useTenant";
-import { ChevronLeft, ChevronRight, Loader2, PlusCircle, Zap, Send, AlertCircle, XCircle, Plus } from "lucide-react";
-import { getAllTickets, updateTicketStatus, resolveTicket } from "@/services/ticketService";
+import { ChevronLeft, ChevronRight, Eye, Loader2, PlusCircle, Zap, Send, AlertCircle, XCircle, Plus, MessageSquareCheck, MessageSquare } from "lucide-react";
+import { getAllTickets, updateTicket, resolveTicket } from "@/services/ticketService";
 
 // ─── Pagination ───────────────────────────────────────────────────────────────
 function Pagination({ page, totalPages, totalItems, rowsPerPage, onPage, onRowsPerPageChange }) {
@@ -134,7 +134,7 @@ export default function SupportTickets() {
     if (!tenantId) return;
     try {
       setUpdatingTicketId(ticketId);
-      await updateTicketStatus(ticketId, "IN_PROGRESS", tenantId);
+      await updateTicket(ticketId, { status: "IN_PROGRESS" }, tenantId);
       fetchTickets();
     } catch (err) {
       console.error("Failed to update ticket status", err);
@@ -218,7 +218,7 @@ export default function SupportTickets() {
           <table className="w-full min-w-[800px] text-left border-collapse">
             <thead className="bg-gray-50">
               <tr>
-                {["Ticket ID", "Issue Description", "Priority", "Status", "Action"].map((h) => (
+                {['Ticket ID', 'Issue Description', 'Priority', 'Status', 'View', 'Action'].map((h) => (
                   <th key={h} className="px-6 py-3 text-[11px] font-bold uppercase tracking-widest text-gray-400 border-b border-gray-100">
                     {h}
                   </th>
@@ -229,7 +229,7 @@ export default function SupportTickets() {
             <tbody className="divide-y divide-gray-50">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="py-20 text-center">
+                  <td colSpan={6} className="py-20 text-center">
                     <div className="flex flex-col items-center gap-2">
                       <Loader2 className="animate-spin text-[#4A45B6]" size={32} />
                       <p className="text-sm text-gray-500 font-medium">Loading tickets...</p>
@@ -238,7 +238,7 @@ export default function SupportTickets() {
                 </tr>
               ) : tickets.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-20 text-center">
+                  <td colSpan={6} className="py-20 text-center">
                     <p className="text-sm text-gray-500 font-medium">No tickets found.</p>
                   </td>
                 </tr>
@@ -269,6 +269,15 @@ export default function SupportTickets() {
                           </span>
                         </td>
                         <td className="px-6 py-4 align-top">
+                          <Link
+                            href={`/${tenantId}/support/${ticket.id}`}
+                            className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition"
+                          >
+                            <Eye size={14} />
+                            View
+                          </Link>
+                        </td>
+                        <td className="px-6 py-4 align-top">
                           <div className="flex items-center gap-2">
                             {ticket.status === "OPEN" && currentUserEmail !== ticket.raisedBy && (
                               <button
@@ -294,7 +303,7 @@ export default function SupportTickets() {
                                 className="p-1.5 rounded-lg hover:bg-indigo-50 text-indigo-600"
                                 title="View Info"
                               >
-                                <AlertCircle size={20} />
+                                <MessageSquare size={20} />
                               </button>
                             )}
                           </div>
@@ -302,7 +311,7 @@ export default function SupportTickets() {
                       </tr>
                       {chatOpen === ticket.id && (
                         <tr>
-                          <td colSpan={5} className="px-6 py-4 bg-indigo-50/20">
+                          <td colSpan={6} className="px-6 py-4 bg-indigo-50/20">
                             <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-100">
                               <p className="font-semibold text-indigo-700 text-sm mb-1">Resolution Details</p>
                               <p className="text-gray-600 text-xs">{ticket.resolutionNote || "No details provided."}</p>
