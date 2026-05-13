@@ -3,6 +3,8 @@
 import ThemeToggle from "@/components/ui/theme-toggle";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useTenant } from "@/hooks/useTenant";
+import { getUserDashboard } from "@/services/dashboardService";
 
 /* ── Circular Progress ── */
 function CircularProgress({ value = 92 }) {
@@ -118,12 +120,21 @@ export default function HRDashboard() {
   const router = useRouter();
 
 
+  const tenantId = useTenant();
+  const [dashboardData, setDashboardData] = useState(null);
+
   useEffect(() => {
     const fetchDashBoardData = async () => {
-      await 
-    }
+      if (!tenantId) return;
+      try {
+        const res = await getUserDashboard(tenantId);
+        setDashboardData(res.data);
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      }
+    };
     fetchDashBoardData();
-  }, [])
+  }, [tenantId])
 
   const leaveCards = [
     { label: "Sick Leave", used: "04", total: "10" },

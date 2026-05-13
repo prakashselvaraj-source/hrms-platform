@@ -101,7 +101,7 @@ export default function LoginForm() {
 
       // Example logic
       if (tenantsRes.data) {
-        router.push(`/${tenantsRes.data.companyName}/home/dashboard`);
+        router.push(`/${tenantsRes.data.companyName}/${res.data.role === "SUPER_ADMIN" ? "manager" : res.data.role === "ADMIN" ? "admin" : "home"}/dashboard`);
       }
 
     } catch (err) {

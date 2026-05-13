@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import ThemeToggle from "@/components/ui/theme-toggle";
 import { useRouter, useParams } from "next/navigation";
+import { useTenant } from "@/hooks/useTenant";
 import { div } from "framer-motion/client";
 import { getAllHolidays } from "@/services/holidayService";
 
@@ -233,6 +234,7 @@ function SidebarContent({ teamMembers }) {
 
 export default function HRDashboard() {
 
+  const tenantId = useTenant();
   const [activeLeaveTab, setActiveLeaveTab] = useState("Apply Leaves");
     const [menuOpen, setMenuOpen] = useState(false);
 
@@ -245,12 +247,20 @@ export default function HRDashboard() {
     e.currentTarget.style.color = entering ? "#fff" : "var(--brand-accent)";
   };
 
-  useEffect(()=>{
-    const fetchHolidays = async() =>{
-      const response = await getAllHolidays();
-      console.log(response);
-    }
-  })
+  const [holidays, setHolidays] = useState([]);
+
+  useEffect(() => {
+    const fetchHolidays = async () => {
+      if (!tenantId) return;
+      try {
+        const response = await getAllHolidays(tenantId);
+        setHolidays(response.data);
+      } catch (error) {
+        console.error("Error fetching holidays:", error);
+      }
+    };
+    fetchHolidays();
+  }, [tenantId]);
 
   return (
     <div
@@ -470,15 +480,42 @@ export default function HRDashboard() {
             )}
             {activeLeaveTab == 'Upcoming Holidays' && (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm" style={{minWidth: "400px"}}>
-                  <tbody>
-                    { }
-                    <tr>
-
+                <table className="w-full text-sm" style={{ minWidth: "400px" }}>
+                  <thead style={{ background: "var(--surface-muted)" }}>
+                    <tr style={{ color: "var(--text-muted)" }}>
+                      <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-wider">Holiday Name</th>
+                      <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-wider">Date</th>
+                      <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-wider">Day</th>
                     </tr>
+                  </thead>
+                  <tbody>
+                    {holidays.length > 0 ? (
+                      holidays.map((holiday, index) => (
+                        <tr
+                          key={index}
+                          className="border-b"
+                          style={{ background: "var(--surface-card)", borderColor: "var(--border-default)" }}
+                        >
+                          <td className="px-6 py-4 font-semibold text-sm" style={{ color: "var(--text-primary)" }}>
+                            {holiday.holidayName}
+                          </td>
+                          <td className="px-6 py-4 text-sm" style={{ color: "var(--text-secondary)" }}>
+                            {holiday.holidayDate}
+                          </td>
+                          <td className="px-6 py-4 text-sm" style={{ color: "var(--text-secondary)" }}>
+                            {holiday.day || "-"}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="3" className="px-6 py-10 text-center text-sm" style={{ color: "var(--text-muted)" }}>
+                          No upcoming holidays found.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
-
               </div>
             )}
           </div>

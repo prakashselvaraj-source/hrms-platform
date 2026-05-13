@@ -3,6 +3,7 @@
 import ThemeToggle from "@/components/ui/theme-toggle";
 import { useTenant } from "@/hooks/useTenant";
 import { getEmployeeProfile } from "@/services/employeeService";
+import { getAdminProfile } from "@/services/adminService";
 import { IdCardLanyard, Trash2, Pencil, ChevronDown, ChevronUp } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -181,20 +182,43 @@ export default function ProfilePage() {
 
     const fetchProfileData = async () => {
       try {
-        const res = await getEmployeeProfile(tenantId);
+        const storedUser = JSON.parse(localStorage.getItem("user"));
+        const role = storedUser?.role;
+        
+        let res;
+        if (role === "SUPER_ADMIN" || role === "ADMIN") {
+          res = await getAdminProfile(storedUser.email);
+        } else {
+          res = await getEmployeeProfile(tenantId);
+        }
+
         if (res.data) {
           const profile = res.data;
           setUser(profile);
-          setForm({
-            fullName: `${profile.firstName} ${profile.lastName}`,
-            email: profile.workEmail,
-            dob: profile.dateOfBirth,
-            phone: profile.mobileNumber,
-            gender: profile.gender.charAt(0).toUpperCase() + profile.gender.slice(1),
-            pronouns: profile.gender == "male" ? "He / Him" : "She / Her", // Backend doesn't have this yet
-            timezone: "UTC−08:00 Pacific Time",
-            address: `${profile.currentStreet}, ${profile.currentCity}, ${profile.currentState}, ${profile.currentZip}, ${profile.currentCountry}`,
-          });
+          
+          if (role === "SUPER_ADMIN" || role === "ADMIN") {
+            setForm({
+              fullName: `${profile.firstName} ${profile.lastName}`,
+              email: profile.user?.email || storedUser.email,
+              dob: "N/A", // Admin entity might not have all employee fields
+              phone: profile.mobileNumber,
+              gender: "N/A",
+              pronouns: "They / Them",
+              timezone: "UTC+05:30",
+              address: "N/A",
+            });
+          } else {
+            setForm({
+              fullName: `${profile.firstName} ${profile.lastName}`,
+              email: profile.workEmail,
+              dob: profile.dateOfBirth,
+              phone: profile.mobileNumber,
+              gender: profile.gender?.charAt(0).toUpperCase() + profile.gender?.slice(1) || "N/A",
+              pronouns: profile.gender == "male" ? "He / Him" : "She / Her",
+              timezone: "UTC+05:30",
+              address: `${profile.currentStreet}, ${profile.currentCity}, ${profile.currentState}, ${profile.currentZip}, ${profile.currentCountry}`,
+            });
+          }
         }
       } catch (err) {
         console.error("Failed to fetch profile:", err);
