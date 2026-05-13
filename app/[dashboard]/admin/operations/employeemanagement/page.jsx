@@ -1,465 +1,310 @@
 "use client";
 
 import {
-  Bell,
-  HelpCircle,
-  Home,
   Users,
-  Shield,
-  ChevronDown,
-  BookOpen,
   UserPlus,
-  TrendingUp,
-  Activity,
-  FileText,
-  LogOut,
-  Settings,
-  Calendar,
-  Clock,
   DollarSign,
   Megaphone,
-  Ticket,
-  Mail,
   Gift,
   MoreVertical,
   Download,
   Plus,
   Play,
   ChevronRight,
+  TrendingUp,
+  Activity,
+  Ticket,
+  ShieldCheck,
+  CalendarDays,
+  Clock,
+  ArrowUpRight,
+  Sparkles,
+  Zap,
+  Building2,
+  Mail
 } from "lucide-react";
 import { useState } from "react";
-
-const NAV_ITEMS = [
-  { label: "Home", icon: Home, active: false },
-];
-
-const PEOPLE_ITEMS = [
-  {
-    label: "Roles Management",
-    icon: Users,
-    expandable: true,
-    children: ["Permission management"],
-  },
-  {
-    label: "Employee Management",
-    icon: Users,
-    expandable: true,
-    children: [
-      "Employee dictionary",
-      "Add Employee",
-      "promotion",
-      "performance",
-      "Resignation",
-      "Termination",
-      "Announcement",
-    ],
-    activeChild: "Employee dictionary",
-  },
-];
-
-const TIMES_ITEMS = [
-  {
-    label: "Leave Management",
-    icon: Calendar,
-    expandable: true,
-    children: ["Leave Types", "Leave Policies", "Leave Requests", "Leave balance"],
-  },
-  {
-    label: "Attendance",
-    icon: Clock,
-    expandable: true,
-    children: ["Attendance Logs", "Attendance policies", "Time-Tracker/ punch logs", "Biometric Attendance"],
-  },
-  {
-    label: "holidays",
-    icon: Calendar,
-    expandable: true,
-    children: ["Geo-calender", "upcoming holidays"],
-  },
-];
-
-const PAYROLL_ITEMS = [
-  "Overview",
-  "Salary Structure",
-  "Employee Salary",
-  "payroll processing",
-  "payslip",
-  "Previous Payroll",
-  "pay cycle configur",
-];
+import { useRouter, useParams } from "next/navigation";
+import { motion } from "framer-motion";
 
 export default function HRDashboard() {
-  const [expandedSections, setExpandedSections] = useState({
-    "Roles Management": true,
-    "Employee Management": true,
-    "Leave Management": true,
-    Attendance: true,
-    holidays: true,
-  });
-
-  const toggleSection = (label) => {
-    setExpandedSections((prev) => ({ ...prev, [label]: !prev[label] }));
-  };
+  const router = useRouter();
+  const params = useParams();
 
   return (
-    <div className="flex h-screen bg-gray-100 font-sans overflow-hidden">
-    
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top Nav */}
-        <header className="h-12 bg-white border-b border-gray-200 flex items-center justify-end px-6 gap-4 flex-shrink-0">
-          <Bell size={18} className="text-gray-500 cursor-pointer" />
-          <HelpCircle size={18} className="text-gray-500 cursor-pointer" />
-          <div className="flex items-center gap-2">
-            <div className="text-right">
-              <div className="text-xs font-semibold text-gray-800">SarahJenkins</div>
-              <div className="text-[10px] text-gray-400">HR-1024</div>
+    <div className="min-h-screen bg-[#F8FAFC] relative overflow-hidden pb-12">
+      {/* Subtle Background Accents */}
+      <div className="absolute top-[-100px] right-[-100px] w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+      <div className="absolute bottom-[10%] left-[-50px] w-[300px] h-[300px] bg-purple-500/5 rounded-full blur-[80px] pointer-events-none"></div>
+
+      <div className="relative z-10 p-4 sm:p-8 max-w-[1400px] mx-auto">
+        
+        {/* ── Sleek Header ── */}
+        <div className="mb-8">
+          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-indigo-400 mb-2">
+            <ShieldCheck size={14} />
+            <span>Staffing Intelligence Hub</span>
+          </div>
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+                Organization <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">Overview</span>
+              </h1>
+              <p className="text-xs sm:text-sm text-gray-500 font-medium mt-1">
+                Real-time workforce forensic data and administrative orchestration.
+              </p>
             </div>
-            <div className="w-8 h-8 rounded-full bg-orange-300 flex items-center justify-center text-xs font-bold text-orange-700">SJ</div>
-          </div>
-        </header>
-
-        {/* Dashboard Body */}
-        <main className="flex-1 overflow-y-auto bg-gray-50 p-6">
-          {/* Header */}
-          <div className="mb-5">
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-sm text-gray-500">Good morning, Sarah. Here's what's happening across the organization today.</p>
-          </div>
-
-          <div className="flex gap-5">
-            {/* Left Column */}
-            <div className="flex-1 flex flex-col gap-5 min-w-0">
-              {/* Top Row: Payroll + Attendance + Stats */}
-              <div className="flex gap-4">
-                {/* Payroll Summary */}
-                <div className="bg-white rounded-xl p-5 flex-1 border border-gray-100 shadow-sm">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Payroll Summary</p>
-                      <p className="text-[10px] text-gray-400">NEXT PAY DATE: OCT 31, 2023</p>
-                    </div>
-                    <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
-                      <DollarSign size={16} className="text-purple-500" />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-2xl font-bold text-gray-900">Rs.482,950</span>
-                    <span className="text-xs text-green-500 font-semibold">↑2.4%</span>
-                  </div>
-                  <div className="space-y-2">
-                    <div>
-                      <div className="flex justify-between text-xs text-gray-500 mb-1">
-                        <span>Gross Salaries</span>
-                        <span className="font-medium text-gray-700">Rs.412,000</span>
-                      </div>
-                      <div className="h-1.5 bg-gray-100 rounded-full">
-                        <div className="h-1.5 bg-purple-500 rounded-full" style={{ width: "85%" }}></div>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex justify-between text-xs text-gray-500 mb-1">
-                        <span>Taxes & Benefits</span>
-                        <span className="font-medium text-gray-700">Rs.70,950</span>
-                      </div>
-                      <div className="h-1.5 bg-gray-100 rounded-full">
-                        <div className="h-1.5 bg-purple-300 rounded-full" style={{ width: "30%" }}></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Attendance */}
-                <div className="bg-white rounded-xl p-5 flex-1 border border-gray-100 shadow-sm">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Attendance</p>
-                      <p className="text-[10px] text-gray-400">TODAY'S SNAPSHOT</p>
-                    </div>
-                    <MoreVertical size={16} className="text-gray-400 cursor-pointer" />
-                  </div>
-                  <div className="flex items-center gap-5">
-                    {/* Circle */}
-                    <div className="relative w-20 h-20 flex-shrink-0">
-                      <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
-                        <circle cx="40" cy="40" r="32" fill="none" stroke="#f3f4f6" strokeWidth="8" />
-                        <circle cx="40" cy="40" r="32" fill="none" stroke="#10b981" strokeWidth="8"
-                          strokeDasharray={`${2 * Math.PI * 32 * 0.92} ${2 * Math.PI * 32 * 0.08}`} strokeLinecap="round" />
-                      </svg>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-lg font-bold text-gray-800">92%</span>
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-xs">
-                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                        <span className="text-gray-600">Present (412)</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs">
-                        <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                        <span className="text-gray-600">Absent (18)</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs">
-                        <div className="w-2 h-2 rounded-full bg-orange-400"></div>
-                        <span className="text-gray-600">On Leave (24)</span>
-                      </div>
-                    </div>
-                  </div>
-                  <button className="mt-3 w-full border border-purple-200 text-purple-600 text-xs py-1.5 rounded-lg flex items-center justify-center gap-1.5 hover:bg-purple-50">
-                    <Download size={12} />
-                    Export to Excel
-                  </button>
-                </div>
+            <div className="flex items-center gap-3">
+              <div className="text-right hidden sm:block">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Global Status</p>
+                <p className="text-[11px] font-bold text-emerald-500 flex items-center justify-end gap-1.5 mt-0.5">
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                  Active
+                </p>
               </div>
+              <div className="w-[1px] h-8 bg-gray-200 mx-1 hidden sm:block"></div>
+              <button className="p-2.5 rounded-xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all text-gray-400 hover:text-indigo-600">
+                <Sparkles size={18} />
+              </button>
+            </div>
+          </div>
+        </div>
 
-              {/* Quick Actions */}
-              <div className="bg-[#3730A3] rounded-xl p-5">
-                <h3 className="text-white font-semibold text-sm mb-4">Quick Actions</h3>
-                <div className="grid grid-cols-4 gap-3">
-                  {[
-                    { label: "PAY RUN", icon: DollarSign },
-                    { label: "ONBOARD", icon: UserPlus },
-                    { label: "REPORT", icon: FileText },
-                    { label: "CALENDAR", icon: Calendar },
-                  ].map(({ label, icon: Icon }) => (
-                    <button key={label} className="bg-[#4338CA] hover:bg-[#4F46E5] rounded-xl py-4 flex flex-col items-center gap-2 cursor-pointer transition-colors">
-                      <Icon size={22} className="text-white" />
-                      <span className="text-[10px] font-bold tracking-wider text-white">{label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Recruitment & Talent Metrics */}
-              <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
-                <div className="flex items-center justify-between mb-1">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          {/* ── LEFT COLUMN (8 Units) ── */}
+          <div className="lg:col-span-8 space-y-6">
+            
+            {/* Top Metrics Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Payroll Summary */}
+              <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm group relative overflow-hidden">
+                <div className="flex items-center justify-between mb-6 relative z-10">
                   <div>
-                    <h3 className="font-semibold text-gray-900 text-sm">Recruitment & Talent Metrics</h3>
-                    <p className="text-xs text-gray-400">Quarterly performance and hiring velocity</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Payroll Cycle</p>
+                    <p className="text-[11px] text-indigo-600 font-bold mt-0.5">OCTOBER 2023</p>
                   </div>
-                  <button className="bg-[#3730A3] text-white text-xs px-3 py-1.5 rounded-lg">All Departments</button>
+                  <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
+                    <DollarSign size={18} />
+                  </div>
                 </div>
-                <div className="mt-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#3730A3]">Recruitment Progress</p>
-                    <p className="text-[10px] font-semibold text-[#3730A3]">85% Capacity</p>
+                <div className="flex items-end gap-2 mb-6 relative z-10">
+                  <span className="text-3xl font-bold text-gray-900 tracking-tight">Rs.482,950</span>
+                  <div className="flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 text-emerald-600 rounded-md text-[10px] font-bold mb-1 border border-emerald-100">
+                    <ArrowUpRight size={10} />
+                    2.4%
                   </div>
-                  <div className="space-y-4">
+                </div>
+                <div className="space-y-3 relative z-10">
+                  <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                    <span>Disbursement Progress</span>
+                    <span className="text-indigo-600">85%</span>
+                  </div>
+                  <div className="h-1.5 bg-gray-50 rounded-full overflow-hidden shadow-inner">
+                    <motion.div initial={{ width: 0 }} animate={{ width: "85%" }} className="h-full bg-indigo-600 rounded-full"></motion.div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Attendance Snap */}
+              <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Attendance Snap</p>
+                  <MoreVertical size={16} className="text-gray-300 cursor-pointer" />
+                </div>
+                <div className="flex items-center gap-6">
+                  <div className="relative w-24 h-24 flex-shrink-0">
+                    <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r="44" fill="none" stroke="#F1F5F9" strokeWidth="10" />
+                      <motion.circle cx="50" cy="50" r="44" fill="none" stroke="#10b981" strokeWidth="10"
+                        strokeDasharray="276" initial={{ strokeDashoffset: 276 }} animate={{ strokeDashoffset: 276 * 0.08 }} strokeLinecap="round" />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-xl font-bold text-gray-900 tracking-tight">92%</span>
+                      <span className="text-[8px] font-bold text-gray-400 uppercase">On-Site</span>
+                    </div>
+                  </div>
+                  <div className="flex-1 space-y-2">
                     {[
-                      { title: "Senior Engineering Lead", progress: 80, stages: "4/5 Stages", color: "bg-[#3730A3]" },
-                      { title: "Product Designer", progress: 40, stages: "2/5 Stages", color: "bg-yellow-400" },
-                      { title: "HR Specialist", progress: 100, stages: "Complete", color: "bg-green-500", complete: true },
-                    ].map(({ title, progress, stages, color, complete }) => (
-                      <div key={title}>
-                        <div className="flex justify-between items-center mb-1.5">
-                          <span className="text-sm font-medium text-gray-700">{title}</span>
-                          <span className={`text-xs font-medium ${complete ? "text-green-600" : "text-gray-500"}`}>{stages}</span>
+                      { label: "Active", count: 412, color: "bg-emerald-500" },
+                      { label: "Absent", count: 18, color: "bg-rose-500" },
+                      { label: "Leave", count: 24, color: "bg-amber-500" },
+                    ].map((item) => (
+                      <div key={item.label} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-1.5 h-1.5 rounded-full ${item.color}`}></div>
+                          <span className="text-[10px] font-bold text-gray-500 uppercase">{item.label}</span>
                         </div>
-                        <div className="h-2 bg-gray-100 rounded-full">
-                          <div className={`h-2 ${color} rounded-full`} style={{ width: `${progress}%` }}></div>
-                        </div>
+                        <span className="text-[11px] font-bold text-gray-900">{item.count}</span>
                       </div>
                     ))}
                   </div>
                 </div>
               </div>
+            </div>
 
-              {/* Attendance Tracking */}
-              <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
-                <div className="flex items-center justify-between mb-1">
-                  <div>
-                    <h3 className="font-semibold text-gray-900 text-sm">Attendance Tracking</h3>
-                    <p className="text-xs text-gray-400">Real-time occupancy and check-in logs</p>
-                  </div>
-                  <button className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700">
-                    <Download size={12} />
-                    Export to Excel
-                  </button>
+            {/* Quick Actions Panel */}
+            <div className="bg-indigo-600 rounded-3xl p-8 shadow-xl shadow-indigo-500/20 relative overflow-hidden group">
+              <div className="flex items-center justify-between mb-6 relative z-10">
+                <div>
+                  <h3 className="text-white font-bold text-lg tracking-tight">Quick Operations</h3>
+                  <p className="text-indigo-100 text-xs font-medium">Direct access to staff protocols.</p>
                 </div>
-                <table className="w-full mt-4">
+                <Zap size={20} className="text-white/40" />
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 relative z-10">
+                {[
+                  { label: "Enroll Staff", icon: UserPlus, route: `/${params.dashboard}/admin/operations/employeemanagement/add-employee` },
+                  { label: "Run Payroll", icon: DollarSign, route: "#" },
+                  { label: "Broadcast", icon: Megaphone, route: "#" },
+                  { label: "Time Audits", icon: Clock, route: "#" },
+                ].map(({ label, icon: Icon, route }) => (
+                  <button 
+                    key={label} 
+                    onClick={() => route !== "#" && router.push(route)}
+                    className="bg-white/10 hover:bg-white/20 backdrop-blur-lg rounded-2xl py-6 flex flex-col items-center gap-3 cursor-pointer transition-all border border-white/5 group/btn active:scale-95"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-indigo-600 shadow-lg group-hover/btn:scale-105 transition-transform">
+                      <Icon size={20} />
+                    </div>
+                    <span className="text-[10px] font-bold tracking-widest text-white uppercase">{label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Presence Tracker Table */}
+            <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-gray-900 text-lg tracking-tight">Staff Presence Tracker</h3>
+                  <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mt-0.5">Live On-Site Telemetry</p>
+                </div>
+                <button className="px-4 py-2 rounded-lg bg-indigo-50 text-indigo-600 text-[11px] font-bold uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all shadow-sm">
+                  View Logs
+                </button>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
                   <thead>
-                    <tr className="text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-gray-100">
-                      <th className="text-left pb-2">Employee</th>
-                      <th className="text-left pb-2">Department</th>
-                      <th className="text-left pb-2">Status</th>
-                      <th className="text-left pb-2">Check-In</th>
-                      <th className="text-left pb-2">Work Mode</th>
+                    <tr className="bg-gray-50 border-b border-gray-100">
+                      <th className="text-left py-3 px-6 text-[10px] font-bold uppercase tracking-widest text-gray-400">Personnel</th>
+                      <th className="text-left py-3 px-6 text-[10px] font-bold uppercase tracking-widest text-gray-400">Division</th>
+                      <th className="text-left py-3 px-6 text-[10px] font-bold uppercase tracking-widest text-gray-400">Activity</th>
+                      <th className="text-left py-3 px-6 text-[10px] font-bold uppercase tracking-widest text-gray-400">Check-In</th>
+                      <th className="text-left py-3 px-6 text-[10px] font-bold uppercase tracking-widest text-gray-400">Modality</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-gray-100">
                     {[
-                      { initials: "MS", name: "Michael Scott", dept: "Regional Management", status: "PRESENT", statusColor: "bg-green-100 text-green-700", checkin: "08:45 AM", mode: "On-site", avatarBg: "bg-blue-500" },
-                      { initials: "PB", name: "Pam Beesly", dept: "Admin & Ops", status: "PRESENT", statusColor: "bg-green-100 text-green-700", checkin: "09:02 AM", mode: "Remote", avatarBg: "bg-pink-400" },
-                      { initials: "JH", name: "Jim Halpert", dept: "Sales Strategy", status: "LATE", statusColor: "bg-red-100 text-red-600", checkin: "10:15 AM", mode: "On-site", avatarBg: "bg-yellow-500" },
+                      { initials: "MS", name: "Michael Scott", dept: "Sales HQ", status: "ONLINE", statusColor: "bg-emerald-50 text-emerald-600 border-emerald-100", checkin: "08:45 AM", mode: "In-Office", bg: "from-indigo-500 to-indigo-600" },
+                      { initials: "PB", name: "Pam Beesly", dept: "Admin Ops", status: "ONLINE", statusColor: "bg-emerald-50 text-emerald-600 border-emerald-100", checkin: "09:02 AM", mode: "Remote", bg: "from-rose-400 to-rose-500" },
+                      { initials: "JH", name: "Jim Halpert", dept: "Market Strat", status: "LATE", statusColor: "bg-rose-50 text-rose-500 border-rose-100", checkin: "10:15 AM", mode: "In-Office", bg: "from-blue-500 to-blue-600" },
                     ].map((row) => (
-                      <tr key={row.name} className="border-b border-gray-50 last:border-0">
-                        <td className="py-3">
-                          <div className="flex items-center gap-2">
-                            <div className={`w-7 h-7 rounded-full ${row.avatarBg} flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0`}>{row.initials}</div>
-                            <span className="text-sm text-gray-800">{row.name}</span>
+                      <tr key={row.name} className="hover:bg-gray-50 transition-colors duration-200 group">
+                        <td className="py-3 px-6">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${row.bg} flex items-center justify-center text-[10px] font-bold text-white shadow-sm`}>{row.initials}</div>
+                            <span className="text-[13px] font-bold text-gray-900">{row.name}</span>
                           </div>
                         </td>
-                        <td className="py-3 text-sm text-gray-500">{row.dept}</td>
-                        <td className="py-3">
-                          <span className={`text-[10px] font-bold px-2 py-1 rounded ${row.statusColor}`}>{row.status}</span>
+                        <td className="py-3 px-6 text-[12px] font-medium text-gray-500 uppercase tracking-tight">{row.dept}</td>
+                        <td className="py-3 px-6">
+                          <span className={`text-[9px] font-bold px-2.5 py-1 rounded-lg uppercase border ${row.statusColor}`}>{row.status}</span>
                         </td>
-                        <td className="py-3 text-sm text-gray-600">{row.checkin}</td>
-                        <td className="py-3 text-sm text-gray-600">{row.mode}</td>
+                        <td className="py-3 px-6 text-[12px] text-gray-900 font-bold">{row.checkin}</td>
+                        <td className="py-3 px-6">
+                          <span className="text-[11px] font-medium text-gray-400 flex items-center gap-1.5">
+                            <div className="w-1 h-1 rounded-full bg-indigo-300"></div>
+                            {row.mode}
+                          </span>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-
-              {/* Integrated Priority Inbox */}
-              <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <Mail size={15} className="text-gray-500" />
-                    <span className="font-semibold text-sm text-gray-900">Integrated Priority Inbox</span>
-                  </div>
-                  <button className="text-xs text-purple-600 hover:underline">Go to Mailbox</button>
-                </div>
-                <div className="space-y-3">
-                  {[
-                    { initials: "AM", name: "Alex Mercer", time: "10:45 AM", preview: "Urgent: Benefit package update for the upcoming open enrollment season...", unread: true, avatarBg: "bg-[#3730A3]" },
-                    { initials: "DC", name: "David Chen", time: "Yesterday", preview: "The leave request for Q4 has been submitted for approval by the board...", unread: false, avatarBg: "bg-gray-400" },
-                  ].map((msg) => (
-                    <div key={msg.name} className="flex items-start gap-3">
-                      <div className={`w-8 h-8 rounded-full ${msg.avatarBg} flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0`}>{msg.initials}</div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-semibold text-gray-800">{msg.name}</span>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[11px] text-gray-400">{msg.time}</span>
-                            {msg.unread && <div className="w-2 h-2 rounded-full bg-blue-500"></div>}
-                          </div>
-                        </div>
-                        <p className="text-xs text-gray-400 truncate">{msg.preview}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
+          </div>
 
-            {/* Right Column */}
-            <div className="w-64 flex-shrink-0 flex flex-col gap-4">
-              {/* Stat Cards Grid */}
-              <div className="grid grid-cols-2 gap-3">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="bg-white rounded-xl p-3 border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center gap-1">
-                    <div className="w-8 h-8 bg-purple-50 rounded-full flex items-center justify-center">
-                      <Users size={14} className="text-purple-400" />
+          {/* ── RIGHT COLUMN (4 Units) ── */}
+          <div className="lg:col-span-4 space-y-6">
+            
+            {/* Hiring Pipeline */}
+            <div className="bg-white rounded-3xl p-6 border border-gray-200 shadow-sm">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="font-bold text-gray-900 text-base tracking-tight">Talent Pipeline</h3>
+                <Activity size={18} className="text-indigo-600" />
+              </div>
+              <div className="space-y-5">
+                {[
+                  { title: "Staff Engineer", progress: 80, label: "PHASE 4/5", color: "bg-indigo-600" },
+                  { title: "Visual Architect", progress: 40, label: "PHASE 2/5", color: "bg-amber-500" },
+                  { title: "HR Business Lead", progress: 100, label: "COMPLETED", color: "bg-emerald-500" },
+                ].map((item) => (
+                  <div key={item.title}>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-[12px] font-bold text-gray-900">{item.title}</span>
+                      <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider">{item.label}</span>
                     </div>
-                    <p className="text-[10px] text-gray-400">Total Employees</p>
-                    <p className="text-lg font-bold text-gray-800">10</p>
+                    <div className="h-2 bg-gray-50 rounded-full overflow-hidden shadow-inner">
+                      <motion.div initial={{ width: 0 }} animate={{ width: `${item.progress}%` }} className={`h-full ${item.color} rounded-full`}></motion.div>
+                    </div>
                   </div>
                 ))}
               </div>
+            </div>
 
-              {/* Announcements */}
-              <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <Megaphone size={14} className="text-gray-600" />
-                    <span className="font-semibold text-sm text-gray-900">Announcements</span>
+            {/* Metrics Snapshot */}
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { label: "Staff", val: "426", icon: Users, color: "text-blue-500", bg: "bg-blue-50" },
+                { label: "New Hires", val: "+12", icon: TrendingUp, color: "text-emerald-500", bg: "bg-emerald-50" },
+                { label: "Tickets", val: "08", icon: Ticket, color: "text-rose-500", bg: "bg-rose-50" },
+                { label: "Bulletins", val: "03", icon: Megaphone, color: "text-indigo-600", bg: "bg-indigo-50" },
+              ].map((stat) => (
+                <div key={stat.label} className="bg-white rounded-2xl p-4 border border-gray-200 shadow-sm flex flex-col items-center text-center group hover:scale-[1.02] transition-transform">
+                  <div className={`w-10 h-10 ${stat.bg} rounded-xl flex items-center justify-center mb-3 shadow-sm`}>
+                    <stat.icon size={18} className={stat.color} />
                   </div>
-                  <button className="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center">
-                    <Plus size={12} className="text-white" />
-                  </button>
+                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1.5">{stat.label}</p>
+                  <p className="text-xl font-bold text-gray-900 tracking-tight">{stat.val}</p>
                 </div>
-                <div className="space-y-3">
-                  <div className="border-l-4 border-purple-500 pl-3 py-1">
-                    <p className="text-[9px] font-bold uppercase text-purple-500 tracking-wider mb-0.5">NEW POLICY</p>
-                    <p className="text-xs font-semibold text-gray-800">Hybrid Work Policy v2.1</p>
-                    <p className="text-[10px] text-gray-500 mt-0.5">Starting Nov 1st, all departments transition to the new flexible framework.</p>
-                  </div>
-                  <div className="border-l-4 border-orange-400 pl-3 py-1">
-                    <p className="text-[9px] font-bold uppercase text-orange-400 tracking-wider mb-0.5">EVENT</p>
-                    <p className="text-xs font-semibold text-gray-800">Annual Founder's Day</p>
-                    <p className="text-[10px] text-gray-500 mt-0.5">Join us for the town hall meeting and awards ceremony this Friday.</p>
-                  </div>
+              ))}
+            </div>
+
+            {/* Celebrations Feed */}
+            <div className="bg-white rounded-3xl p-6 border border-gray-200 shadow-sm">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <Gift size={16} className="text-rose-500" />
+                  <span className="font-bold text-gray-900 text-base tracking-tight">Celebrations</span>
                 </div>
+                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">OCT '23</span>
               </div>
-
-              {/* Payroll Deadlines */}
-              <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-                <h3 className="font-semibold text-sm text-gray-900 mb-3">Payroll Deadlines</h3>
-                <div className="space-y-3">
-                  {[
-                    { month: "OCT", day: "28", title: "Monthly Salary Approval", sub: "4 days remaining", color: "bg-orange-500" },
-                    { month: "NOV", day: "05", title: "Tax Compliance Filing", sub: "11 days remaining", color: "bg-gray-400" },
-                  ].map(({ month, day, title, sub, color }) => (
-                    <div key={title} className="flex items-start gap-3">
-                      <div className={`${color} rounded-lg w-10 h-10 flex flex-col items-center justify-center flex-shrink-0`}>
-                        <span className="text-[8px] font-bold text-white uppercase leading-none">{month}</span>
-                        <span className="text-sm font-bold text-white leading-none">{day}</span>
-                      </div>
+              <div className="space-y-5">
+                {[
+                  { name: "Sarah Mitchell", sub: "Design • Today", initials: "SM", bg: "from-pink-400 to-rose-500" },
+                  { name: "James Wilson", sub: "Product • Oct 24", initials: "JW", bg: "from-indigo-500 to-indigo-600" },
+                ].map((person) => (
+                  <div key={person.name} className="flex items-center justify-between group/feed">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${person.bg} flex items-center justify-center text-[10px] font-bold text-white shadow-md`}>{person.initials}</div>
                       <div>
-                        <p className="text-xs font-semibold text-gray-800">{title}</p>
-                        <p className="text-[10px] text-gray-400">{sub}</p>
+                        <p className="text-[13px] font-bold text-gray-900 leading-tight">{person.name}</p>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tight mt-0.5">{person.sub}</p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Active Tickets */}
-              <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-sm text-gray-900">Active Tickets</h3>
-                  <span className="bg-[#3730A3] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">12 New</span>
-                </div>
-                <div className="space-y-2">
-                  {[
-                    { title: "IT Equipment Request", sub: "Dwight Schrute • High" },
-                    { title: "Salary Grievance", sub: "Toby Flenderson • Medium" },
-                  ].map(({ title, sub }) => (
-                    <div key={title} className="flex items-center justify-between p-2 border border-gray-100 rounded-lg hover:bg-gray-50 cursor-pointer">
-                      <div>
-                        <p className="text-xs font-semibold text-gray-800">{title}</p>
-                        <p className="text-[10px] text-gray-400">{sub}</p>
-                      </div>
-                      <ChevronRight size={14} className="text-gray-400" />
-                    </div>
-                  ))}
-                </div>
-                <button className="w-full mt-3 text-[11px] font-semibold text-[#3730A3] text-center hover:underline">VIEW ALL TICKETS</button>
-              </div>
-
-              {/* Birthdays */}
-              <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <Gift size={14} className="text-gray-600" />
-                    <span className="font-semibold text-sm text-gray-900">Birthdays</span>
+                    <button className="w-8 h-8 rounded-lg border border-gray-100 flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all shadow-sm">
+                      <Play size={10} className="ml-0.5 fill-current" />
+                    </button>
                   </div>
-                  <span className="text-[10px] text-gray-400 font-medium">OCTOBER</span>
-                </div>
-                <div className="space-y-3">
-                  {[
-                    { name: "Sarah Mitchell", sub: "Design Team • Today", initials: "SM", bg: "bg-pink-400" },
-                    { name: "James Wilson", sub: "Product Dev • Oct 24", initials: "JW", bg: "bg-blue-400" },
-                  ].map(({ name, sub, initials, bg }) => (
-                    <div key={name} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-8 h-8 rounded-full ${bg} flex items-center justify-center text-[10px] font-bold text-white`}>{initials}</div>
-                        <div>
-                          <p className="text-xs font-semibold text-gray-800">{name}</p>
-                          <p className="text-[10px] text-gray-400">{sub}</p>
-                        </div>
-                      </div>
-                      <button className="w-6 h-6 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50">
-                        <Play size={9} className="text-gray-400 ml-0.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                ))}
               </div>
             </div>
+            
           </div>
-        </main>
+        </div>
       </div>
     </div>
   );

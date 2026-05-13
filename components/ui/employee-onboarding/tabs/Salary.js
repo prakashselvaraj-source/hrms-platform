@@ -1,18 +1,17 @@
 'use client';
 
 import { useEffect } from 'react';
-import { DollarSign, TrendingUp, Wallet } from 'lucide-react';
+import { DollarSign, TrendingUp, Wallet, ArrowUpRight, Calculator } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export default function Salary({ data, updateData }) {
   const handleChange = (e) => updateData({ [e.target.name]: e.target.value });
 
-  // Auto-calculate CTC and Monthly Gross
   useEffect(() => {
     const basic = parseFloat(data.basicSalary) || 0;
     const bonus = parseFloat(data.performanceBonus) || 0;
     const tax = parseFloat(data.professionalTax) || 0;
 
-    // Assuming Basic is Monthly and Bonus is Annual
     const annualCTC = (basic * 12) + bonus - tax;
     const monthlyGross = (annualCTC / 12).toFixed(2);
 
@@ -25,75 +24,88 @@ export default function Salary({ data, updateData }) {
   }, [data.basicSalary, data.performanceBonus, data.professionalTax]);
 
   return (
-    <div className='bg-[#FFFFFF] p-8'>
-      <div className="text-sm font-semibold text-[#000000] mb-5 flex items-center gap-2">
-        <Wallet size={20} />
-        Salary Details</div>
-
-      <div className="bg-white  rounded-xl p-5 flex flex-col gap-8">
-        {/* Summary */}
-        <div className="flex gap-24 mb-6 pb-5 border-l-4 border-[#712AE2] p-4 rounded-sm">
-          <div>
-            <p className="text-xs font-semibold text-[#712AE2] uppercase tracking-wide mb-1">Annual CTC</p>
-            <p className="text-2xl font-bold text-[#191C1E]">Rs. {data.annualPackage || '0'}</p>
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-[#737686]  uppercase tracking-wide mb-1">Monthly Gross</p>
-            <p className="text-2xl font-bold text-[#191C1E]">Rs. {data.monthlyGross || '0'}</p>
-          </div>
+    <div className='bg-white rounded-2xl border border-gray-200 p-6 shadow-sm'>
+      <div className="flex items-center gap-2 text-[12px] font-bold text-gray-900 uppercase tracking-widest mb-6">
+        <div className="w-6 h-6 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+          <Wallet size={14} />
         </div>
+        Surgical Remuneration
+      </div>
 
-        {/* Fixed Components */}
-        <div className="mb-5 bg-[#FAFAFA] p-8">
-          <div className="flex items-center gap-2 mb-3">
-            <DollarSign size={15} className="text-violet-600" />
-            <h3 className="text-sm font-semibold text-[#191C1E]">Fixed Components</h3>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-            <div>
-              <label className="block text-xs font-semibold text-[#737686] uppercase tracking-wide mb-1.5">Basic Salary</label>
-              <input
-                type="text"
-                name="basicSalary"
-                value={data.basicSalary}
-                onChange={handleChange}
-                placeholder="e.g. $5,200"
-                className="w-full rounded-md px-3 py-3 text-sm text-gray-700 bg-[#F2F4F6] focus:outline-none focus:ring-2 focus:ring-[#712AE2]"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Variable & Deductions */}
-        <div className='bg-[#FAFAFA] p-8'>
-          <div className="flex items-center gap-2 mb-3">
-            <TrendingUp size={15} className="text-violet-600" />
-            <h3 className="text-sm font-semibold text-[#191C1E]">Variable & Deductions</h3>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center mt-4">
-            <div>
-              <label className="block text-xs font-semibold text-[#737686] uppercase tracking-wide mb-1.5">Performance Bonus (Annual)</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  name="performanceBonus"
-                  value={data.performanceBonus}
-                  onChange={handleChange}
-                  placeholder="e.g. $12,000"
-                  className="w-full rounded-md px-3 py-3 text-sm bg-[#F2F4F6] text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#712AE2] pr-24"
-                />
-                <span className="absolute right-2 top-1/2 -translate-y-1/2 bg-[#007B71] text-[#FFFFFF] text-[10px] font-bold px-2 py-1 rounded-sm">VARIABLE</span>
+      <div className="space-y-6">
+        {/* Dynamic Financial Summary */}
+        <div className="bg-indigo-600 rounded-xl p-6 shadow-lg shadow-indigo-100 flex flex-col sm:flex-row items-center gap-8 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
+          <div className="flex-1">
+            <p className="text-[10px] font-black text-indigo-200 uppercase tracking-[0.2em] mb-1">Projected Annual CTC</p>
+            <div className="flex items-end gap-2">
+              <span className="text-2xl font-black text-white tracking-tighter">Rs. {data.annualPackage || '0'}</span>
+              <div className="flex items-center gap-1 px-1.5 py-0.5 bg-white/10 text-white rounded-md text-[9px] font-black mb-1">
+                <ArrowUpRight size={10} />
+                Calculated
               </div>
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-[#737686] uppercase tracking-wide mb-1.5">Professional Tax</label>
-              <input
-                type="text"
-                name="professionalTax"
-                value={data.professionalTax}
-                onChange={handleChange}
-                className="w-full rounded-md px-3 py-3 text-sm bg-[#F2F4F6] text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#712AE2]"
-              />
+          </div>
+          <div className="w-px h-10 bg-white/10 hidden sm:block"></div>
+          <div className="flex-1">
+            <p className="text-[10px] font-black text-indigo-200 uppercase tracking-[0.2em] mb-1">Monthly Gross (Est.)</p>
+            <span className="text-2xl font-black text-white tracking-tighter">Rs. {data.monthlyGross || '0'}</span>
+          </div>
+        </div>
+
+        {/* Calculation Matrix */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-gray-50/50 border border-gray-100 rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Calculator size={14} className="text-indigo-600" />
+              <h3 className="text-[11px] font-black text-indigo-600 uppercase tracking-widest">Fixed Parameters</h3>
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-0.5">Basic Liquidity (Monthly)</label>
+              <div className="relative">
+                <input
+                  type="number"
+                  name="basicSalary"
+                  value={data.basicSalary}
+                  onChange={handleChange}
+                  placeholder="0.00"
+                  className="w-full bg-white border border-gray-100 rounded-xl px-4 py-2.5 text-[13px] text-gray-700 font-semibold focus:outline-none focus:border-indigo-600 shadow-sm"
+                />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-300">INR</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-rose-50/30 border border-rose-100 rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <TrendingUp size={14} className="text-rose-500" />
+              <h3 className="text-[11px] font-black text-rose-500 uppercase tracking-widest">Variable & Deductions</h3>
+            </div>
+            <div className="grid grid-cols-1 gap-4">
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold text-rose-400 uppercase tracking-widest ml-0.5">Performance Incentive (Annual)</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    name="performanceBonus"
+                    value={data.performanceBonus}
+                    onChange={handleChange}
+                    placeholder="0.00"
+                    className="w-full bg-white border border-rose-100 rounded-xl px-4 py-2.5 text-[13px] text-gray-700 font-semibold focus:outline-none focus:border-rose-500 shadow-sm"
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 px-2 py-1 bg-rose-500 text-white text-[8px] font-black rounded-lg uppercase tracking-tighter">Variable</div>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold text-rose-400 uppercase tracking-widest ml-0.5">Professional Tax Token</label>
+                <input
+                  type="number"
+                  name="professionalTax"
+                  value={data.professionalTax}
+                  onChange={handleChange}
+                  className="w-full bg-white border border-rose-100 rounded-xl px-4 py-2.5 text-[13px] text-gray-700 font-semibold focus:outline-none focus:border-rose-500 shadow-sm"
+                />
+              </div>
             </div>
           </div>
         </div>

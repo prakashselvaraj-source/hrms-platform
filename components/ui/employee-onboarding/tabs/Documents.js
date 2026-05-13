@@ -1,48 +1,24 @@
 'use client';
 
 import { uploadImage } from '@/services/uploadService';
-import { Upload, FolderOpen, CreditCard, GraduationCap, Briefcase, Plus, File, Paperclip } from 'lucide-react';
+import { Upload, FolderOpen, CreditCard, GraduationCap, Briefcase, Plus, File, Paperclip, X, Eye, FileText, CheckCircle2 } from 'lucide-react';
 import { useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
 
 const documentCards = [
-  {
-    id: 'identity',
-    icon: CreditCard,
-    title: 'Identity Proof',
-    description: 'Passport, Driving License, or National ID',
-    action: 'upload',
-  },
-  {
-    id: 'education',
-    icon: GraduationCap,
-    title: 'Education Certificates',
-    description: 'Degree certificates & final year transcripts',
-    action: 'upload',
-  },
-  {
-    id: 'employment',
-    icon: Briefcase,
-    title: 'Employment Proof',
-    description: 'Relieving letters or experience certificates',
-    action: 'upload',
-  },
-  {
-    id: 'other',
-    icon: Plus,
-    title: 'Other Documents',
-    description: 'Any additional certifications or licenses',
-    action: 'browse',
-  },
+  { id: 'identity', icon: CreditCard, title: 'Identity Verification', description: 'Passport, License, or National ID', action: 'upload' },
+  { id: 'education', icon: GraduationCap, title: 'Academic Credentials', description: 'Degrees & Final Year Transcripts', action: 'upload' },
+  { id: 'employment', icon: Briefcase, title: 'Employment History', description: 'Relieving or Experience Letters', action: 'upload' },
+  { id: 'other', icon: Plus, title: 'Supplemental Docs', description: 'Additional Certs or Licenses', action: 'browse' },
 ];
 
 export default function Documents({ data: uploaded, updateData }) {
   const fileRefs = useRef({});
 
-  // Normalise whatever the backend returns into a plain URL string
   const extractUrl = (data) => {
     if (typeof data === 'string') return data;
     if (data && typeof data === 'object') {
-      // common shapes: { url }, { fileUrl }, { path }, { data }
       return data.url ?? data.fileUrl ?? data.path ?? data.data ?? '';
     }
     return '';
@@ -50,51 +26,30 @@ export default function Documents({ data: uploaded, updateData }) {
 
   const handleUpload = async (id, files) => {
     if (!files || files.length === 0) return;
-
     try {
       if (id === 'other') {
         const uploadedFiles = await Promise.all(
           Array.from(files).map(async (file) => {
             const res = await uploadImage(file);
-            return {
-              file,
-              url: extractUrl(res.data),
-              name: file.name,
-            };
+            return { file, url: extractUrl(res.data), name: file.name };
           })
         );
-
-        updateData({
-          ...uploaded,
-          [id]: [...(uploaded[id] || []), ...uploadedFiles],
-        });
+        updateData({ ...uploaded, [id]: [...(uploaded[id] || []), ...uploadedFiles] });
       } else {
-        // SINGLE FILE
         const file = files[0];
         const res = await uploadImage(file);
-
-        updateData({
-          ...uploaded,
-          [id]: {
-            file,
-            url: extractUrl(res.data),
-            name: file.name,
-          },
-        });
+        updateData({ ...uploaded, [id]: { file, url: extractUrl(res.data), name: file.name } });
       }
+      toast.success('File synchronized.');
     } catch (err) {
-      console.error('Upload failed', err);
-      alert('File upload failed');
+      toast.error('Sync failed.');
     }
   };
 
   const handleDelete = (id, index) => {
     if (id === 'other') {
       const updatedFiles = uploaded[id].filter((_, i) => i !== index);
-      updateData({
-        ...uploaded,
-        [id]: updatedFiles,
-      });
+      updateData({ ...uploaded, [id]: updatedFiles });
     } else {
       const newState = { ...uploaded };
       delete newState[id];
@@ -103,29 +58,35 @@ export default function Documents({ data: uploaded, updateData }) {
   };
 
   return (
-    <div className='bg-[#FFFFFF]'>
-      <div className="flex items-center gap-2 text-sm font-semibold text-[#000000] mb-5">
-        <File size={20} />
-        Contact Details
+    <div className='bg-white rounded-2xl border border-gray-200 p-6 shadow-sm'>
+      <div className="flex items-center gap-2 text-[12px] font-bold text-gray-900 uppercase tracking-widest mb-8">
+        <div className="w-6 h-6 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+          <FileText size={14} />
+        </div>
+        Document Repositories
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {documentCards.map((card) => {
           const Icon = card.icon;
-          const isUploaded =
-            card.id === 'other'
-              ? uploaded[card.id]?.length > 0
-              : !!uploaded[card.id];
+          const currentFile = card.id === 'other' ? null : uploaded[card.id];
+          const hasFiles = card.id === 'other' ? uploaded[card.id]?.length > 0 : !!currentFile;
+
           return (
-            <div
-              key={card.id}
-              className={`bg-[#F2F4F6] border-2 border-dashed border-[#C3C6D74D] rounded-xl p-6 flex flex-col items-center text-center transition-colors`}
-            >
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 bg-[#E2DFFF]`} onClick={() => fileRefs.current[card.id]?.click()}>
-                <Icon size={22} className="text-[#4A45B6]" />
+            <div key={card.id} className="group relative bg-gray-50/50 border border-dashed border-gray-200 rounded-2xl p-5 transition-all hover:bg-white hover:border-indigo-300">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-indigo-600 shadow-sm group-hover:scale-110 transition-transform">
+                    <Icon size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-[13px] font-bold text-gray-900 leading-tight">{card.title}</h3>
+                    <p className="text-[10px] text-gray-400 font-medium mt-0.5">{card.description}</p>
+                  </div>
+                </div>
+                {hasFiles && <CheckCircle2 size={16} className="text-emerald-500" />}
               </div>
-              <h3 className="text-sm font-semibold text-[#191C1E] mb-1">{card.title}</h3>
-              <p className="text-xs text-[#434655] mb-4">{card.description}</p>
+
               <input
                 type="file"
                 multiple={card.id === 'other'}
@@ -134,63 +95,58 @@ export default function Documents({ data: uploaded, updateData }) {
                 className="hidden"
                 onChange={(e) => handleUpload(card.id, e.target.files)}
               />
-              {card.action === 'upload' ? (
+
+              <div className="flex flex-col gap-3">
+                {/* Status-based Button */}
                 <button
                   onClick={() => fileRefs.current[card.id]?.click()}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-700 text-white`}
-                >
-                  <Upload size={14} />
-                  {isUploaded ? 'Uploaded' : 'Upload File'}
-                </button>
-              ) : (
-                <button
-                  onClick={() => fileRefs.current[card.id]?.click()}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium 
-                    ${isUploaded
-                      ? ' bg-violet-600 hover:bg-violet-700 text-white'
-                      : 'bg-[#E0E3E5]'
+                  className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all
+                    ${hasFiles 
+                      ? 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100' 
+                      : 'bg-indigo-600 text-white shadow-lg shadow-indigo-100 hover:bg-indigo-700'
                     }`}
                 >
-                  <Paperclip size={14} />
-                  {isUploaded ? 'Uploaded' : 'Browse'}
+                  {card.action === 'upload' ? <Upload size={14} /> : <Paperclip size={14} />}
+                  {hasFiles ? (card.id === 'other' ? 'Add More' : 'Replace File') : (card.id === 'other' ? 'Browse Files' : 'Upload File')}
                 </button>
-              )}
-              {/* SINGLE FILE */}
-              {card.id !== 'other' && isUploaded && (
-                <button
-                  onClick={() => window.open(uploaded[card.id].url, '_blank', 'noopener,noreferrer')}
-                  className="mt-2 text-xs text-blue-600 underline"
-                >
-                  View File ({uploaded[card.id].name})
-                </button>
-              )}
 
-              {/* MULTIPLE FILES */}
-              {card.id === 'other' && uploaded[card.id]?.length > 0 && (
-                <div className="mt-2 w-full text-xs text-left">
-                  {uploaded[card.id].map((file, index) => (
-                    <div key={index} className="flex justify-center items-center gap-2">
-                      <span className="truncate">{file.name}</span>
-
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => window.open(file.url, '_blank', 'noopener,noreferrer')}
-                          className="text-blue-600"
-                        >
-                          View
+                {/* File Previews */}
+                <div className="space-y-1.5">
+                  {card.id !== 'other' && currentFile && (
+                    <div className="flex items-center justify-between bg-white border border-gray-100 rounded-lg p-2 pr-3">
+                      <div className="flex items-center gap-2 max-w-[70%]">
+                        <File size={12} className="text-indigo-400 flex-shrink-0" />
+                        <span className="text-[11px] font-bold text-gray-600 truncate">{currentFile.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => window.open(currentFile.url, '_blank')} className="text-indigo-600 hover:text-indigo-700 p-1 rounded-md hover:bg-indigo-50">
+                          <Eye size={14} />
                         </button>
+                        <button onClick={() => handleDelete(card.id)} className="text-rose-500 hover:text-rose-600 p-1 rounded-md hover:bg-rose-50">
+                          <X size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
-                        <button
-                          onClick={() => handleDelete(card.id, index)}
-                          className="text-red-600 text-xs"
-                        >
-                          Delete
+                  {card.id === 'other' && uploaded[card.id]?.map((file, index) => (
+                    <div key={index} className="flex items-center justify-between bg-white border border-gray-100 rounded-lg p-2 pr-3">
+                      <div className="flex items-center gap-2 max-w-[70%]">
+                        <File size={12} className="text-indigo-400 flex-shrink-0" />
+                        <span className="text-[11px] font-bold text-gray-600 truncate">{file.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => window.open(file.url, '_blank')} className="text-indigo-600 hover:text-indigo-700 p-1 rounded-md hover:bg-indigo-50">
+                          <Eye size={14} />
+                        </button>
+                        <button onClick={() => handleDelete(card.id, index)} className="text-rose-500 hover:text-rose-600 p-1 rounded-md hover:bg-rose-50">
+                          <X size={14} />
                         </button>
                       </div>
                     </div>
                   ))}
                 </div>
-              )}
+              </div>
             </div>
           );
         })}
