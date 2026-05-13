@@ -352,7 +352,7 @@ export default function AttendanceOverview() {
 
             <div className="px-6 py-6">
 
-                <div nav className="flex items-center gap-1 text-xs text-gray-400 mb-4">
+                <div className="flex items-center gap-1 text-xs text-gray-400 mb-4">
                     <span>ATTENDANCE MANAGEMENT</span>
                     <span>›</span>
                     <span className="text-gray-600 font-medium">TEAM ATTENDANCE OVERVIEW</span>

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function CustomDropdown({ label, options, value, onChange, placeholder = 'Select Option' }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -21,45 +22,57 @@ export default function CustomDropdown({ label, options, value, onChange, placeh
   const displayValue = typeof selectedOption === 'object' ? selectedOption.label : selectedOption;
 
   return (
-    <div className="relative" ref={dropdownRef}>
-      <label className="block text-xs font-semibold text-[#737686] uppercase tracking-wide mb-1.5">
-        {label}
-      </label>
+    <div className="relative w-full" ref={dropdownRef}>
+      {label && (
+        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-0.5">
+          {label}
+        </label>
+      )}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full bg-[#F2F4F6] rounded-md px-3 py-2.5 text-sm text-[#434655] flex items-center justify-between hover:bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-[#712AE2]"
+        className="w-full flex items-center justify-between bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 text-[13px] text-gray-700 font-semibold focus:outline-none focus:border-indigo-600 focus:bg-white transition-all shadow-sm group"
       >
-        <span className={!value ? 'text-gray-400' : ''}>
+        <span className={!value ? 'text-gray-400 font-medium' : ''}>
           {displayValue || placeholder}
         </span>
-        <ChevronDown size={16} className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown size={14} className={`text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
-      {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-100 rounded-md shadow-lg overflow-hidden py-1 max-h-60 overflow-y-auto">
-          {options.map((option, index) => {
-            const optValue = typeof option === 'object' ? option.value : option;
-            const optLabel = typeof option === 'object' ? option.label : option;
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -5 }}
+            className="absolute z-[60] w-full mt-1.5 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden py-1.5 max-h-60 overflow-y-auto no-scrollbar"
+          >
+            {options.map((option, index) => {
+              const optValue = typeof option === 'object' ? option.value : option;
+              const optLabel = typeof option === 'object' ? option.label : option;
+              const isSelected = value === optValue;
 
-            return (
-              <button
-                key={index}
-                type="button"
-                onClick={() => {
-                  onChange(optValue);
-                  setIsOpen(false);
-                }}
-                className={`w-full text-left px-3 py-2 text-sm
-                  ${value === optValue ? 'bg-[#4A45B6] font-semibold text-white' : 'text-gray-600'}
-                `}
-              >
-                {optLabel}
-              </button>
-            );
-          })}
-        </div>
-      )}
+              return (
+                <button
+                  key={index}
+                  type="button"
+                  onClick={() => {
+                    onChange(optValue);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2 text-[12px] font-medium transition-colors
+                    ${isSelected 
+                      ? 'bg-indigo-600 text-white font-bold' 
+                      : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-600'}
+                  `}
+                >
+                  {optLabel}
+                </button>
+              );
+            })}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

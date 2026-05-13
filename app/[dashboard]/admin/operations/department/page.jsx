@@ -18,6 +18,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useTenant } from "@/hooks/useTenant";
 import { getDepartments, deleteDepartment } from "@/services/departmentService";
+import toast from "react-hot-toast";
 
 // ─── Breadcrumb ──────────────────────────────────────────────────────────────
 function Breadcrumb() {
@@ -35,7 +36,7 @@ function PageHeader({ onAdd }) {
     return (
         <div className="flex items-center justify-between gap-4">
             <div>
-                
+
                 <h1 className="mt-2 text-2xl font-semibold text-gray-800 tracking-tight">
                     Departments
                 </h1>
@@ -419,9 +420,10 @@ export default function DepartmentListPage() {
         try {
             await deleteDepartment(tenantId, deleteTarget.id);
             setDepartments((prev) => prev.filter((d) => d.id !== deleteTarget.id));
+            toast.success("Department deleted successfully");
             setDeleteTarget(null);
         } catch (err) {
-            setError(err.response?.data?.message || "Failed to delete department.");
+            toast.error(err.response?.data?.message || "Failed to delete department.");
             setDeleteTarget(null);
         } finally {
             setDeletingId(null);
@@ -441,9 +443,6 @@ export default function DepartmentListPage() {
                     active={totalActive}
                     inactive={totalInactive}
                 />
-
-                {/* Error */}
-                <ErrorBanner message={error} onDismiss={() => setError(null)} />
 
                 {/* Table Card */}
                 <div className="rounded-xl border border-gray-100 bg-white shadow-sm p-6 space-y-5">

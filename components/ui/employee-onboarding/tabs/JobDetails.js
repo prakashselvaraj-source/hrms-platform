@@ -1,22 +1,20 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Info, MapPin, ChevronDown } from 'lucide-react';
+import { Info, MapPin, Briefcase, Building2, UserCheck } from 'lucide-react';
 import CustomDropdown from '../CustomDropdown';
 
 import { getAllRoles } from '@/services/roleService';
 import { useTenant } from '@/hooks/useTenant';
 import { getDepartments } from '@/services/departmentService';
-import { getEmployees } from '@/services/employeeService';
 
 const employmentTypes = ['Full-time', 'Part-time', 'Contract', 'Intern'];
-// const departments = ['Product & Experience', 'Engineering', 'Human Resources', 'Finance'];
 const managers = ['John Smith', 'Sarah Jenkins', 'Mike Johnson'];
 const locations = ['Remote (Global)', 'On-site', 'Hybrid'];
 
 export default function JobDetails({ data, updateData }) {
   const [roleOptions, setRoleOptions] = useState([]);
-  const [departments,setDepartments]= useState([]);
+  const [departments, setDepartments] = useState([]);
   const tenantId = useTenant();
 
   useEffect(() => {
@@ -34,114 +32,109 @@ export default function JobDetails({ data, updateData }) {
     fetchRoles();
 
     const fetchDepartments = async () => {
-      try{
+      try {
         if (!tenantId) return;
         const response = await getDepartments(tenantId);
-        const dept = response.data.map(d => d.name);
+        const dept = response.data.map(d => ({ label: d.name, value: d.name }));
         setDepartments(dept);
-        console.log(response.data);
-      } catch (err){
+      } catch (err) {
         console.log(err);
       }
     };
     fetchDepartments();
+  }, [tenantId]);
 
-  }, []);
   const handleChange = (e) => updateData({ [e.target.name]: e.target.value });
 
   return (
-    <div className="bg-[#FFFFFF] p-8">
-      <div className="flex items-center gap-2 text-sm font-semibold text-[#000000] mb-5">
-        <Info size={22} />
-        Job Details
+    <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+      <div className="flex items-center gap-2 text-[12px] font-bold text-gray-900 uppercase tracking-widest mb-6">
+        <div className="w-6 h-6 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+          <Briefcase size={14} />
+        </div>
+        Professional Assignment
       </div>
 
-      <div className="  rounded-xl p-5 mb-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-semibold text-[#434655] uppercase tracking-wide mb-1.5">Designation</label>
-            <input
-              type="text"
-              name="designation"
-              value={data.designation}
-              onChange={handleChange}
-              placeholder="e.g. Senior Product Designer"
-              className="w-full  rounded-md px-3 py-2.5 text-sm text-[#434655] bg-[#F2F4F6] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#712AE2]"
-            />
-          </div>
-          <div>
+      <div className="space-y-6">
+        {/* Core Job Metrics */}
+        <div className="bg-gray-50/50 border border-gray-100 rounded-xl p-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-0.5">Designation</label>
+              <input
+                type="text"
+                name="designation"
+                value={data.designation}
+                onChange={handleChange}
+                placeholder="Senior Architect"
+                className="w-full bg-white border border-gray-100 rounded-xl px-4 py-2.5 text-[13px] text-gray-700 font-semibold focus:outline-none focus:border-indigo-600 shadow-sm"
+              />
+            </div>
             <CustomDropdown
               label="Department"
               options={departments}
               value={data.department}
               onChange={(value) => updateData({ department: value })}
-              placeholder="Select Department"
+              placeholder="Select Division"
             />
-          </div>
-          <div>
             <CustomDropdown
-              label="Add Role"
+              label="Functional Role"
               options={roleOptions}
               value={data.role}
               onChange={(value) => updateData({ role: value })}
               placeholder="Select Role"
             />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-[#434655] uppercase tracking-wide mb-1.5">Date of Joining</label>
-            <input
-              type="date"
-              name="dateOfJoining"
-              value={data.dateOfJoining}
-              onChange={handleChange}
-              placeholder="mm/dd/yyyy"
-              className="w-full  rounded-md px-3 py-2.5 text-sm text-[#434655] bg-[#F2F4F6] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#712AE2]"
-            />
-          </div>
-          <div>
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-0.5">Joining Date</label>
+              <input
+                type="date"
+                name="dateOfJoining"
+                value={data.dateOfJoining}
+                onChange={handleChange}
+                className="w-full bg-white border border-gray-100 rounded-xl px-4 py-2.5 text-[13px] text-gray-700 font-semibold focus:outline-none focus:border-indigo-600 shadow-sm"
+              />
+            </div>
             <CustomDropdown
-              label="Reporting Manager"
-              options={managers}
+              label="Reporting Oracle"
+              options={managers.map(m => ({ label: m, value: m }))}
               value={data.reportingManager}
               onChange={(value) => updateData({ reportingManager: value })}
-              placeholder="Select Manager"
+              placeholder="Select Lead"
             />
           </div>
         </div>
-      </div>
 
-      {/* Work Setup */}
-      <div className="  rounded-sm p-5 border-l-4 border-[#712AE2]">
-        <div className="flex items-center gap-2 mb-4">
-          <MapPin size={22} className="text-[#4A45B6]" />
-          <h3 className="text-sm font-semibold text-[#191C1E]">Work Setup</h3>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
+        {/* Work Setup Hub */}
+        <div className="bg-indigo-50/30 border border-indigo-100 rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <MapPin size={14} className="text-indigo-600" />
+            <h3 className="text-[11px] font-black text-indigo-600 uppercase tracking-widest">Workspace Logistics</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <CustomDropdown
-              label="Work Location"
-              options={locations}
+              label="Operational Hub"
+              options={locations.map(l => ({ label: l, value: l }))}
               value={data.workLocation}
               onChange={(value) => updateData({ workLocation: value })}
               placeholder="Select Location"
             />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-[#434655] uppercase tracking-wide mb-1.5">Employment Type</label>
-            <div className="flex flex-wrap gap-2  bg-[#F2F4F6] p-2">
-              {employmentTypes.map((type) => (
-                <button
-                  key={type}
-                  onClick={() => updateData({ employmentType: type })}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors
-                    ${data.employmentType === type
-                      ? 'bg-[#FFFFFF] text-[#4A45B6] rounded-md'
-                      : ' '
-                    }`}
-                >
-                  {type}
-                </button>
-              ))}
+            <div className="space-y-2">
+              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-0.5">Engagement Modality</label>
+              <div className="flex flex-wrap gap-1.5 p-1 bg-white border border-gray-100 rounded-xl shadow-inner">
+                {employmentTypes.map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => updateData({ employmentType: type })}
+                    className={`flex-1 min-w-[80px] py-2 rounded-lg text-[11px] font-bold uppercase tracking-tight transition-all
+                      ${data.employmentType === type
+                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-100'
+                        : 'text-gray-400 hover:bg-gray-50'
+                      }`}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>

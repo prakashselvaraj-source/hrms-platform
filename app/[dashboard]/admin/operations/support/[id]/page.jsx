@@ -3,28 +3,52 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, Clock, User, FileText, XCircle, Loader2, UserPlus, CircleQuestionMark, Send, AlertCircle, MessageSquare, ShieldCheck } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, User, FileText, XCircle, Loader2, UserPlus, Send, AlertCircle, MessageSquare, ShieldCheck, Fingerprint, Award, History, CheckCircle2 } from "lucide-react";
 import { getTicketById, updateTicket, assignTicket, takeTicket, resolveTicket, getTicketMessages } from "@/services/ticketService";
 import { getEmployees } from "@/services/employeeService";
 import { useTenant } from "@/hooks/useTenant";
 import socketService from "@/services/websocketService";
 
+// ─── Shared Components ───────────────────────────────────────────────────────
 function StatusBadge({ status }) {
   const statusConfig = {
-    OPEN: { dot: "bg-blue-500", text: "text-blue-600", label: "Open" },
-    IN_PROGRESS: { dot: "bg-amber-500", text: "text-amber-600", label: "In Progress" },
-    RESOLVED: { dot: "bg-emerald-500", text: "text-emerald-600", label: "Resolved" },
-    CLOSED: { dot: "bg-gray-500", text: "text-gray-600", label: "Closed" },
+    OPEN: { text: "text-blue-600", bg: "bg-blue-50", border: "border-blue-200", label: "Open", dot: "bg-blue-500" },
+    IN_PROGRESS: { text: "text-amber-600", bg: "bg-amber-50", border: "border-amber-200", label: "In Progress", dot: "bg-amber-500" },
+    RESOLVED: { text: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-200", label: "Resolved", dot: "bg-emerald-500" },
+    CLOSED: { text: "text-slate-500", bg: "bg-slate-50", border: "border-slate-200", label: "Closed", dot: "bg-slate-400" },
   };
 
   const config = statusConfig[status] || statusConfig.OPEN;
 
   return (
-    <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border ${config.text} border-current`}>
-      <span className={`w-2 h-2 rounded-full ${config.dot}`} />
-      <span className="text-[11px] font-semibold uppercase tracking-wider">{config.label}</span>
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border ${config.bg} ${config.border} ${config.text} text-xs font-semibold`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${config.dot}`} />
+      {config.label}
+    </span>
+  );
+}
+
+function InfoItem({ label, value, icon: Icon }) {
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-1.5">
+        {Icon && <Icon size={12} className="text-gray-400" />}
+        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</p>
+      </div>
+      <p className="text-sm font-medium text-gray-800">{value ?? "—"}</p>
     </div>
   );
+}
+
+function SectionHeader({ title, icon: Icon }) {
+  return (
+    <div className="flex items-center gap-2 mb-4">
+      <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+        <Icon size={16} />
+      </div>
+      <h3 className="text-sm font-semibold text-gray-800">{title}</h3>
+    </div>
+  ); SectionHeader
 }
 
 export default function TicketDetailPage() {
@@ -37,12 +61,10 @@ export default function TicketDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Current user state
   const [currentUserEmail, setCurrentUserEmail] = useState(null);
   const [currentUserName, setCurrentUserName] = useState(null);
   const [role, setRole] = useState(null);
 
-  // Modals & Action state
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showResolveModal, setShowResolveModal] = useState(false);
   const [resolutionNote, setResolutionNote] = useState("");
@@ -80,17 +102,14 @@ export default function TicketDetailPage() {
   useEffect(() => {
     fetchTicketAndHistory();
 
-    // WebSocket Setup
     socketService.connect(() => {
       socketService.subscribe(`/topic/ticket/${id}`, (data) => {
         if (data.content) {
-          // Chat message
           setMessages((prev) => {
             if (prev.find(m => m.id === data.id)) return prev;
             return [...prev, data];
           });
         } else {
-          // Status update
           setTicket(data);
         }
       });
@@ -109,7 +128,7 @@ export default function TicketDetailPage() {
       senderEmail: currentUserEmail,
       senderName: currentUserName,
       content: replyText,
-      isAdmin: true // Admin side
+      isAdmin: true
     };
 
     socketService.sendMessage("/app/chat.sendMessage", chatMessage);
@@ -125,7 +144,6 @@ export default function TicketDetailPage() {
       fetchTicketAndHistory();
     } catch (err) {
       console.error("Assign failed", err);
-      alert("Failed to assign ticket.");
     } finally {
       setActionLoading(false);
     }
@@ -136,12 +154,10 @@ export default function TicketDetailPage() {
     try {
       setActionLoading(true);
       await takeTicket(ticketId, tenantId);
-      // Update status to IN_PROGRESS when assigning to self
       await updateTicket(ticketId, { status: "IN_PROGRESS" }, tenantId);
       fetchTicketAndHistory();
     } catch (err) {
       console.error("Take ownership failed", err);
-      alert("Failed to take ownership.");
     } finally {
       setActionLoading(false);
     }
@@ -157,7 +173,6 @@ export default function TicketDetailPage() {
       fetchTicketAndHistory();
     } catch (err) {
       console.error("Resolve failed", err);
-      alert("Failed to resolve ticket.");
     } finally {
       setActionLoading(false);
     }
@@ -166,7 +181,6 @@ export default function TicketDetailPage() {
   const openAssignModal = async () => {
     setShowAssignModal(true);
     try {
-      // Fetch fresh list of employees every time modal opens
       const res = await getEmployees(tenantId, 0, 100);
       setUserList(res.data.employees || []);
     } catch (err) {
@@ -174,14 +188,12 @@ export default function TicketDetailPage() {
     }
   };
 
-
-
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC] p-6">
-        <div className="text-center">
-          <div className="mx-auto h-12 w-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
-          <p className="mt-4 text-sm text-gray-500">Loading ticket details...</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3 text-gray-400">
+          <Loader2 size={32} className="animate-spin text-indigo-500" />
+          <p className="text-sm font-medium uppercase tracking-wide">Loading Ticket Intelligence...</p>
         </div>
       </div>
     );
@@ -189,16 +201,18 @@ export default function TicketDetailPage() {
 
   if (error || !ticket) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC] p-6 flex items-center justify-center">
-        <div className="max-w-md w-full bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
-          <XCircle size={48} className="mx-auto text-red-400 mb-4" />
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Ticket not found</h2>
-          <p className="text-sm text-gray-500 mb-6">{error || "The ticket details could not be loaded."}</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-white rounded-xl border border-gray-100 p-8 text-center shadow-sm">
+          <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center text-red-500 mx-auto mb-4">
+            <XCircle size={24} />
+          </div>
+          <h2 className="text-lg font-semibold text-gray-800 mb-1">Access Interrupted</h2>
+          <p className="text-sm text-gray-500 mb-6">{error || "The requested ticket is unreachable."}</p>
           <button
             onClick={() => router.back()}
-            className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-all"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-black transition-all"
           >
-            <ChevronLeft size={16} /> Back
+            <ChevronLeft size={16} /> Back to Terminal
           </button>
         </div>
       </div>
@@ -207,294 +221,260 @@ export default function TicketDetailPage() {
 
   const formatDateTime = (value) => {
     if (!value) return "—";
-    return new Date(value).toLocaleString();
+    return new Date(value).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] p-4 sm:p-6 lg:p-8 font-sans">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-[#1E293B]">Ticket #{ticket.id}</h1>
-          <p className="text-sm text-gray-500 mt-1">Essential details for this support request.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* Action Buttons */}
-          {role === "ADMIN" && ticket.status === "OPEN" && !ticket.assignedTo && (
-            <button
-              onClick={openAssignModal}
-              className="flex items-center gap-1 px-4 py-2 bg-[#4A45B6] text-white text-sm font-bold rounded-lg hover:bg-[#3d389e] transition-all shadow-sm"
-            >
-              <UserPlus size={16} /> Assign to Others
-            </button>
-          )}
+    <div className="min-h-screen bg-gray-50/60 pb-20 px-4 sm:px-6 lg:px-10">
+      <div className="max-w-[1400px] mx-auto py-8">
 
-          {(role === "ADMIN" || role === "HR" || role === "IT") && ticket.status === "OPEN" && !ticket.assignedTo && (
-            <button
-              disabled={actionLoading}
-              onClick={() => handleTakeOwnership(ticket.id)}
-              className="flex items-center gap-1 px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition-all shadow-sm"
-            >
-              <UserPlus size={16} /> Assign to Me
-            </button>
-          )}
-
-          {ticket.status === "IN_PROGRESS" && ticket.assignedTo && ticket.assignedTo === currentUserEmail && (
-            <button
-              onClick={() => setShowResolveModal(true)}
-              className="flex items-center gap-1 px-4 py-2 bg-emerald-600 text-white text-sm font-bold rounded-lg hover:bg-emerald-700 transition-all shadow-sm"
-            >
-              Resolve <CircleQuestionMark size={16} />
-            </button>
-          )}
-
-          <div className="h-8 w-[1px] bg-gray-200 mx-1" />
-
-          <button
-            onClick={() => router.back()}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-all"
-          >
-            <ChevronLeft size={16} /> Back
-          </button>
-          <Link
-            href="../"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-all"
-          >
-            Support list
-          </Link>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="xl:col-span-2 space-y-6">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
-              <div>
-                <p className="text-sm text-gray-400 uppercase tracking-widest mb-2">Subject</p>
-                <h2 className="text-xl font-bold text-gray-900">{ticket.subject}</h2>
-              </div>
-              <div className="space-y-2 text-right">
-                <StatusBadge status={ticket.status} />
-                <p className="text-xs text-gray-500">Priority: {ticket.priority || "—"}</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
-              <div>
-                <p className="text-xs uppercase tracking-widest text-gray-400 mb-2">Category</p>
-                <p className="text-sm text-gray-800">{ticket.category || "—"}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-widest text-gray-400 mb-2">Raised By</p>
-                <p className="text-sm text-gray-800">{ticket.raisedByName || ticket.raisedBy || "Unknown"}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-widest text-gray-400 mb-2">Created At</p>
-                <p className="text-sm text-gray-800">{formatDateTime(ticket.createdAt)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-widest text-gray-400 mb-2">Assigned To</p>
-                <p className="text-sm text-gray-800">{ticket.assignedTo || "—"}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-widest text-gray-400 mb-2">Assigned At</p>
-                <p className="text-sm text-gray-800">{formatDateTime(ticket.assignedAt)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-widest text-gray-400 mb-2">Resolved At</p>
-                <p className="text-sm text-gray-800">{formatDateTime(ticket.resolvedAt)}</p>
-              </div>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-widest text-gray-400 mb-2">Description</p>
-              <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 text-sm text-gray-700">
-                {ticket.description || "No description provided."}
-              </div>
+        {/* Breadcrumb & Header */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+          <div className="space-y-2">
+            <nav className="flex items-center gap-1.5 text-xs font-medium uppercase text-gray-400">
+              <span className="hover:text-indigo-600 cursor-pointer" onClick={() => router.push(`/${tenantId}/admin/operations/support`)}>Support</span>
+              <ChevronRight size={14} className="text-gray-300" />
+              <span className="text-indigo-600">Ticket Details</span>
+            </nav>
+            <div className="flex items-center gap-4">
+              <h1 className="text-2xl font-semibold text-gray-800 tracking-tight">
+                Ticket #{ticket.id}
+              </h1>
+              <StatusBadge status={ticket.status} />
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
-            <div className="flex items-center gap-2 text-gray-500">
-              <Clock size={18} />
-              <p className="text-sm font-semibold text-gray-900">Resolution</p>
-            </div>
-            <div className="text-sm text-gray-700">
-              {ticket.resolutionNote ? (
-                <p>{ticket.resolutionNote}</p>
-              ) : (
-                <p className="text-gray-500">No resolution note yet.</p>
-              )}
-            </div>
-          </div>
+          <div className="flex flex-wrap items-center gap-2.5">
+            {role === "ADMIN" && ticket.status === "OPEN" && !ticket.assignedTo && (
+              <button onClick={openAssignModal} className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-all shadow-sm flex items-center gap-2">
+                <UserPlus size={16} /> Assign Agent
+              </button>
+            )}
 
-          {/* Conversation / Activity Feed */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-50 bg-gray-50/50 flex items-center justify-between">
-              <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-indigo-600" />
-                Communication History
-              </h3>
-              <span className="text-[10px] font-bold text-gray-400 bg-white px-2 py-1 rounded border border-gray-100">
-                {messages.length} Messages
-              </span>
+            {(role === "ADMIN" || role === "HR" || role === "IT") && ticket.status === "OPEN" && !ticket.assignedTo && (
+              <button disabled={actionLoading} onClick={() => handleTakeOwnership(ticket.id)} className="px-4 py-2 bg-white border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-all shadow-sm flex items-center gap-2">
+                <Fingerprint size={16} /> Take Ownership
+              </button>
+            )}
+
+            {ticket.status === "IN_PROGRESS" && ticket.assignedTo && ticket.assignedTo === currentUserEmail && (
+              <button onClick={() => setShowResolveModal(true)} className="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-all shadow-sm flex items-center gap-2">
+                Resolve Ticket <CheckCircle2 size={16} />
+              </button>
+            )}
+
+            <div className="w-px h-8 bg-gray-200 mx-1 hidden md:block" />
+
+            <button onClick={() => router.back()} className="px-4 py-2 bg-white border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-all shadow-sm flex items-center gap-2">
+              <ChevronLeft size={16} /> Exit
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div className="xl:col-span-2 space-y-6">
+
+            {/* Ticket Payload Card */}
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+              <SectionHeader title="Ticket Intelligence" icon={FileText} />
+
+              <div className="mb-8">
+                <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wider mb-1.5">Subject</p>
+                <h2 className="text-lg font-semibold text-gray-800 leading-tight">{ticket.subject}</h2>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mb-8 p-4 bg-gray-50 rounded-lg border border-gray-100">
+                <InfoItem label="Category" value={ticket.category} />
+                <InfoItem label="Priority" value={ticket.priority} />
+                <InfoItem label="Requester" value={ticket.raisedByName || ticket.raisedBy} icon={User} />
+                <InfoItem label="Created At" value={formatDateTime(ticket.createdAt)} icon={Clock} />
+                <InfoItem label="Assigned To" value={ticket.assignedTo} icon={History} />
+                <InfoItem label="Resolved At" value={formatDateTime(ticket.resolvedAt)} icon={CheckCircle2} />
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Description</p>
+                <div className="bg-white rounded-lg p-4 border border-gray-100 text-sm text-gray-600 leading-relaxed font-medium">
+                  {ticket.description || "No description provided."}
+                </div>
+              </div>
             </div>
-            <div className="p-6">
-              <div className="space-y-6 mb-8 max-h-[500px] overflow-y-auto pr-2">
-                {messages.length > 0 ? (
-                  <div className="space-y-8 relative before:absolute before:left-5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100">
-                    {messages.map((msg, i) => (
-                      <div key={i} className="flex gap-4 relative z-10">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm border-2 ${msg.isAdmin ? "bg-white border-indigo-100" : "bg-white border-gray-100"}`}>
-                          {msg.isAdmin ? (
-                            <ShieldCheck className="w-5 h-5 text-indigo-600" />
-                          ) : (
-                            <User className="w-5 h-5 text-gray-400" />
-                          )}
-                        </div>
-                        <div className="flex-1 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <p className="text-sm font-black text-gray-900">
-                              {msg.senderName} {msg.senderEmail === currentUserEmail ? "(You)" : ""}
-                            </p>
-                            <span className="text-[10px] font-bold text-gray-400 flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {new Date(msg.createdAt).toLocaleString()}
-                            </span>
+
+            {/* Resolution Section */}
+            {ticket.status === "RESOLVED" && (
+              <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+                <SectionHeader title="Resolution Analysis" icon={Award} />
+                <div className="bg-emerald-50/50 rounded-lg p-4 border border-emerald-100 text-sm text-gray-700 font-medium leading-relaxed">
+                  {ticket.resolutionNote || "Issue resolved successfully."}
+                </div>
+              </div>
+            )}
+
+            {/* Communication Thread */}
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-50 bg-gray-50/30 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white">
+                    <MessageSquare size={16} />
+                  </div>
+                  <h3 className="text-sm font-semibold text-gray-800">Activity Log</h3>
+                </div>
+                <span className="text-xs font-semibold text-indigo-600 bg-white px-2.5 py-1 rounded-full border border-indigo-50 shadow-sm">
+                  {messages.length} Messages
+                </span>
+              </div>
+
+              <div className="p-6">
+                <div className="space-y-6 mb-8 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+                  {messages.length > 0 ? (
+                    messages.map((msg, i) => {
+                      const isMe = msg.isAdmin || msg.senderEmail === currentUserEmail;
+                      const displayName = isMe
+                        ? (msg.senderName && msg.senderName !== 'User' ? msg.senderName : currentUserName)
+                        : (msg.senderName && msg.senderName !== 'User' ? msg.senderName : (ticket.raisedByName || 'User'));
+
+                      const initials = displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+
+                      return (
+                        <div key={i} className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'}`}>
+                          <div className={`flex items-start gap-3 max-w-[85%] ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+                            {/* Avatar */}
+                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 border shadow-sm overflow-hidden text-xs font-bold ${isMe ? "bg-indigo-50 border-indigo-100 text-indigo-600" : "bg-gray-50 border-gray-100 text-gray-500"}`}>
+                              {msg.senderPhotoUrl ? (
+                                <img src={msg.senderPhotoUrl} alt="" className="w-full h-full object-cover" />
+                              ) : !isMe && ticket.raisedByPhotoUrl ? (
+                                <img src={ticket.raisedByPhotoUrl} alt="" className="w-full h-full object-cover" />
+                              ) : (
+                                <span>{initials}</span>
+                              )}
+                            </div>
+
+                            {/* Message Bubble */}
+                            <div className={`flex flex-col space-y-1 ${isMe ? 'items-end' : 'items-start'}`}>
+                              <div className={`flex items-center gap-2 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+                                <p className="text-xs font-semibold text-gray-800">
+                                  {displayName}
+                                </p>
+                                <span className="text-[10px] font-medium text-gray-400">{formatDateTime(msg.createdAt)}</span>
+                              </div>
+
+                              <div className={`p-3 rounded-xl text-sm leading-relaxed border ${isMe
+                                ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                                : "bg-white text-gray-600 border-gray-100 shadow-sm"
+                                }`}>
+                                {msg.content}
+                              </div>
+                            </div>
                           </div>
-                          <div className={`p-4 rounded-2xl text-sm leading-relaxed ${msg.isAdmin
-                            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100"
-                            : "bg-gray-50 text-gray-700 border border-gray-100"
-                            }`}>
-                            {msg.content}
-                          </div>
                         </div>
+                      );
+                    })
+                  ) : (
+                    <div className="text-center py-12">
+                      <div className="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center mx-auto mb-3 text-gray-300">
+                        <MessageSquare size={20} />
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-10">
-                    <p className="text-sm text-gray-400">No messages yet. Start the conversation!</p>
-                  </div>
-                )}
-              </div>
+                      <p className="text-sm font-medium text-gray-400">No communication recorded yet.</p>
+                    </div>
+                  )}
+                </div>
 
-              {/* Reply Box */}
-              <div className="mt-8 pt-8 border-t border-slate-100">
-                <div className="flex gap-4 items-start">
-                  <div className="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center flex-shrink-0">
-                    <ShieldCheck className="w-5 h-5 text-indigo-600" />
-                  </div>
-                  <div className="flex-1 space-y-4">
-                    <textarea
-                      placeholder="Add a comment or update the employee..."
-                      value={replyText}
-                      onChange={(e) => setReplyText(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all min-h-[100px] resize-none"
-                    />
-                    <div className="flex justify-end gap-3">
-                      <button
-                        className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 transition-colors"
-                        onClick={() => setReplyText("")}
-                      >
-                        Discard
-                      </button>
-                      <button
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 shadow-sm flex items-center gap-2"
-                        onClick={handleSendMessage}
-                      >
-                        <Send size={14} /> Post Update
-                      </button>
+                {/* Reply Nexus */}
+                <div className="pt-6 border-t border-gray-50">
+                  <div className="flex gap-4 items-start p-4 bg-gray-50 rounded-xl border border-gray-100">
+                    <div className="w-10 h-10 rounded-lg bg-white border border-gray-100 flex items-center justify-center text-indigo-600 flex-shrink-0 shadow-sm">
+                      <ShieldCheck size={20} />
+                    </div>
+                    <div className="flex-1 space-y-4">
+                      <textarea
+                        placeholder="Type your response here..."
+                        value={replyText}
+                        onChange={(e) => setReplyText(e.target.value)}
+                        className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all min-h-[100px] resize-none"
+                      />
+                      <div className="flex justify-end gap-2">
+                        <button onClick={() => setReplyText("")} className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-gray-600 transition-colors">Clear</button>
+                        <button onClick={handleSendMessage} className="px-5 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-all shadow-sm flex items-center gap-2">
+                          <Send size={14} /> Send Message
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Sidebar */}
+          <aside className="space-y-6">
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+              <SectionHeader title="Personal Details" icon={User} />
+              <div className="flex items-center gap-4 mb-6 p-4 bg-gray-50 rounded-lg border border-gray-100">
+                <div className="w-11 h-11 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-indigo-600 shadow-sm overflow-hidden">
+                  {ticket.raisedByPhotoUrl ? <img src={ticket.raisedByPhotoUrl} className="w-full h-full object-cover" /> : <User size={20} />}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-gray-800 truncate">{ticket.raisedByName || "Personnel"}</p>
+                  <p className="text-xs text-gray-400 font-medium truncate">{ticket.raisedBy}</p>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <InfoItem label="Reference ID" value={ticket.id} />
+                <InfoItem label="Signal Source" value="Direct Support Request" />
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+              <SectionHeader title="Protocol Status" icon={ShieldCheck} />
+              <div className="space-y-6">
+                <div>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Current State</p>
+                  <StatusBadge status={ticket.status} />
+                </div>
+                <div className="h-px bg-gray-50" />
+                <InfoItem label="Assigned Resolution Node" value={ticket.assignedTo} icon={History} />
+              </div>
+            </div>
+          </aside>
         </div>
-
-        <aside className="space-y-6">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
-                <User size={24} />
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-widest text-gray-400">Raised by</p>
-                <p className="text-sm font-semibold text-gray-900">{ticket.raisedByName || ticket.raisedBy || "Unknown user"}</p>
-              </div>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <p className="text-[10px] uppercase tracking-widest text-gray-400 mb-1">Email</p>
-                <p className="text-sm text-gray-700">{ticket.raisedBy || "—"}</p>
-              </div>
-              <div>
-                <p className="text-[10px] uppercase tracking-widest text-gray-400 mb-1">Ticket ID</p>
-                <p className="text-sm text-gray-700">{ticket.id}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <div className="flex items-center gap-2 text-gray-500 mb-4">
-              <FileText size={18} />
-              <p className="text-sm font-semibold text-gray-900">Status details</p>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <p className="text-[10px] uppercase tracking-widest text-gray-400 mb-1">Current status</p>
-                <StatusBadge status={ticket.status} />
-              </div>
-              <div>
-                <p className="text-[10px] uppercase tracking-widest text-gray-400 mb-1">Assigned to</p>
-                <p className="text-sm text-gray-700">{ticket.assignedTo || "—"}</p>
-              </div>
-            </div>
-          </div>
-        </aside>
       </div>
 
-      {/* Assign Modal */}
+      {/* Assign Modal - Surgical Standard */}
       {showAssignModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
-              <h3 className="text-lg font-bold text-gray-800">Assign Ticket #{ticket.id}</h3>
-              <button onClick={() => setShowAssignModal(false)} className="p-1 hover:bg-gray-200 rounded-full transition-colors">
-                <XCircle size={20} className="text-gray-400" />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+              <h3 className="text-base font-semibold text-gray-800">Assign Ticket</h3>
+              <button onClick={() => setShowAssignModal(false)} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-md transition-all">
+                <XCircle size={18} />
               </button>
             </div>
             <div className="p-6">
-              <p className="text-sm text-gray-500 mb-4">Select a team member to handle this request.</p>
-              <div className="max-h-[300px] overflow-y-auto space-y-2 pr-2">
+              <div className="max-h-[400px] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                 {userList.map((user) => (
                   <button
                     key={user.id}
                     onClick={() => handleAssign(user.workEmail)}
-                    className="w-full flex items-center justify-between p-3 rounded-xl border border-gray-100 hover:border-[#4A45B6] hover:bg-indigo-50 group transition-all"
+                    className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:border-indigo-500 hover:bg-indigo-50/50 group transition-all"
                   >
-                    <div className="flex items-center gap-3 text-left">
-                      <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-[#4A45B6] text-sm font-bold overflow-hidden border-2 border-white shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center text-indigo-600 text-sm font-bold overflow-hidden shadow-sm">
                         {user.photoUrl ? (
                           <img src={user.photoUrl} alt="" className="w-full h-full object-cover" />
                         ) : (
                           user.firstName ? user.firstName[0] : "?"
                         )}
                       </div>
-                      <div>
-                        <p className="text-[13px] font-bold text-gray-800 group-hover:text-[#4A45B6] leading-tight">
+                      <div className="text-left">
+                        <p className="text-sm font-semibold text-gray-800 group-hover:text-indigo-600 transition-colors">
                           {user.firstName} {user.lastName}
                         </p>
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
-                          <span className="text-[10px] text-[#4A45B6] font-semibold bg-indigo-50 px-1.5 rounded">
-                            {user.designation}
-                          </span>
-                          <span className="text-[10px] text-gray-400 font-medium">
-                            {user.department}
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-gray-400 mt-0.5 italic">{user.workEmail}</p>
+                        <p className="text-xs text-gray-400 font-medium">
+                          {user.designation}
+                        </p>
                       </div>
                     </div>
-                    <ChevronLeft className="rotate-180" size={14} />
+                    <ChevronRight size={14} className="text-gray-300 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
                   </button>
                 ))}
               </div>
@@ -503,40 +483,43 @@ export default function TicketDetailPage() {
         </div>
       )}
 
-      {/* Resolve Modal */}
+      {/* Resolve Modal - Surgical Standard */}
       {showResolveModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
-              <h3 className="text-lg font-bold text-gray-800">Resolve Ticket #{ticket.id}</h3>
-              <button onClick={() => setShowResolveModal(false)} className="p-1 hover:bg-gray-200 rounded-full transition-colors">
-                <XCircle size={20} className="text-gray-400" />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+              <h3 className="text-base font-semibold text-gray-800">Resolve Ticket</h3>
+              <button onClick={() => setShowResolveModal(false)} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-md transition-all">
+                <XCircle size={18} />
               </button>
             </div>
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-6">
               <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Resolution Note</label>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Resolution Note</label>
                 <textarea
                   required
                   rows={4}
                   value={resolutionNote}
                   onChange={(e) => setResolutionNote(e.target.value)}
-                  placeholder="Explain how the issue was resolved..."
-                  className="w-full bg-[#F2F4F6] border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4A45B6] resize-none"
+                  placeholder="Enter final resolution details..."
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm font-medium text-gray-700 focus:outline-none focus:border-indigo-500 transition-all resize-none"
                 />
-                {!resolutionNote.trim() && (
-                  <p className="text-[10px] text-red-500 mt-1 font-medium flex items-center gap-1">
-                    <AlertCircle size={10} /> Resolution note is required.
-                  </p>
-                )}
               </div>
-              <button
-                disabled={actionLoading || !resolutionNote.trim()}
-                onClick={handleResolve}
-                className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-emerald-100 transition-all active:scale-[0.98] disabled:opacity-50"
-              >
-                {actionLoading ? <Loader2 size={18} className="animate-spin" /> : <><Send size={18} /> Submit Resolution</>}
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowResolveModal(false)}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  disabled={actionLoading || !resolutionNote.trim()}
+                  onClick={handleResolve}
+                  className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium py-2 rounded-lg transition-all disabled:opacity-50"
+                >
+                  {actionLoading ? <Loader2 size={16} className="animate-spin" /> : <><CheckCircle2 size={16} /> Resolve</>}
+                </button>
+              </div>
             </div>
           </div>
         </div>

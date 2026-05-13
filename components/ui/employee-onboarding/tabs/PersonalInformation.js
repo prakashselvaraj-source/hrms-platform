@@ -10,139 +10,102 @@ const genderOptions = [
   { label: 'Other', value: 'other' }
 ];
 
-const departments = [
-  { label: 'Engineering', value: 'engineering' },
-  { label: 'Product & Experience', value: 'product' },
-  { label: 'Human Resources', value: 'hr' },
-  { label: 'Finance', value: 'finance' },
-  { label: 'Marketing', value: 'marketing' }
-];
-
 export default function PersonalInformation({ data, updateData }) {
   const handleChange = (e) => {
-    console.log("handleChange", e);
     updateData({ [e.target.name]: e.target.value });
   };
-  console.log(data.photo);
-  console.log(data.photoUrl);
+
   return (
-    <div className='bg-[#FFFFFF] p-8'>
-      <div className="flex items-center gap-2 text-sm font-semibold mb-5">
-        <span className="w-4 h-4 rounded-full  flex items-center justify-center text-xs"><User /></span>
-        Personal Info
+    <div className='bg-white rounded-2xl border border-gray-200 p-6 shadow-sm'>
+      <div className="flex items-center gap-2 text-[12px] font-bold text-gray-900 uppercase tracking-widest mb-6">
+        <div className="w-6 h-6 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+          <User size={14} />
+        </div>
+        Identity Details
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8">
-        {/* Photo Upload */}
+        {/* Compact Photo Upload */}
         <div className="flex-shrink-0">
           <div
             onClick={() => document.getElementById('photo-upload').click()}
-            className="w-36 h-36 border-2 border-dashed border-[#C3C6D780] rounded-xl flex flex-col items-center justify-center bg-[#F2F4F6] cursor-pointer hover:bg-gray-100 transition-colors relative group overflow-hidden"
+            className="w-28 h-28 border-2 border-dashed border-gray-100 rounded-2xl flex flex-col items-center justify-center bg-gray-50 cursor-pointer hover:bg-indigo-50 transition-all relative group overflow-hidden shadow-inner"
           >
             {(data?.photo || data?.photoUrl) ? (
-              <img
-                src={data.photo || data.photoUrl}
-                alt="Profile"
-                className="w-full h-full object-cover"
-              />
+              <img src={data.photo || data.photoUrl} alt="Profile" className="w-full h-full object-cover" />
             ) : (
-              <>
-                <Camera size={24} className="text-gray-400 mb-1" />
-                <span className="text-xs text-gray-400 font-medium">UPLOAD PHOTO</span>
-              </>
+              <div className="flex flex-col items-center gap-1">
+                <Camera size={20} className="text-gray-400 group-hover:text-indigo-500 transition-colors" />
+                <span className="text-[9px] text-gray-400 font-black tracking-widest uppercase">Photo</span>
+              </div>
             )}
-
             <input
               id="photo-upload"
               type="file"
               className="hidden"
-
               accept=".jpg,.jpeg,.png"
               onChange={async (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
-
-                // ✅ validation
                 if (!['image/jpeg', 'image/png'].includes(file.type)) {
-                  alert('Only JPG and PNG files are allowed.');
+                  toast.error('Only JPG/PNG allowed');
                   return;
                 }
-
                 if (file.size > 2 * 1024 * 1024) {
-                  alert('Max file size is 2MB');
+                  toast.error('Max 2MB');
                   return;
                 }
-
                 try {
-                  // ✅ 1. Show preview immediately
                   const previewUrl = URL.createObjectURL(file);
-                  updateData({
-                    photo: previewUrl,
-                    photoUrl: ''   // clear old server image
-                  });
-
-                  // ✅ 2. Upload in background
+                  updateData({ photo: previewUrl, photoUrl: '' });
                   const res = await uploadImage(file);
-
-                  console.log("response from server", res.data.url);
-
-                  // ✅ 3. Replace preview with server image
-                  updateData({
-                    photo: '',                  // remove preview
-                    photoUrl: res.data.url          // final upload result object
-                  });
-
-
-
-
+                  updateData({ photo: '', photoUrl: res.data.url });
                 } catch (err) {
-                  console.error("Upload failed", err);
-                  alert("Image upload failed");
+                  toast.error("Upload failed");
                 }
               }}
             />
           </div>
-          <p className="text-[10px] text-gray-400 mt-2 text-center">
-            ACCEPTED: JPG, PNG.<br />MAX SIZE: 2MB.
+          <p className="text-[9px] text-gray-400 mt-2 text-center font-bold tracking-tight">
+            JPG, PNG (MAX 2MB)
           </p>
         </div>
 
-        {/* Form Fields */}
-        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-semibold text-[#737686] uppercase tracking-wide mb-1.5">First Name</label>
+        {/* Surgical Form Fields */}
+        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-4">
+          <div className="space-y-1.5">
+            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-0.5">First Name</label>
             <input
               type="text"
               name="firstName"
               value={data.firstName}
               onChange={handleChange}
-              placeholder="e.g. Jonathan"
-              className="w-full  bg-[#F2F4F6] rounded-md px-3 py-2.5 text-sm text-[#6B7280] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#712AE2] focus:border-transparent"
+              placeholder="Jonathan"
+              className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 text-[13px] text-gray-700 font-semibold focus:outline-none focus:border-indigo-600 focus:bg-white transition-all shadow-sm"
             />
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-[#737686] uppercase tracking-wide mb-1.5">Last Name</label>
+          <div className="space-y-1.5">
+            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-0.5">Last Name</label>
             <input
               type="text"
               name="lastName"
               value={data.lastName}
               onChange={handleChange}
-              placeholder="e.g. Doe"
-              className="w-full  bg-[#F2F4F6] rounded-md px-3 py-2.5 text-sm text-[#6B7280] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#712AE2] focus:border-transparent"
+              placeholder="Doe"
+              className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 text-[13px] text-gray-700 font-semibold focus:outline-none focus:border-indigo-600 focus:bg-white transition-all shadow-sm"
             />
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-[#737686] uppercase tracking-wide mb-1.5">Date of Birth</label>
+          <div className="space-y-1.5">
+            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-0.5">Date of Birth</label>
             <input
               type="date"
               name="dateOfBirth"
               value={data.dateOfBirth}
               onChange={handleChange}
-              placeholder="mm/dd/yyyy"
-              className="w-full  bg-[#F2F4F6] rounded-md px-3 py-2.5 text-sm text-[#6B7280] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#712AE2] focus:border-transparent"
+              className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 text-[13px] text-gray-700 font-semibold focus:outline-none focus:border-indigo-600 focus:bg-white transition-all shadow-sm"
             />
           </div>
-          <div>
+          <div className="space-y-1.5">
             <CustomDropdown
               label="Gender"
               options={genderOptions}
@@ -151,39 +114,39 @@ export default function PersonalInformation({ data, updateData }) {
               placeholder="Select Gender"
             />
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-[#737686] uppercase tracking-wide mb-1.5">Work Email</label>
+          <div className="space-y-1.5">
+            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-0.5">Corporate Email</label>
             <input
               type="email"
               name="workEmail"
               value={data.workEmail}
               onChange={handleChange}
-              placeholder="j.doe@atelier.com"
-              className="w-full  bg-[#F2F4F6] rounded-md px-3 py-2.5 text-sm text-[#6B7280] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#712AE2] focus:border-transparent"
+              placeholder="j.doe@company.com"
+              className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 text-[13px] text-gray-700 font-semibold focus:outline-none focus:border-indigo-600 focus:bg-white transition-all shadow-sm"
             />
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-[#737686] uppercase tracking-wide mb-1.5">Mobile Number</label>
+          <div className="space-y-1.5">
+            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-0.5">Contact Number</label>
             <input
               type="tel"
               name="mobileNumber"
               value={data.mobileNumber}
               onChange={handleChange}
               maxLength={10}
-              placeholder="+1 (555) 000-0000"
-              className="w-full  bg-[#F2F4F6] rounded-md px-3 py-2.5 text-sm text-[#6B7280] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#712AE2] focus:border-transparent"
+              placeholder="00000 00000"
+              className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 text-[13px] text-gray-700 font-semibold focus:outline-none focus:border-indigo-600 focus:bg-white transition-all shadow-sm"
             />
           </div>
         </div>
       </div>
 
-      {/* Onboarding Checklist Notice */}
-      <div className="mt-6 flex gap-3 bg-[#4A45B60D] border-l-4 border-[#712AE2] rounded-sm px-8 py-6">
-        <Info size={18} className="text-[#4A45B6] flex-shrink-0 mt-0.5" />
+      {/* Sleek Intelligence Notice */}
+      <div className="mt-8 flex gap-3 bg-indigo-50/50 border border-indigo-100 rounded-2xl px-6 py-4">
+        <Info size={16} className="text-indigo-500 flex-shrink-0 mt-0.5" />
         <div>
-          <p className="text-sm font-semibold text-[#4A45B6] mb-0.5">Onboarding Checklist</p>
-          <p className="text-xs text-[#434655CC] leading-relaxed">
-            Completing the personal info section automatically triggers the invitation email to the employee&apos;s work email once the profile is saved as active.
+          <p className="text-[11px] font-bold text-indigo-600 uppercase tracking-widest mb-1">System Protocol</p>
+          <p className="text-[11px] text-gray-500 font-medium leading-relaxed">
+            Finalizing this section triggers an automated invitation to the employee's work email once the profile synchronization is complete.
           </p>
         </div>
       </div>

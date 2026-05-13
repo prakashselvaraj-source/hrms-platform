@@ -1,7 +1,14 @@
 import API from "@/utils/api";
 
-export const getEmployees = (tenantId, page = 0, size = 10) => {
-  return API.get(`/employees?page=${page}&size=${size}&sort=firstName,asc`, {
+export const getEmployees = (tenantId, page = 0, size = 10, filters = {}) => {
+  const { department, status, search } = filters;
+  let url = `/employees?page=${page}&size=${size}&sort=firstName,asc`;
+
+  if (department) url += `&department=${encodeURIComponent(department)}`;
+  if (status) url += `&status=${encodeURIComponent(status)}`;
+  if (search) url += `&search=${encodeURIComponent(search)}`;
+
+  return API.get(url, {
     headers: {
       "X-Tenant-Id": tenantId
     }
