@@ -38,6 +38,8 @@ public class EmployeeController {
     @GetMapping
     public ResponseEntity<EmployeePageResponse> getAllEmployees(
             @RequestParam(required = false) OnboardingStatus status,
+            @RequestParam(required = false) String department,
+            @RequestParam(required = false) String search,
             @RequestHeader("X-Tenant-Id") String tenantId,
             Pageable pageable,
             HttpServletRequest request) {
@@ -47,10 +49,7 @@ public class EmployeeController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
-        if (status != null) {
-            return ResponseEntity.ok(service.getEmployeesByStatus(status, tenantId, pageable));
-        }
-        return ResponseEntity.ok(service.getAllEmployees(tenantId, pageable));
+        return ResponseEntity.ok(service.getAllEmployees(tenantId, status, department, search, pageable));
     }
 
     @GetMapping("/{id}")
@@ -100,7 +99,7 @@ public class EmployeeController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteEmployee(
+    public ResponseEntity<java.util.Map<String, String>> deleteEmployee(
             @PathVariable Long id,
             @RequestHeader("X-Tenant-Id") String tenantId,
             HttpServletRequest request) {
@@ -111,7 +110,9 @@ public class EmployeeController {
         }
 
         service.deleteEmployee(id, tenantId);
-        return ResponseEntity.noContent().build();
+        java.util.Map<String, String> response = new java.util.HashMap<>();
+        response.put("message", "Employee deleted successfully");
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/profile")

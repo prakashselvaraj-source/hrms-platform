@@ -58,10 +58,12 @@ public class AnnouncementController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(
+    public ResponseEntity<java.util.Map<String, String>> delete(
             @PathVariable Long id,
             @RequestHeader("X-Tenant-Id") String tenantId) {
         service.delete(id, tenantId);
-        return ResponseEntity.noContent().build();
+        java.util.Map<String, String> response = new java.util.HashMap<>();
+        response.put("message", "Announcement deleted successfully");
+        return ResponseEntity.ok(response);
     }
 }

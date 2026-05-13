@@ -66,7 +66,7 @@ public class DepartmentController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteDepartment(@PathVariable String id,
+    public ResponseEntity<java.util.Map<String, String>> deleteDepartment(@PathVariable String id,
             @RequestHeader("X-Tenant-Id") String tenantId,
             HttpServletRequest request) {
         String tokenTenantId = (String) request.getAttribute("tenantId");
@@ -74,7 +74,9 @@ public class DepartmentController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         departmentService.deleteDepartment(tenantId, id);
-        return ResponseEntity.noContent().build();
+        java.util.Map<String, String> response = new java.util.HashMap<>();
+        response.put("message", "Department deleted successfully");
+        return ResponseEntity.ok(response);
     }
 
 }
