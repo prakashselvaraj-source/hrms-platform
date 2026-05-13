@@ -57,4 +57,6 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
     Employee findByTenant_CompanyCodeIgnoreCaseAndWorkEmailIgnoreCase(String companyCode, String workEmail);
 
+    long countByTenant_CompanyName(String companyName);
+
 }

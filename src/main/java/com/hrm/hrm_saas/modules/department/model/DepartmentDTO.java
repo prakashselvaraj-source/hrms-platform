@@ -1,3 +1,4 @@
+
 package com.hrm.hrm_saas.modules.department.model;
 
 import jakarta.validation.constraints.NotBlank;
@@ -13,7 +14,7 @@ import lombok.NoArgsConstructor;
 public class DepartmentDTO {
 
     private String id;
-    
+
     private String tenantId;
 
     @NotBlank(message = "Department name is required")

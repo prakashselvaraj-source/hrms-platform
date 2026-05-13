@@ -15,4 +15,6 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     
     // Find tickets created by or assigned to an employee
     Page<Ticket> findByTenantIdAndRaisedByOrAssignedTo(String tenantId, String raisedBy, String assignedTo, Pageable pageable);
+
+    long countByTenantIdAndStatus(String tenantId, com.hrm.hrm_saas.modules.ticket.model.TicketStatus status);
 }

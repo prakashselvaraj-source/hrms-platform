@@ -11,4 +11,6 @@ public interface DepartmentRepository extends JpaRepository<Department, String> 
     List<Department> findByTenantId(String tenantId);
 
     Optional<Department> findByTenantIdAndCode(String tenantId, String code);
+
+    long countByTenantId(String tenantId);
 }

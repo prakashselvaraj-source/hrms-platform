@@ -46,9 +46,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .anyRequest().authenticated())
 
-                // ✅ Order matters
-                .addFilterBefore(tenantFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterAfter(jwtFilter, TenantFilter.class);
+                // Both filters must run BEFORE Spring Security checks authentication
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(tenantFilter, JwtFilter.class);
 
         return http.build();
     }

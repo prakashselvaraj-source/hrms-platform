@@ -24,7 +24,7 @@ public class User {
     private String email;
     private String password;
 
-    private String role; // ADMIN, EMPLOYEE
+    private String role; // SUPER_ADMIN,ADMIN, EMPLOYEE
 
     private String resetToken;
     private LocalDateTime resetTokenExpiry;

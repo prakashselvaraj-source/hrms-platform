@@ -1,6 +1,8 @@
 package com.hrm.hrm_saas.modules.auth.service;
 
 import com.hrm.hrm_saas.common.service.EmailService;
+import com.hrm.hrm_saas.modules.admin.entity.Admin;
+import com.hrm.hrm_saas.modules.admin.repository.AdminRepository;
 import com.hrm.hrm_saas.modules.auth.dto.RegisterCompanyRequest;
 import com.hrm.hrm_saas.modules.auth.dto.AuthResponse;
 import com.hrm.hrm_saas.modules.auth.dto.LoginRequest;
@@ -27,6 +29,7 @@ public class AuthService {
     private final EmailService emailService;
     private final TenantRepository tenantRepository;
     private final UserRepository userRepository;
+    private final AdminRepository adminRepository;
     private final PasswordEncoder passwordEncoder;
 
     private final java.util.Map<String, String> otpStorage = new java.util.concurrent.ConcurrentHashMap<>();
@@ -76,11 +79,22 @@ public class AuthService {
                 .name(request.getAdminName())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .role("ADMIN")
+                .role("SUPER_ADMIN")
                 .tenant(tenant)
                 .build();
 
         userRepository.save(admin);
+
+        // Auto-create Admin profile record so /api/admin/profile works on first login
+        String[] nameParts = request.getAdminName() != null ? request.getAdminName().split(" ", 2) : new String[]{"", ""};
+        Admin adminProfile = Admin.builder()
+                .user(admin)
+                .tenant(tenant)
+                .firstName(nameParts[0])
+                .lastName(nameParts.length > 1 ? nameParts[1] : "")
+                .designation("Administrator")
+                .build();
+        adminRepository.save(adminProfile);
 
         try {
             emailService.sendWelcomeEmail(
