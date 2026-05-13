@@ -32,23 +32,56 @@ public class AuthService {
     private final AdminRepository adminRepository;
     private final PasswordEncoder passwordEncoder;
 
+    // Store OTP as a combined string of "OTP:Timestamp" to handle expiration
     private final java.util.Map<String, String> otpStorage = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final long OTP_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes expiration
 
     public void sendOtp(String email) {
+        if (email == null) return;
+        String normalizedEmail = email.toLowerCase().trim();
         String otp = String.format("%06d", new java.util.Random().nextInt(999999));
-        otpStorage.put(email, otp);
-        System.out.println("Email send");
-        emailService.sendEmail(
-                email,
+        long timestamp = System.currentTimeMillis();
+        
+        otpStorage.put(normalizedEmail, otp + ":" + timestamp);
+        System.out.println("OTP generated for " + normalizedEmail + ": " + otp);
+        
+        try {
+            emailService.sendEmail(
+                normalizedEmail,
                 "Your Verification Code",
-                "Your OTP for WorkSphere registration is: " + otp + "\n\nThis code will expire shortly.");
+                "Your OTP for WorkSphere registration is: " + otp + "\n\nThis code will expire in 5 minutes.");
+        } catch (Exception e) {
+            System.err.println("Failed to send OTP email to " + normalizedEmail + ": " + e.getMessage());
+        }
     }
 
     public boolean verifyOtp(String email, String otp) {
-        String storedOtp = otpStorage.get(email);
-        if (storedOtp != null && storedOtp.equals(otp)) {
-            otpStorage.remove(email);
-            return true;
+        if (email == null || otp == null) return false;
+        String normalizedEmail = email.toLowerCase().trim();
+        String storedValue = otpStorage.get(normalizedEmail);
+        
+        System.out.println("Verifying OTP for: " + normalizedEmail + " | Provided: " + otp);
+
+        if (storedValue != null) {
+            String[] parts = storedValue.split(":");
+            String storedOtp = parts[0];
+            long timestamp = Long.parseLong(parts[1]);
+            
+            // Check if OTP matches and hasn't expired
+            if (storedOtp.equals(otp.trim())) {
+                if (System.currentTimeMillis() - timestamp <= OTP_EXPIRY_MS) {
+                    otpStorage.remove(normalizedEmail);
+                    System.out.println("OTP Verified Successfully for " + normalizedEmail);
+                    return true;
+                } else {
+                    System.out.println("OTP Expired for " + normalizedEmail);
+                    otpStorage.remove(normalizedEmail);
+                }
+            } else {
+                System.out.println("OTP Mismatch for " + normalizedEmail + ". Stored: " + storedOtp + ", Provided: " + otp);
+            }
+        } else {
+            System.out.println("No OTP found in storage for " + normalizedEmail);
         }
         return false;
     }
@@ -79,14 +112,15 @@ public class AuthService {
                 .name(request.getAdminName())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .role("SUPER_ADMIN")
+                .role("ADMIN")
                 .tenant(tenant)
                 .build();
 
         userRepository.save(admin);
 
         // Auto-create Admin profile record so /api/admin/profile works on first login
-        String[] nameParts = request.getAdminName() != null ? request.getAdminName().split(" ", 2) : new String[]{"", ""};
+        String[] nameParts = request.getAdminName() != null ? request.getAdminName().split(" ", 2)
+                : new String[] { "", "" };
         Admin adminProfile = Admin.builder()
                 .user(admin)
                 .tenant(tenant)
