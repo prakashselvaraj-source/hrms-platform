@@ -7,6 +7,12 @@ import java.time.LocalDateTime;
 
 import com.hrm.hrm_saas.modules.role.model.Role;
 import com.hrm.hrm_saas.modules.tenant.entity.Tenant;
+import com.hrm.hrm_saas.modules.payroll.entity.Payslip;
+import com.hrm.hrm_saas.modules.payroll.entity.SalaryStructure;
+import com.hrm.hrm_saas.modules.payroll.entity.BankDetails;
+import com.hrm.hrm_saas.modules.leave.entity.LeaveRequest;
+import com.hrm.hrm_saas.modules.task.entity.Task;
+import java.util.List;
 
 @Entity
 @Table(name = "employees")
@@ -78,6 +84,24 @@ public class Employee {
     @Column(nullable = false)
     private String department;
 
+    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Payslip> payslips;
+
+    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<LeaveRequest> leaveRequests;
+
+    @OneToOne(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
+    private SalaryStructure salaryStructure;
+
+    @OneToOne(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
+    private BankDetails bankDetails;
+
+    @OneToMany(mappedBy = "assignedTo", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Task> assignedTasks;
+
+    @OneToMany(mappedBy = "assignedBy", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Task> createdTasks;
+
     @ManyToOne
     @JoinColumn(name = "roleId", nullable = false)
     private Role role;
@@ -116,7 +140,7 @@ public class Employee {
     @ElementCollection
     @CollectionTable(name = "employee_other_docs", joinColumns = @JoinColumn(name = "employee_id"))
     @Column(name = "file_url")
-    private java.util.List<String> otherDocUrl;
+    private java.util.List<String> otherDocUrls;
     // Meta
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)

@@ -132,7 +132,7 @@ public class EmployeeDTO {
     @NotBlank(message = "Employment proof URL is required")
     private String employmentProofUrl;
 
-    private java.util.List<String> otherDocUrl;
+    private java.util.List<String> otherDocUrls;
     // Meta
     @NotBlank(message = "Role is required")
     private String role;

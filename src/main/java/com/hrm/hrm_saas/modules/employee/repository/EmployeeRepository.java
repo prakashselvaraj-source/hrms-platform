@@ -21,6 +21,22 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
     Optional<Employee> findByIdAndTenant(Long id, Tenant tenant);
 
+    @Query("SELECT e FROM Employee e WHERE e.tenant = :tenant " +
+           "AND (:status IS NULL OR e.status = :status) " +
+           "AND (:deptName IS NULL OR (LOWER(e.department) = LOWER(:deptName) OR LOWER(e.department) = LOWER(:deptCode))) " +
+           "AND (:search IS NULL OR (" +
+           "LOWER(e.firstName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+           "LOWER(e.lastName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+           "LOWER(e.workEmail) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+           "CAST(e.id AS string) LIKE CONCAT('%', :search, '%')))")
+    Page<Employee> findWithFilters(
+            @Param("tenant") Tenant tenant,
+            @Param("status") OnboardingStatus status,
+            @Param("deptName") String deptName,
+            @Param("deptCode") String deptCode,
+            @Param("search") String search,
+            Pageable pageable);
+
     Page<Employee> findByStatusAndTenant(OnboardingStatus status, Tenant tenant, Pageable pageable);
 
     List<Employee> findByDepartmentAndTenant(String department, Tenant tenant);
