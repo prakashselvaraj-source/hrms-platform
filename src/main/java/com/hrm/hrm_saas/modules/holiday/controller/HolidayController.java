@@ -58,10 +58,12 @@ public class HolidayController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteHoliday(
+    public ResponseEntity<java.util.Map<String, String>> deleteHoliday(
             @PathVariable Long id,
             @RequestHeader("X-Tenant-Id") String tenantId) {
         service.deleteHoliday(id, tenantId);
-        return ResponseEntity.noContent().build();
+        java.util.Map<String, String> response = new java.util.HashMap<>();
+        response.put("message", "Holiday deleted successfully");
+        return ResponseEntity.ok(response);
     }
 }

@@ -104,7 +104,7 @@ public class ResignationController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(
+    public ResponseEntity<java.util.Map<String, String>> delete(
             @PathVariable Long id,
             @RequestHeader("X-Tenant-Id") String tenantId,
             HttpServletRequest request) {
@@ -114,7 +114,9 @@ public class ResignationController {
         }
 
         resignationService.delete(id);
-        return ResponseEntity.noContent().build();
+        java.util.Map<String, String> response = new java.util.HashMap<>();
+        response.put("message", "Resignation deleted successfully");
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")

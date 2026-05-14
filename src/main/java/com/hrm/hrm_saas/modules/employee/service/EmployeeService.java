@@ -19,6 +19,8 @@ import com.hrm.hrm_saas.modules.role.model.Role;
 import com.hrm.hrm_saas.modules.role.repository.RoleRepository;
 import com.hrm.hrm_saas.modules.exception.TenantNotFoundException;
 import com.hrm.hrm_saas.modules.exception.RoleNotFoundException;
+import com.hrm.hrm_saas.modules.department.entity.Department;
+import com.hrm.hrm_saas.modules.department.repository.DepartmentRepository;
 import lombok.RequiredArgsConstructor;
 
 import com.hrm.hrm_saas.modules.employee.model.EmployeePageResponse;
@@ -37,15 +39,37 @@ public class EmployeeService {
     private final EmailService emailService;
     private final TenantRepository tenantRepository;
     private final RoleRepository roleRepository;
+    private final DepartmentRepository departmentRepository;
 
     private Tenant getTenant(String companyName) {
         return tenantRepository.findByCompanyName(companyName)
                 .orElseThrow(() -> new TenantNotFoundException("Tenant not found with code: " + companyName));
     }
 
-    public EmployeePageResponse getAllEmployees(String tenantId, Pageable pageable) {
+    public EmployeePageResponse getAllEmployees(String tenantId, OnboardingStatus status, String departmentId, String search, Pageable pageable) {
+        System.out.println("DEBUG: getAllEmployees - tenantId=" + tenantId + ", status=" + status + ", departmentId=" + departmentId + ", search=" + search);
+        
         Tenant tenant = getTenant(tenantId);
-        var page = repository.findByTenant(tenant, pageable);
+        String departmentName = null;
+        String departmentCode = null;
+
+        // Clean up empty strings
+        if (departmentId != null && departmentId.trim().isEmpty()) departmentId = null;
+        if (search != null && search.trim().isEmpty()) search = null;
+
+        if (departmentId != null) {
+            Department dept = departmentRepository.findById(departmentId).orElse(null);
+            if (dept == null) {
+                System.out.println("DEBUG: Department not found for id: " + departmentId);
+                return new EmployeePageResponse(java.util.Collections.emptyList(), 0, 0, 0);
+            }
+            departmentName = dept.getName();
+            departmentCode = dept.getCode();
+        }
+
+        org.springframework.data.domain.Page<Employee> page = repository.findWithFilters(
+                tenant, status, departmentName, departmentCode, search, pageable);
+
         List<EmployeeDTO> employees = page.getContent().stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
@@ -112,14 +136,7 @@ public class EmployeeService {
         repository.delete(existing);
     }
 
-    public EmployeePageResponse getEmployeesByStatus(OnboardingStatus status, String tenantId, Pageable pageable) {
-        Tenant tenant = getTenant(tenantId);
-        var page = repository.findByStatusAndTenant(status, tenant, pageable);
-        List<EmployeeDTO> employees = page.getContent().stream()
-                .map(this::toDTO)
-                .collect(Collectors.toList());
-        return new EmployeePageResponse(employees, page.getNumber(), page.getTotalPages(), page.getTotalElements());
-    }
+
 
     public EmployeeProfileDTO getEmployeeProfile(String mail, String tenantId) {
         Tenant tenant = getTenant(tenantId);
@@ -175,7 +192,7 @@ public class EmployeeService {
                 .identityProofUrl(e.getIdentityProofUrl())
                 .educationCertUrl(e.getEducationCertUrl())
                 .employmentProofUrl(e.getEmploymentProofUrl())
-                .otherDocUrl(e.getOtherDocUrl())
+                .otherDocUrls(e.getOtherDocUrls())
                 .status(e.getStatus())
                 .createdAt(e.getCreatedAt())
                 .updatedAt(e.getUpdatedAt())
@@ -225,7 +242,7 @@ public class EmployeeService {
                 .identityProofUrl(dto.getIdentityProofUrl())
                 .educationCertUrl(dto.getEducationCertUrl())
                 .employmentProofUrl(dto.getEmploymentProofUrl())
-                .otherDocUrl(dto.getOtherDocUrl())
+                .otherDocUrls(dto.getOtherDocUrls())
                 .status(dto.getStatus())
                 .build();
     }
@@ -311,8 +328,8 @@ public class EmployeeService {
             e.setEducationCertUrl(dto.getEducationCertUrl());
         if (dto.getEmploymentProofUrl() != null)
             e.setEmploymentProofUrl(dto.getEmploymentProofUrl());
-        if (dto.getOtherDocUrl() != null)
-            e.setOtherDocUrl(dto.getOtherDocUrl());
+        if (dto.getOtherDocUrls() != null)
+            e.setOtherDocUrls(dto.getOtherDocUrls());
         if (dto.getStatus() != null)
             e.setStatus(dto.getStatus());
     }

@@ -86,7 +86,7 @@ public class RoleController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteRole(
+    public ResponseEntity<java.util.Map<String, String>> deleteRole(
             @PathVariable Long id,
             @RequestHeader("X-Tenant-Id") String tenantId,
             HttpServletRequest request) {
@@ -99,6 +99,8 @@ public class RoleController {
 
         service.deleteRole(id, tenantId);
 
-        return ResponseEntity.ok("Role deleted successfully");
+        java.util.Map<String, String> response = new java.util.HashMap<>();
+        response.put("message", "Role deleted successfully");
+        return ResponseEntity.ok(response);
     }
 }
