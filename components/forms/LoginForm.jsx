@@ -96,12 +96,12 @@ export default function LoginForm() {
       localStorage.setItem("userEmail", form.email);
 
       const tenantsRes = await tenantsData();
-
-      console.log("Tenants response:", tenantsRes);
-
-      // Example logic
       if (tenantsRes.data) {
-        router.push(`/${tenantsRes.data.companyName}/${res.data.role === "SUPER_ADMIN" ? "manager" : res.data.role === "ADMIN" ? "admin" : "home"}/dashboard`);
+        const company = tenantsRes.data.companyName;
+        const role = res.data.role;
+        // Match user's routing: ADMIN -> manager, others -> admin/home
+        const target = role === "ADMIN" ? "manager" : (role === "SUPER_ADMIN" || role === "MANAGER") ? "admin" : "home";
+        router.push(`/${company}/${target}/dashboard`);
       }
 
     } catch (err) {
