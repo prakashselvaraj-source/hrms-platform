@@ -16,7 +16,7 @@ public class JwtUtil {
                 .claim("tenant", tenant)
                 .claim("role", role)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 86400000))
+                .setExpiration(new Date(System.currentTimeMillis() + 5 * 60 * 1000)) // 5 minutes validity
                 .signWith(KEY)
                 .compact();
     }
@@ -36,6 +36,7 @@ public class JwtUtil {
     private static Claims getClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(KEY)
+                .setAllowedClockSkewSeconds(300) // 5 minutes clock skew
                 .build()
                 .parseClaimsJws(token)
                 .getBody();

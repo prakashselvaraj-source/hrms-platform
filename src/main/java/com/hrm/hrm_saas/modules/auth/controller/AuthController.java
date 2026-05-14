@@ -34,7 +34,7 @@ public class AuthController {
     }
 
     @GetMapping("/check-email")
-    public ResponseEntity<Boolean> checkEmailExists(@RequestParam String email){
+    public ResponseEntity<Boolean> checkEmailExists(@RequestParam String email) {
         boolean exists = authService.emailExists(email);
         return ResponseEntity.ok(exists);
     }
@@ -56,6 +56,7 @@ public class AuthController {
     @PostMapping("/send-otp")
     public ResponseEntity<String> sendOtp(@RequestBody java.util.Map<String, String> request) {
         String email = request.get("email");
+        System.out.println("Received send-otp request for email: " + email);
         authService.sendOtp(email);
         return ResponseEntity.ok("OTP sent successfully");
     }
@@ -64,6 +65,7 @@ public class AuthController {
     public ResponseEntity<String> verifyOtp(@RequestBody java.util.Map<String, String> request) {
         String email = request.get("email");
         String otp = request.get("otp");
+        System.out.println("Received OTP verification request: " + request);
         boolean isValid = authService.verifyOtp(email, otp);
         if (isValid) {
             return ResponseEntity.ok("OTP verified successfully");

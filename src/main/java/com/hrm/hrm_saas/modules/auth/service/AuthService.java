@@ -37,36 +37,38 @@ public class AuthService {
     private static final long OTP_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes expiration
 
     public void sendOtp(String email) {
-        if (email == null) return;
+        if (email == null)
+            return;
         String normalizedEmail = email.toLowerCase().trim();
         String otp = String.format("%06d", new java.util.Random().nextInt(999999));
         long timestamp = System.currentTimeMillis();
-        
+
         otpStorage.put(normalizedEmail, otp + ":" + timestamp);
         System.out.println("OTP generated for " + normalizedEmail + ": " + otp);
-        
+
         try {
             emailService.sendEmail(
-                normalizedEmail,
-                "Your Verification Code",
-                "Your OTP for WorkSphere registration is: " + otp + "\n\nThis code will expire in 5 minutes.");
+                    normalizedEmail,
+                    "Your Verification Code",
+                    "Your OTP for WorkSphere registration is: " + otp + "\n\nThis code will expire in 5 minutes.");
         } catch (Exception e) {
             System.err.println("Failed to send OTP email to " + normalizedEmail + ": " + e.getMessage());
         }
     }
 
     public boolean verifyOtp(String email, String otp) {
-        if (email == null || otp == null) return false;
+        if (email == null || otp == null)
+            return false;
         String normalizedEmail = email.toLowerCase().trim();
         String storedValue = otpStorage.get(normalizedEmail);
-        
+        System.out.println("Stored OTP for: " + normalizedEmail + " | Stored: " + storedValue);
         System.out.println("Verifying OTP for: " + normalizedEmail + " | Provided: " + otp);
 
         if (storedValue != null) {
             String[] parts = storedValue.split(":");
             String storedOtp = parts[0];
             long timestamp = Long.parseLong(parts[1]);
-            
+
             // Check if OTP matches and hasn't expired
             if (storedOtp.equals(otp.trim())) {
                 if (System.currentTimeMillis() - timestamp <= OTP_EXPIRY_MS) {
@@ -78,7 +80,8 @@ public class AuthService {
                     otpStorage.remove(normalizedEmail);
                 }
             } else {
-                System.out.println("OTP Mismatch for " + normalizedEmail + ". Stored: " + storedOtp + ", Provided: " + otp);
+                System.out.println(
+                        "OTP Mismatch for " + normalizedEmail + ". Stored: " + storedOtp + ", Provided: " + otp);
             }
         } else {
             System.out.println("No OTP found in storage for " + normalizedEmail);
