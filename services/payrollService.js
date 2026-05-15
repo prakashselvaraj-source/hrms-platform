@@ -64,6 +64,12 @@ export const seedPayrollData = (tenantId) => {
   });
 };
 
+export const adminSeedPayrollData = (tenantId) => {
+  return API.post("/payroll/admin/seed-all", {}, {
+    headers: { "X-Tenant-Id": tenantId },
+  });
+};
+
 export const getAdminPayrollOverview = (tenantId) => {
   return API.get("/payroll/admin/overview", {
     headers: { "X-Tenant-Id": tenantId },
@@ -107,6 +113,12 @@ export const getPayrollHistory = (tenantId, params = {}) => {
   if (params.year) query.set("year", params.year);
   const qs = query.toString();
   return API.get(`/payroll/admin/history${qs ? `?${qs}` : ""}`, {
+    headers: { "X-Tenant-Id": tenantId },
+  });
+};
+
+export const finalizePayouts = (tenantId) => {
+  return API.post("/payroll/admin/finalize-payouts", {}, {
     headers: { "X-Tenant-Id": tenantId },
   });
 };

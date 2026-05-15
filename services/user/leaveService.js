@@ -12,13 +12,18 @@ export const getAllLeaveTypesWithUserIdAndYear = async (tenantId, year) => {
 }; 
     
 export const submitLeaveRequest = async(tenantId, token, payload) => {
-
-    console.log("after submitLeaveRequest",tenantId, token, payload);
+    // Log FormData entries to verify content
+    const formDataEntries = {};
+    payload.forEach((value, key) => {
+        formDataEntries[key] = value instanceof File ? `File: ${value.name}` : value;
+    });
+    console.log("🚀 ~ submitLeaveRequest Payload:", formDataEntries);
 
     const res = await API.post("/leave-management/submit-leave-request", payload, {
         headers:{
             "Authorization":`Bearer ${token}`,
             "X-Tenant-Id":tenantId
+            // "Content-Type" is omitted to let the browser set it with the correct boundary
         }
     });
     

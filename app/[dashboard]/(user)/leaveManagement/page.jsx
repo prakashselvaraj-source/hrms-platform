@@ -17,6 +17,7 @@ import {
 } from "@/services/user/leaveService";
 import { useTenant } from "@/hooks/useTenant";
 import { useRouter } from "next/navigation";
+import { useSelector } from "react-redux";
 import { toast } from "react-hot-toast";
 
 // ─── Shared Components ──────────────────────────────────────────────────────
@@ -114,9 +115,10 @@ function CustomSelect({ options, value, onChange, placeholder, icon: Icon }) {
 export default function LeaveManagement() {
   const tenantId = useTenant();
   const router = useRouter();
+  const { selectedLeave } = useSelector((state) => state.leave);
 
   // Form State
-  const [leaveType, setLeaveType] = useState("");
+  const [leaveType, setLeaveType] = useState(selectedLeave?.id || "");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [fromTime, setFromTime] = useState("09:00");
@@ -130,9 +132,12 @@ export default function LeaveManagement() {
 
   // Data State
   const [leaveTypes, setLeaveTypes] = useState([]);
+  const [leavePolicies, setLeavePolicies] = useState([]);
   const [leaveStats, setLeaveStats] = useState([]);
   const [recentRequests, setRecentRequests] = useState([]);
   const [token, setToken] = useState("");
+  const [validationErrors, setValidationErrors] = useState([]);
+  const [duration, setDuration] = useState(0);
   const [year] = useState(new Date().getFullYear());
 
   const selectedLeaveObj = leaveTypes?.find((t) => t.id === leaveType);
@@ -140,51 +145,150 @@ export default function LeaveManagement() {
   const isPermission = selectedLeaveName.includes("permission");
 
   useEffect(() => {
-    if (typeof window !== "undefined") setToken(localStorage.getItem("token") || "");
-  }, []);
+    const t = typeof window !== "undefined" ? localStorage.getItem("token") || "" : "";
+    setToken(t);
+    if (tenantId && t) fetchData();
+  }, [tenantId]);
 
+  // Sync with Redux selectedLeave
   useEffect(() => {
-    if (!tenantId || !token) return;
-    fetchData();
-  }, [tenantId, token]);
+    if (selectedLeave?.id) {
+      setLeaveType(selectedLeave.id);
+    }
+  }, [selectedLeave]);
 
   const fetchData = async () => {
     try {
-      const [stats, types, requests] = await Promise.all([
+      const [stats, types, requests, policies] = await Promise.all([
         getAllLeaveTypesWithUserIdAndYear(tenantId, year),
         getAllLeaveTypes(tenantId),
-        getMyLeaveRequests(tenantId, token, 0, 5)
+        getMyLeaveRequests(tenantId, token, 0, 5),
+        getAllLeavePolicy(tenantId)
       ]);
       setLeaveStats(stats?.summary || []);
       setLeaveTypes(Array.isArray(types) ? types : (types?.leaveTypes || []));
       setRecentRequests(Array.isArray(requests) ? (requests.data || requests) : []);
+      setLeavePolicies(policies || []);
     } catch (e) { console.error(e); }
   };
 
-  const handleSubmit = async () => {
-    if (!leaveType || !fromDate || !reason) {
-      toast.error("Please fill all required fields");
+  // ── Validation Logic ───────────────────────────────────────────────────────
+
+  useEffect(() => {
+    validateRequest();
+  }, [leaveType, fromDate, toDate, dayType, leavePolicies]);
+
+  const validateRequest = () => {
+    const errors = [];
+    if (!leaveType || !fromDate) {
+      setValidationErrors([]);
+      setDuration(0);
       return;
     }
+
+    const policy = leavePolicies.find(p => p.leaveType?.id === leaveType);
+
+    // Normalize dates to local midnight for comparison
+    const start = new Date(fromDate + 'T00:00:00');
+    const end = new Date((toDate || fromDate) + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // 1. Calculate Duration
+    let days = 0;
+    if (toDate && fromDate) {
+      const diffTime = Math.abs(end - start);
+      days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    } else {
+      days = 1;
+    }
+
+    if (dayType !== "Full Day") days = 0.5;
+    setDuration(days);
+
+    if (!policy) return;
+
+    const usage = policy.usageRules || {};
+    const restrictions = policy.restrictions || {};
+
+    // 2. Check Backdate
+    const isBackdated = start < today;
+    if (isBackdated && usage.processOptions?.backdate === false) {
+      errors.push("Backdated applications are not allowed for this leave type.");
+    }
+
+    // 3. Check Notice Period
+    if (!isBackdated && usage.minNoticeDays) {
+      const noticeDays = Math.ceil((start - today) / (1000 * 60 * 60 * 24));
+      if (noticeDays < parseInt(usage.minNoticeDays)) {
+        errors.push(`Minimum ${usage.minNoticeDays} days notice is required for this leave type.`);
+      }
+    }
+
+    // 4. Check Max Per Request
+    if (usage.maxPerRequest && days > parseInt(usage.maxPerRequest)) {
+      errors.push(`You can only apply for a maximum of ${usage.maxPerRequest} days at a time.`);
+    }
+
+    // 5. Check Max Consecutive
+    if (restrictions.maxConsecDays && days > parseInt(restrictions.maxConsecDays)) {
+      errors.push(`Maximum consecutive days allowed is ${restrictions.maxConsecDays}.`);
+    }
+
+    setValidationErrors(errors);
+  };
+
+  const handleSubmit = async () => {
+    const currentToken = token || (typeof window !== "undefined" ? localStorage.getItem("token") : "");
+    console.log("Submitting Leave Request:", { leaveType, fromDate, reason, validationErrors, currentToken });
+
+    if (!leaveType || !fromDate || !reason) {
+      toast.error("Please fill all required fields");
+      console.warn("Validation failed: missing required fields");
+      return;
+    }
+
+    if (validationErrors.length > 0) {
+      toast.error("Please resolve policy violations before submitting.");
+      console.warn("Validation failed: policy violations", validationErrors);
+      return;
+    }
+
+    if (!currentToken) {
+      toast.error("Session expired. Please login again.");
+      console.warn("Validation failed: missing token");
+      return;
+    }
+
     setIsSubmitting(true);
     const formData = new FormData();
-    formData.append("leaveType", leaveType);
-    formData.append("fromDate", fromDate);
-    formData.append("toDate", toDate || fromDate);
+    formData.append("leaveType", leaveType); // Backend expects 'leaveType'
+    formData.append("fromDate", fromDate);   // Backend expects 'fromDate'
+    formData.append("toDate", toDate || fromDate); // Backend expects 'toDate'
     formData.append("fromTime", fromTime);
     formData.append("toTime", toTime);
+    formData.append("numberOfDays", duration.toString());
     formData.append("teamMailId", teamMailId);
     formData.append("reason", reason);
     formData.append("dayType", dayType);
+    formData.append("year", year.toString());
     if (attachment) formData.append("attachment", attachment);
 
     try {
-      await submitLeaveRequest(tenantId, token, formData);
+      await submitLeaveRequest(tenantId, currentToken, formData);
       toast.success("Request submitted successfully");
       setLeaveType(""); setReason(""); setAttachment(null);
       fetchData();
     } catch (e) {
-      toast.error(e.response?.data?.message || "Submission failed");
+      const errorDetails = {
+        message: e.message,
+        response: e.response?.data,
+        status: e.response?.status,
+        headers: e.response?.headers,
+        config: e.config ? { url: e.config.url, method: e.config.method, data: "..." } : null
+      };
+      console.error("Submission Error Details:", JSON.stringify(errorDetails, null, 2));
+      toast.error(e.response?.data?.error || e.response?.data?.message || e.message || "Submission failed");
     } finally {
       setIsSubmitting(false);
     }
@@ -195,7 +299,7 @@ export default function LeaveManagement() {
       <Header />
 
       <main className="max-w-[1400px] mx-auto p-4 lg:p-8">
-        
+
         {/* Statistics Bar */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
           {leaveStats.length > 0 ? (
@@ -222,12 +326,12 @@ export default function LeaveManagement() {
               </motion.div>
             ))
           ) : (
-            [1,2,3,4,5].map(i => <div key={i} className="h-28 bg-white border border-gray-100 animate-pulse rounded-2xl" />)
+            [1, 2, 3, 4, 5].map(i => <div key={i} className="h-28 bg-white border border-gray-100 animate-pulse rounded-2xl" />)
           )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
+
           {/* Main Application Area */}
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-white border border-gray-100 rounded-[24px] shadow-sm overflow-hidden">
@@ -242,8 +346,27 @@ export default function LeaveManagement() {
               </div>
 
               <div className="p-8">
+                {validationErrors.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    className="mb-8 p-4 bg-rose-50 border border-rose-100 rounded-2xl space-y-2"
+                  >
+                    <div className="flex items-center gap-2 text-rose-600 font-bold text-[11px] uppercase tracking-widest mb-1">
+                      <AlertCircle size={14} />
+                      Policy Violations Detected
+                    </div>
+                    {validationErrors.map((err, i) => (
+                      <p key={i} className="text-[12px] text-rose-700 font-medium flex items-center gap-2">
+                        <span className="w-1 h-1 rounded-full bg-rose-400 shrink-0" />
+                        {err}
+                      </p>
+                    ))}
+                  </motion.div>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  
+
                   {/* Left Column: Core Details */}
                   <div className="space-y-6">
                     <div>
@@ -265,6 +388,11 @@ export default function LeaveManagement() {
                       <div>
                         <FieldLabel required>To Date</FieldLabel>
                         <input type="date" value={toDate} min={fromDate} onChange={(e) => setToDate(e.target.value)} className={inputCls} />
+                        {duration > 0 && (
+                          <p className="text-[10px] font-bold text-indigo-500 mt-2 ml-1">
+                            Duration: {duration} {duration === 1 ? 'Day' : 'Days'}
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -305,9 +433,8 @@ export default function LeaveManagement() {
                         onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
                         onDragLeave={() => setDragActive(false)}
                         onDrop={(e) => { e.preventDefault(); setAttachment(e.dataTransfer.files[0]); }}
-                        className={`border-2 border-dashed rounded-2xl py-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all ${
-                          dragActive ? "border-indigo-400 bg-indigo-50" : "border-gray-200 bg-gray-50/50 hover:bg-white hover:border-indigo-300"
-                        }`}
+                        className={`border-2 border-dashed rounded-2xl py-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all ${dragActive ? "border-indigo-400 bg-indigo-50" : "border-gray-200 bg-gray-50/50 hover:bg-white hover:border-indigo-300"
+                          }`}
                       >
                         <input type="file" id="fileInput" className="hidden" onChange={(e) => setAttachment(e.target.files[0])} />
                         <Paperclip size={20} className={attachment ? "text-emerald-500" : "text-gray-400"} />
@@ -340,7 +467,7 @@ export default function LeaveManagement() {
 
           {/* Sidebar: Status & Info */}
           <div className="space-y-6">
-            
+
             {/* Quick Status */}
             <div className="bg-white border border-gray-100 rounded-[24px] p-6 shadow-sm">
               <div className="flex items-center justify-between mb-6">
@@ -350,7 +477,7 @@ export default function LeaveManagement() {
                   </div>
                   <h3 className="text-[13px] font-bold text-gray-800 uppercase tracking-widest">Recent Activity</h3>
                 </div>
-                <button 
+                <button
                   onClick={() => router.push(`/${tenantId}/leaveManagement/leaverequeststatus`)}
                   className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-1"
                 >
@@ -366,10 +493,9 @@ export default function LeaveManagement() {
                         <p className="text-xs font-bold text-gray-800">{req.leaveType}</p>
                         <p className="text-[10px] text-gray-400 font-medium">{new Date(req.startDate).toLocaleDateString()}</p>
                       </div>
-                      <span className={`text-[9px] font-bold px-2 py-1 rounded-lg uppercase tracking-tighter ${
-                        req.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-700' : 
-                        req.status === 'REJECTED' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'
-                      }`}>
+                      <span className={`text-[9px] font-bold px-2 py-1 rounded-lg uppercase tracking-tighter ${req.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-700' :
+                          req.status === 'REJECTED' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'
+                        }`}>
                         {req.status}
                       </span>
                     </div>
