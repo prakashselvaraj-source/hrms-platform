@@ -52,7 +52,7 @@ export default function Navbar({ setIsOpen }) {
   };
 
   // ── Derived display values ──
-  const managerPath = role === "SUPER_ADMIN" ? "manager" : "admin";
+  const managerPath = role === "ADMIN" ? "manager" : "admin";
   const fullName = profile ? `${profile.firstName || ""} ${profile.lastName || ""}`.trim() : "Loading…";
   const email = profile?.user?.email || "";
   const initials = fullName !== "Loading…"

@@ -94,13 +94,7 @@ export default function JobDetails({ data, updateData }) {
                 className="w-full bg-white border border-gray-100 rounded-xl px-4 py-2.5 text-[13px] text-gray-700 font-semibold focus:outline-none focus:border-indigo-600 shadow-sm"
               />
             </div>
-            <CustomDropdown
-              label="Reporting Oracle"
-              options={managers.map(m => ({ label: m, value: m }))}
-              value={data.reportingManager}
-              onChange={(value) => updateData({ reportingManager: value })}
-              placeholder="Select Lead"
-            />
+
           </div>
         </div>
 

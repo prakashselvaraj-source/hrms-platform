@@ -2,103 +2,23 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  ChevronLeft,
-  ChevronRight,
-  Calendar1,
-  List,
-  LayoutGrid,
-  Briefcase,
-  ArrowRight,
+  ChevronLeft, ChevronRight, Calendar as CalendarIcon,
+  List, LayoutGrid, Briefcase, ArrowRight, Star,
+  Clock, CheckCircle2, History, Info
 } from "lucide-react";
-import clsx from "clsx";
 import { useRouter } from "next/navigation";
-
-const upcomingHolidays = [
-  { date: "28-MAY-2026, THURSDAY", name: "BAKRID (RESTRICTED HOLIDAY)" },
-  { date: "28-MAY-2026, THURSDAY", name: "BAKRID (RESTRICTED HOLIDAY)" },
-  { date: "28-MAY-2026, THURSDAY", name: "BAKRID (RESTRICTED HOLIDAY)" },
-  { date: "28-MAY-2026, THURSDAY", name: "BAKRID (RESTRICTED HOLIDAY)" },
-  { date: "28-MAY-2026, THURSDAY", name: "BAKRID (RESTRICTED HOLIDAY)" },
-];
-
-const pastLeaves = [
-  {
-    date: "04-APR-2026, SATURDAY",
-    type: "PERMISSION",
-    duration: "01:00 HOUR",
-    reason: "GO TO HOME",
-  },
-  {
-    date: "28-MAY-2026, THURSDAY",
-    type: "PERMISSION",
-    duration: "01:00 HOUR",
-    reason: "GO TO HOME",
-  },
-  {
-    date: "04-APR-2026, SATURDAY",
-    type: "PERMISSION",
-    duration: "01:00 HOUR",
-    reason: "GO TO HOME",
-  },
-];
-
-function DateRangeNav({ label, onPrev, onNext }) {
-  return (
-    <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-600">
-      <button onClick={onPrev} className="text-gray-400 hover:text-gray-600">
-        <ChevronLeft size={14} />
-      </button>
-
-      <Calendar1 size={14} className="text-gray-400" />
-      <span className="truncate max-w-[160px] sm:max-w-none">{label}</span>
-
-      <button onClick={onNext} className="text-gray-400 hover:text-gray-600">
-        <ChevronRight size={14} />
-      </button>
-    </div>
-  );
-}
-
-function ViewToggle({ view, setView }) {
-  return (
-    <div className="flex gap-1">
-      <button
-        onClick={() => setView("list")}
-        className={clsx(
-          "flex items-center rounded-md border border-gray-200 p-1.5",
-          view === "list" ? "bg-gray-100" : "bg-white hover:bg-gray-50",
-        )}
-      >
-        <List size={14} className="text-gray-500" />
-      </button>
-      <button
-        onClick={() => setView("grid")}
-        className={clsx(
-          "flex items-center rounded-md border border-gray-200 p-1.5",
-          view === "grid" ? "bg-gray-100" : "bg-white hover:bg-gray-50",
-        )}
-      >
-        <LayoutGrid size={14} className="text-gray-500" />
-      </button>
-    </div>
-  );
-}
-
+import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
 import { dateFnsLocalizer } from "react-big-calendar";
-const Calendar = dynamic(
-  () => import("react-big-calendar").then((mod) => mod.Calendar),
-  { ssr: false },
-);
 import { format, parse, startOfWeek, getDay } from "date-fns";
 import enUS from "date-fns/locale/en-US";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import Header from "../components/header";
+import { useTenant } from "@/hooks/useTenant";
 
-const locales = {
-  "en-US": enUS,
-};
+// ─── Constants & Data ───────────────────────────────────────────────────────
 
+const locales = { "en-US": enUS };
 const localizer = dateFnsLocalizer({
   format,
   parse,
@@ -107,16 +27,31 @@ const localizer = dateFnsLocalizer({
   locales,
 });
 
-export default function LeavePage() {
+const Calendar = dynamic(
+  () => import("react-big-calendar").then((mod) => mod.Calendar),
+  { ssr: false }
+);
+
+const HOLIDAYS = [
+  { date: "28-MAY-2026", name: "BAKRID", type: "Restricted", color: "bg-amber-50 text-amber-600 border-amber-100" },
+  { date: "15-AUG-2026", name: "INDEPENDENCE DAY", type: "National", color: "bg-indigo-50 text-indigo-600 border-indigo-100" },
+  { date: "02-OCT-2026", name: "GANDHI JAYANTHI", type: "National", color: "bg-indigo-50 text-indigo-600 border-indigo-100" },
+  { date: "09-NOV-2026", name: "DIWALI", type: "Public", color: "bg-emerald-50 text-emerald-600 border-emerald-100" },
+  { date: "25-DEC-2026", name: "CHRISTMAS", type: "Public", color: "bg-emerald-50 text-emerald-600 border-emerald-100" },
+];
+
+const PAST_LEAVES = [
+  { date: "04-APR-2026", type: "Sick Leave", duration: "1 Day", reason: "Fever and cold" },
+  { date: "20-MAY-2026", type: "Permission", duration: "1 Hour", reason: "Personal work" },
+];
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+export default function UpcomingHolidays() {
   const [view, setView] = useState("list");
-
-  const publicHolidays = [
-    { name: "Columbus Day", date: "Oct 12, 2026" },
-    { name: "Halloween", date: "Oct 31, 2026" },
-    { name: "Veterans Day", date: "Nov 11, 2026" },
-  ];
-
   const [date, setDate] = useState(new Date());
+  const router = useRouter();
+  const tenantId = useTenant();
 
   const handlePrev = () => {
     const newDate = new Date(date);
@@ -130,236 +65,219 @@ export default function LeavePage() {
     setDate(newDate);
   };
 
-  const formatRange = (date) => {
-    const start = new Date(date.getFullYear(), date.getMonth(), 1);
-    const end = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-    return `${start.toDateString()} – ${end.toDateString()}`;
-  };
-
-  const router = useRouter();
-
-  const today = new Date();
-
   const events = [
-    {
-      title: "Doctor Appointment",
-      start: new Date(today.getFullYear(), today.getMonth() + 1, 5),
-      end: new Date(today.getFullYear(), today.getMonth() + 1, 5),
-      allDay: true,
-    },
-    {
-      title: "Doctor Appointment",
-      start: new Date(today.getFullYear(), today.getMonth(), 10),
-      end: new Date(today.getFullYear(), today.getMonth(), 10),
-      allDay: true,
-    },
+    { title: "Bakrid", start: new Date(2026, 4, 28), end: new Date(2026, 4, 28), allDay: true },
+    { title: "Independence Day", start: new Date(2026, 7, 15), end: new Date(2026, 7, 15), allDay: true },
   ];
 
   return (
-    <div className="flex h-full flex-col">
-      {/* Top Nav */}
+    <div className="min-h-screen bg-[#F9FAFB] font-sans">
       <Header />
 
-      {/* Page Content */}
-      <div className="flex-1 overflow-y-auto bg-gray-100 p-3 sm:p-4">
-        <>
-          {/* Controls Row */}
-          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-            <DateRangeNav
-              label={formatRange(date)}
-              onPrev={handlePrev}
-              onNext={handleNext}
-            />
-            <div className="flex items-center justify-between gap-2 sm:justify-start">
-              <ViewToggle view={view} setView={setView} />
-              <button className="rounded-lg bg-purple-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-purple-700">
-                Apply leave
-              </button>
+      <main className="max-w-[1400px] mx-auto p-4 lg:p-8">
+        
+        {/* Page Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full uppercase tracking-widest">Calendar</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Holidays & <span className="text-indigo-600">Events</span></h1>
+            <p className="text-sm font-medium text-gray-500 mt-1">Stay updated with company holidays and your leave timeline.</p>
+          </motion.div>
+
+          <div className="flex items-center gap-1.5 bg-white p-1.5 rounded-2xl border border-gray-100 shadow-sm">
+            <button 
+              onClick={() => setView("list")}
+              className={`flex items-center gap-2 px-5 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all ${view === "list" ? "bg-indigo-600 text-white shadow-md shadow-indigo-100" : "text-gray-400 hover:text-gray-600"}`}
+            >
+              <List size={14} />
+              List
+            </button>
+            <button 
+              onClick={() => setView("grid")}
+              className={`flex items-center gap-2 px-5 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all ${view === "grid" ? "bg-indigo-600 text-white shadow-md shadow-indigo-100" : "text-gray-400 hover:text-gray-600"}`}
+            >
+              <LayoutGrid size={14} />
+              Grid
+            </button>
+          </div>
+        </div>
+
+        {view === "list" ? (
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+            
+            {/* Main List */}
+            <div className="xl:col-span-2 space-y-6">
+              <div className="bg-white border border-gray-100 rounded-[24px] shadow-sm overflow-hidden">
+                <div className="px-8 py-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/30">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-500">
+                      <Star size={16} />
+                    </div>
+                    <h3 className="text-[12px] font-bold text-gray-800 uppercase tracking-widest">Upcoming Holidays</h3>
+                  </div>
+                  <span className="text-[10px] font-bold text-gray-400">{new Date().getFullYear()} Schedule</span>
+                </div>
+                <div className="divide-y divide-gray-50">
+                  {HOLIDAYS.map((h, i) => (
+                    <div key={i} className="px-8 py-6 flex items-center justify-between hover:bg-gray-50 transition-all group">
+                      <div className="flex items-center gap-5">
+                        <div className="w-14 h-14 rounded-2xl bg-white border border-gray-100 shadow-sm flex flex-col items-center justify-center group-hover:border-indigo-200 group-hover:bg-indigo-50/30 transition-all">
+                          <span className="text-[11px] font-bold text-indigo-400 leading-none mb-1">{h.date.split('-')[1]}</span>
+                          <span className="text-lg font-bold text-gray-800 leading-tight">{h.date.split('-')[0]}</span>
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-bold text-gray-800 mb-1">{h.name}</h4>
+                          <span className={`text-[9px] font-bold px-2.5 py-1 rounded-lg border uppercase tracking-wider ${h.color}`}>{h.type}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 text-gray-300 group-hover:text-indigo-400 transition-all">
+                        <span className="text-[10px] font-bold uppercase tracking-widest hidden sm:block">View Details</span>
+                        <ArrowRight size={18} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-white border border-gray-100 rounded-[24px] shadow-sm overflow-hidden border-l-4 border-l-indigo-600">
+                <div className="px-8 py-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/30">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                      <History size={16} />
+                    </div>
+                    <h3 className="text-[12px] font-bold text-gray-800 uppercase tracking-widest">My Past Absences</h3>
+                  </div>
+                </div>
+                <div className="divide-y divide-gray-50">
+                  {PAST_LEAVES.map((l, i) => (
+                    <div key={i} className="px-8 py-6 flex items-center justify-between hover:bg-gray-50 transition-all">
+                      <div className="flex items-center gap-5">
+                        <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                          <CheckCircle2 size={18} />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-bold text-gray-800">{l.type}</h4>
+                          <p className="text-[11px] font-medium text-gray-400 mt-0.5">{l.date} • {l.duration}</p>
+                        </div>
+                      </div>
+                      <p className="text-xs font-medium text-gray-400 italic max-w-[200px] truncate">"{l.reason}"</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Sidebar */}
+            <div className="space-y-6">
+              <div className="bg-indigo-600 rounded-[24px] p-8 text-white shadow-xl shadow-indigo-100 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-10">
+                  <Star size={100} />
+                </div>
+                <div className="flex items-center gap-3 mb-8">
+                  <Star size={20} className="text-amber-400" />
+                  <h3 className="text-sm font-bold uppercase tracking-widest">Next Holiday</h3>
+                </div>
+                <div className="space-y-6 relative z-10">
+                  <div className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/10">
+                    <h4 className="text-xl font-bold">Bakrid</h4>
+                    <p className="text-xs font-medium text-indigo-100 mt-2 flex items-center gap-2 opacity-80">
+                      <CalendarIcon size={12} />
+                      28 May, 2026 (Thursday)
+                    </p>
+                  </div>
+                  <button className="w-full py-3.5 bg-white text-indigo-600 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-indigo-50 transition-all shadow-lg">
+                    Add to My Calendar
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-white border border-gray-100 rounded-[24px] p-6 shadow-sm">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                    <Info size={16} />
+                  </div>
+                  <h3 className="text-[12px] font-bold text-gray-800 uppercase tracking-widest">Holiday Policy</h3>
+                </div>
+                <p className="text-[12px] font-medium text-gray-500 leading-relaxed">
+                  National holidays are fixed for all employees. Restricted holidays can be availed by applying through the Leave Request form at least 7 days in advance.
+                </p>
+              </div>
+
+              <div className="bg-gray-50 border border-indigo-100 rounded-[24px] p-6 text-center">
+                 <button 
+                  onClick={() => router.push(`/${tenantId}/leaveManagement`)}
+                  className="w-full py-4 bg-gray-900 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-gray-800 transition-all shadow-md flex items-center justify-center gap-2"
+                >
+                  Apply for Leave
+                  <ArrowRight size={14} />
+                </button>
+              </div>
             </div>
           </div>
-
-          {view === "list" && (
-            <>
-              {/* Upcoming Holidays Table */}
-              <div className="mb-4 overflow-hidden border border-gray-200 bg-white">
-                <div className="border-b border-gray-100 bg-[#E2DFFF] px-4 py-3.5 text-[11px] font-semibold uppercase tracking-[0.5px] text-[#000000]">
-                  Upcoming Holidays
+        ) : (
+          <div className="flex flex-col xl:flex-row gap-8">
+            <div className="flex-1 bg-white border border-gray-100 rounded-[24px] p-8 shadow-sm calendar-premium">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-xl font-bold text-gray-800">{format(date, 'MMMM yyyy')}</h3>
+                <div className="flex gap-3">
+                  <button onClick={handlePrev} className="p-2.5 bg-gray-50 rounded-xl hover:bg-indigo-50 hover:text-indigo-600 transition-all border border-gray-100"><ChevronLeft size={18} /></button>
+                  <button onClick={handleNext} className="p-2.5 bg-gray-50 rounded-xl hover:bg-indigo-50 hover:text-indigo-600 transition-all border border-gray-100"><ChevronRight size={18} /></button>
                 </div>
-                {upcomingHolidays.map((item, i) => (
-                  <div
-                    key={i}
-                    className="flex flex-col gap-1 border-b border-gray-100 px-4 py-4 last:border-none hover:bg-gray-50 even:bg-[#F8FAFC] sm:grid sm:grid-cols-[minmax(180px,300px)_1fr] sm:items-center sm:gap-0 sm:py-5"
-                  >
-                    <span className="text-xs font-semibold text-[#000000] sm:border-r sm:border-gray-400 sm:pr-4">
-                      {item.date}
-                    </span>
-                    <span className="text-xs font-semibold text-[#000000] sm:px-4">
-                      {item.name}
-                    </span>
-                  </div>
-                ))}
               </div>
+              <Calendar
+                localizer={localizer}
+                events={events}
+                startAccessor="start"
+                endAccessor="end"
+                style={{ height: 500 }}
+                date={date}
+                onNavigate={setDate}
+                toolbar={false}
+              />
+              <style jsx global>{`
+                .calendar-premium .rbc-calendar { font-family: inherit; border: none; }
+                .calendar-premium .rbc-header { padding: 14px; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #94a3b8; border-bottom: 2px solid #f1f5f9; }
+                .calendar-premium .rbc-month-view { border: none; }
+                .calendar-premium .rbc-day-bg { transition: all 0.2s; border-left: 1px solid #f8fafc; }
+                .calendar-premium .rbc-day-bg:hover { background: #f9fafb; }
+                .calendar-premium .rbc-today { background: #f5f3ff !important; }
+                .calendar-premium .rbc-off-range-bg { background: #fafafa; opacity: 0.3; }
+                .calendar-premium .rbc-event { background: #4f46e5; border-radius: 10px; border: none; padding: 6px 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2); }
+                .calendar-premium .rbc-month-row { border-top: 1px solid #f1f5f9; }
+              `}</style>
+            </div>
 
-              {/* Second controls row for past leaves (kept as-is per instructions) */}
-              <div className="mb-3 flex items-center justify-end gap-2">
-                <DateRangeNav
-                  label={formatRange(date)}
-                  onPrev={handlePrev}
-                  onNext={handleNext}
-                />
-                <ViewToggle />
+            <div className="xl:w-80 space-y-6">
+              <div className="bg-white border border-gray-100 rounded-[24px] p-6 shadow-sm">
+                <h3 className="text-[12px] font-bold text-gray-800 uppercase tracking-widest mb-6">Calendar Legend</h3>
+                <div className="space-y-5">
+                  <div className="flex items-center gap-4">
+                    <div className="w-3.5 h-3.5 rounded-md bg-indigo-600 shadow-md shadow-indigo-100" />
+                    <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Public Holiday</span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="w-3.5 h-3.5 rounded-md bg-amber-400 shadow-md shadow-amber-100" />
+                    <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Restricted</span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="w-3.5 h-3.5 rounded-md bg-violet-500 shadow-md shadow-violet-100" />
+                    <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Your Leave</span>
+                  </div>
+                </div>
               </div>
-
-              {/* Past Leaves Table */}
-              <div className="overflow-hidden border border-gray-200 bg-white">
-                <div className="border-b border-gray-100 bg-[#E2DFFF] px-4 py-3.5 text-[11px] font-semibold uppercase tracking-[0.5px] text-[#000000]">
-                  Past Leaves
-                </div>
-                {pastLeaves.map((item, i) => (
-                  <div
-                    key={i}
-                    className="flex flex-col gap-2 border-b border-gray-100 px-4 py-4 last:border-none hover:bg-gray-50 even:bg-[#F8FAFC] sm:grid sm:grid-cols-[minmax(160px,300px)_minmax(140px,300px)_1fr] sm:items-center sm:gap-0 sm:py-0"
-                  >
-                    <span className="text-xs font-semibold text-[#000000] sm:border-r sm:border-gray-400 sm:px-4 sm:py-5">
-                      {item.date}
-                    </span>
-                    <span className="sm:border-r sm:border-gray-400 sm:px-4 sm:py-5">
-                      <span className="inline-flex items-center gap-1.5 rounded-md bg-purple-50 text-[11px] font-medium text-purple-700">
-                        <span className="flex-shrink-0 rounded-sm bg-purple-600" />
-                        {item.type}
-                        <span className="text-gray-400">•</span>
-                        {item.duration}
-                      </span>
-                    </span>
-                    <span className="text-xs font-semibold text-[#000000] sm:px-4 sm:py-5">
-                      {item.reason}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-
-          {view === "grid" && (
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-              {/* Calendar */}
-              <div className="min-w-0 flex-1 overflow-x-auto">
-                <Calendar
-                  localizer={localizer}
-                  events={events}
-                  startAccessor="start"
-                  endAccessor="end"
-                  defaultView="month"
-                  defaultDate={new Date()}
-                  date={date}
-                  onNavigate={(newDate) => setDate(newDate)}
-                  onSelectEvent={(event) => alert(event.title)}
-                  style={{ height: 500 }}
-                />
-              </div>
-
-              {/* Right Sidebar */}
-              <div className="flex w-full flex-col gap-6 lg:w-80 lg:flex-shrink-0 lg:overflow-y-auto lg:p-3">
-                {/* Quick Summary */}
-                <div className="p-5 shadow-[0px_1px_2px_0px_#0000000D]">
-                  <p className="mb-2 text-[14px] font-bold uppercase tracking-[0.7px] text-[#434655]">
-                    Quick Summary
-                  </p>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-1">
-                    <div className="flex items-center gap-3 rounded-[12px] border border-gray-100 bg-[#F2F4F6] p-5 shadow-sm">
-                      <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[#F2F4F6]">
-                        <Briefcase size={20} className="text-purple-500" />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-semibold leading-none text-gray-800">
-                          2.5
-                        </p>
-                        <p className="mt-0.5 text-[11px] text-[#434655]">
-                          Days taken this month
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 rounded-[12px] border border-gray-100 bg-[#F2F4F6] p-5 shadow-sm">
-                      <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50">
-                        <Calendar1 size={20} className="text-blue-500" />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-semibold leading-none text-gray-800">
-                          1.0
-                        </p>
-                        <p className="mt-0.5 text-[11px] text-[#434655]">
-                          Sick leave usage
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Public Holidays */}
-                <div className="p-5 shadow-[0px_1px_2px_0px_#0000000D]">
-                  <div className="mb-2 flex items-center justify-between">
-                    <p className="text-[14px] font-bold uppercase tracking-[0.7px] text-[#434655]">
-                      Public Holidays
-                    </p>
-                    <button className="text-[10px] font-bold text-[#4A45B6] hover:underline">
-                      VIEW ALL
-                    </button>
-                  </div>
-                  <div className="flex flex-col gap-2.5">
-                    {publicHolidays.map((h, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between rounded-lg border border-gray-100 bg-white px-3 py-4"
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="h-2 w-2 flex-shrink-0 rounded-full bg-[#94A3B8]" />
-                          <div>
-                            <p className="text-[12px] font-semibold text-[#191C1E]">
-                              {h.name}
-                            </p>
-                            <p className="text-[10px] text-[#434655]">
-                              {h.date}
-                            </p>
-                          </div>
-                        </div>
-                        <ArrowRight size={13} className="text-gray-300" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Leave Legend */}
-                <div>
-                  <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-gray-500">
-                    Leave Legend
-                  </p>
-                  <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4 lg:grid-cols-1">
-                    {[
-                      { color: "bg-purple-500", label: "Sick Leave" },
-                      { color: "bg-teal-500", label: "Casual Leave" },
-                      { color: "bg-green-500", label: "Public Holiday" },
-                      { color: "bg-cyan-500", label: "Upcoming Trip" },
-                    ].map((item) => (
-                      <div
-                        key={item.label}
-                        className="flex items-center gap-2 text-[12px] text-gray-600"
-                      >
-                        <span
-                          className={clsx(
-                            "h-3 w-3 flex-shrink-0 rounded-sm",
-                            item.color,
-                          )}
-                        />
-                        {item.label}
-                      </div>
-                    ))}
-                  </div>
-                </div>
+              
+              <div className="bg-indigo-50 border border-indigo-100 rounded-[24px] p-6">
+                <p className="text-[11px] font-bold text-indigo-700 leading-relaxed text-center">
+                  Holidays are subject to change per regional government announcements.
+                </p>
               </div>
             </div>
-          )}
-        </>
-      </div>
+          </div>
+        )}
+      </main>
     </div>
   );
 }

@@ -42,13 +42,14 @@ function ProfileCard() {
 
     useEffect(() => {
         const fetchUser = async () => {
+            if (!tenantId) return;
             const res = await getUserData(tenantId);
             setProfile(res);
 
             console.log("fetchUser", res);
         }
         fetchUser();
-    }, []);
+    }, [tenantId]);
 
     if (!profile) return null;
 

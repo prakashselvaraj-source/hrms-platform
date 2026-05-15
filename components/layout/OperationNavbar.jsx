@@ -49,7 +49,7 @@ function NavItem({ item, isDropdown = false }) {
 
             <AnimatePresence>
                 {open && (
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0, y: 10, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
@@ -80,8 +80,8 @@ function NavItem({ item, isDropdown = false }) {
 export default function OperationNavbar() {
     const tenant = useTenant();
     const userRole = useRole();
-    const role = userRole === "SUPER_ADMIN" ? "manager" : userRole === "ADMIN" ? "admin" : "";
-    
+    const role = userRole === "ADMIN" ? "manager" : userRole === "SUPER_ADMIN" ? "admin" : "";
+
     const containerRef = useRef(null);
     const itemRefs = useRef([]);
     const [visibleCount, setVisibleCount] = useState(7); // Default to all
@@ -158,6 +158,13 @@ export default function OperationNavbar() {
             items: [
                 { label: "Ticket Management", href: `/${tenant}/${role}/operations/support` }
             ]
+        },
+        {
+            id: "hier",
+            label: "Hierarchy",
+            items: [
+                { label: "Org Hierarchy", href: `/${tenant}/${role}/operations/hrm-orm-hierary` }
+            ]
         }
     ], [tenant, role]);
 
@@ -192,7 +199,7 @@ export default function OperationNavbar() {
     return (
         <nav className="sticky top-0 z-[100] bg-white border-b border-slate-100 shadow-sm backdrop-blur-md bg-white/80">
             <div ref={containerRef} className="flex items-center gap-1 px-6 h-[56px] max-w-[1600px] mx-auto relative">
-                
+
                 {/* ── Logo Section ── */}
                 <div className="flex items-center gap-2 mr-4 pr-4 border-r border-slate-100 shrink-0">
                     <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white">
@@ -222,18 +229,18 @@ export default function OperationNavbar() {
                 {/* ── Overflow Menu ── */}
                 {hiddenItems.length > 0 && (
                     <div className="ml-auto flex items-center">
-                        <NavItem 
-                            item={{ 
-                                label: <div className="flex items-center gap-1.5"><MoreHorizontal size={18} /> <span className="hidden sm:inline">More</span></div>, 
+                        <NavItem
+                            item={{
+                                label: <div className="flex items-center gap-1.5"><MoreHorizontal size={18} /> <span className="hidden sm:inline">More</span></div>,
                                 items: hiddenItems.flatMap(group => group.items.map(subItem => ({
                                     ...subItem,
                                     label: <div className="flex flex-col"><span className="text-[10px] text-slate-400 font-black uppercase tracking-widest leading-none mb-1">{group.label}</span> {subItem.label}</div>
                                 })))
-                            }} 
+                            }}
                         />
                     </div>
                 )}
             </div>
         </nav>
     );
-}
+}

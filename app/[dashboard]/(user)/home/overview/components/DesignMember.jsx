@@ -33,13 +33,14 @@ function DesignMember() {
 
     useEffect(() => {
         const fetchDesignMember = async () => {
+            if (!tenantId) return;
             const res = await getDesignMember(tenantId);
             setDesignMember(res);
 
             console.log("designMemer", res);
         }
         fetchDesignMember();
-    }, []);
+    }, [tenantId]);
     return (
         <div>
             <SideCard>

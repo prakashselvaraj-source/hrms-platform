@@ -89,7 +89,7 @@ export default function LoginForm() {
     try {
       const res = await loginUser(form);
 
-      // console.log("Login response:", res);
+      console.log("Login response:", res);
 
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("role", res.data.role);

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutGrid,
   User,
@@ -19,21 +19,25 @@ import {
   Command,
   Sparkles,
   Lock,
-  Building2
+  Building2,
+  ShieldCheck,
+  Zap
 } from "lucide-react";
 import { useTenant } from "@/hooks/useTenant";
 import { useEffect, useState } from "react";
 import { getTenantDetails } from "@/services/organizationService";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-hot-toast";
 
 export default function Sidebar({ isOpen, setIsOpen }) {
   const pathname = usePathname();
+  const router = useRouter();
   const tenant = useTenant();
   const [role, setRole] = useState(null);
   const [mounted, setMounted] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
   const [setupComplete, setSetupComplete] = useState(true);
   const [companyLogo, setCompanyLogo] = useState(null);
+  const [companyName, setCompanyName] = useState("WorkSphere");
 
   useEffect(() => {
     setMounted(true);
@@ -50,224 +54,325 @@ export default function Sidebar({ isOpen, setIsOpen }) {
       const res = await getTenantDetails();
       setSetupComplete(res.data.setupComplete);
       setCompanyLogo(res.data.logoUrl);
+      setCompanyName(res.data.companyName || "WorkSphere");
     } catch (error) {
       console.error("Failed to check setup status", error);
     }
   };
 
-  // Determine the correct path prefix for the home/dashboard route
-  const manager = role === 'SUPER_ADMIN' ? 'manager' : role === 'ADMIN' ? 'admin' : '';
+  // Synchronized Role Mapping: SUPER_ADMIN -> manager, ADMIN -> admin
+  const managerPrefix = role === 'ADMIN' ? 'manager' : 'admin';
 
-  // Dynamically generate navigation items based on the user's role
   const getNavItems = () => {
-    // Shared items across all roles
     const sharedItems = [
       { label: "Payroll", href: `/${tenant}/payroll`, icon: Briefcase },
-      { label: "Resignation", href: `/${tenant}/resignation`, icon: FileText },
       { label: "Attendance", href: `/${tenant}/attendance`, icon: BarChart2 },
       { label: "Tasks", href: `/${tenant}/tasks/MyTasks`, icon: CheckSquare },
-
     ];
 
-    switch (role) {
-      case 'SUPER_ADMIN':
-        return [
-          { label: "Home", href: `/${tenant}/${manager}/dashboard`, icon: LayoutGrid },
-          { label: "Leave", href: `/${tenant}/manager/Leave-management`, icon: CalendarDays },
-          ...sharedItems,
-          {
-            label: "Operations",
-            href: setupComplete ? `/${tenant}/manager/operations` : "#",
-            icon: Command,
-            locked: !setupComplete
-          }
-        ];
-      case 'ADMIN':
-        return [
-          { label: "Home", href: `/${tenant}/${manager}/home/overview`, icon: LayoutGrid },
-          { label: "Leave", href: `/${tenant}/leaveManagement`, icon: CalendarDays },
-          ...sharedItems,
-          {
-            label: "Operations",
-            href: setupComplete ? `/${tenant}/admin/operations/employeemanagement/employee-list` : "#",
-            icon: Command,
-            locked: !setupComplete
-          }
-        ];
-      default: // Regular Employee
-        return [
-          { label: "Home", href: `/${tenant}/home/overview`, icon: LayoutGrid }, // Employees usually don't have a 'manager' prefix
-          // Add specific EMPLOYEE links here
-          { label: "Leave", href: `/${tenant}/leaveManagement`, icon: CalendarDays },
-
-          ...sharedItems
-        ];
+    if (role === 'SUPER_ADMIN' || role === 'ADMIN') {
+      return [
+        { label: "Dashboard", href: `/${tenant}/${managerPrefix}/dashboard`, icon: LayoutGrid },
+        { label: "Leave", href: `/${tenant}/${managerPrefix}/Leave-management`, icon: CalendarDays },
+        {
+          label: "Operations",
+          href: setupComplete ? `/${tenant}/${managerPrefix}/operations` : "#",
+          icon: Command,
+          locked: !setupComplete
+        },
+        { label: "Settings", href: `/${tenant}/${managerPrefix}/settings`, icon: Settings },
+      ];
     }
+
+    // Regular Employee
+    return [
+      { label: "Dashboard", href: `/${tenant}/home/overview`, icon: LayoutGrid },
+      { label: "My Leave", href: `/${tenant}/leaveManagement`, icon: CalendarDays },
+      ...sharedItems,
+      { label: "Profile", href: `/${tenant}/profile`, icon: User },
+    ];
   };
 
   const navItems = getNavItems();
 
-  const bottomItems = [
-    { label: "Settings", href: `/${tenant}/settings`, icon: Settings },
-    { label: "Support", href: `/${tenant}/support`, icon: MessageSquare },
-  ];
+  if (!mounted) return null;
 
   return (
-    <>
-      {/* Mobile Overlay */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden transition-opacity"
-          onClick={() => setIsOpen?.(false)}
-        />
-      )}
+    <motion.aside
+      initial={false}
+      animate={{ width: isOpen ? 280 : 88 }}
+      className="sidebar-root"
+    >
+      <style>{`
+        .sidebar-root {
+          height: 100vh;
+          background: #09090b;
+          border-right: 1px solid rgba(255, 255, 255, 0.06);
+          display: flex;
+          flex-direction: column;
+          position: sticky;
+          top: 0;
+          z-index: 50;
+          color: #fff;
+          transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
 
-      <aside
-        className={`fixed top-0 left-0 z-50 h-screen flex flex-col justify-between 
-          bg-[#0A0F24] border-r border-white/5 shadow-2xl
-          transform transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
-          ${isOpen ? "translate-x-0" : "-translate-x-full"}
-          md:translate-x-0 md:static
-          ${isExpanded ? "w-[260px]" : "w-[88px]"}`}
-      >
-        <div className="flex flex-col flex-1 overflow-hidden">
-          {/* Header / Logo */}
-          <div className="h-24 w-full flex items-center relative shrink-0 border-b border-white/5 bg-gradient-to-b from-white/[0.04] to-transparent px-4">
-            <div className="w-[56px] flex items-center justify-center shrink-0">
-              <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-[0_0_20px_rgba(79,70,229,0.3)] overflow-hidden p-1.5 border border-white/10">
-                {companyLogo ? (
-                  <img src={companyLogo} alt="Logo" className="w-full h-full object-contain" />
-                ) : (
-                  <Building2 className="text-indigo-600 w-5 h-5" />
+        .sidebar-header {
+          padding: 24px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          overflow: hidden;
+          white-space: nowrap;
+        }
+
+        .logo-container {
+          width: 40px;
+          height: 40px;
+          min-width: 40px;
+          border-radius: 10px;
+          background: linear-gradient(135deg, #6366f1, #a855f7);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 8px 20px rgba(99, 102, 241, 0.2);
+        }
+
+        .company-name {
+          font-family: 'Outfit', sans-serif;
+          font-weight: 700;
+          font-size: 18px;
+          background: linear-gradient(to right, #fff, #a1a1aa);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+
+        .nav-section {
+          flex: 1;
+          padding: 12px;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .nav-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 14px;
+          border-radius: 12px;
+          color: #71717a;
+          text-decoration: none;
+          transition: all 0.2s ease;
+          position: relative;
+        }
+
+        .nav-item:hover {
+          background: rgba(255, 255, 255, 0.03);
+          color: #fff;
+        }
+
+        .nav-item.active {
+          background: rgba(99, 102, 241, 0.1);
+          color: #818cf8;
+        }
+
+        .nav-item.locked {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .nav-item.locked:hover {
+          background: transparent;
+          color: #71717a;
+        }
+
+        .nav-item.active::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 15%;
+          height: 70%;
+          width: 3px;
+          background: #818cf8;
+          border-radius: 0 4px 4px 0;
+        }
+
+        .nav-icon {
+          width: 20px;
+          height: 20px;
+          min-width: 20px;
+        }
+
+        .nav-label {
+          font-size: 14px;
+          font-weight: 500;
+        }
+
+        .sidebar-footer {
+          padding: 16px;
+          border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .user-pill {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px;
+          border-radius: 16px;
+          background: rgba(255, 255, 255, 0.02);
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+
+        .user-pill:hover {
+          background: rgba(255, 255, 255, 0.05);
+        }
+
+        .avatar {
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          background: #27272a;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #a1a1aa;
+          font-weight: 600;
+          font-size: 12px;
+        }
+
+        .toggle-btn {
+          position: absolute;
+          right: -12px;
+          top: 32px;
+          width: 24px;
+          height: 24px;
+          background: #18181b;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          color: #a1a1aa;
+          z-index: 100;
+        }
+
+        .toggle-btn:hover {
+          background: #27272a;
+          color: #fff;
+        }
+
+        .locked-badge {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 4px;
+          background: rgba(239, 68, 68, 0.1);
+          border-radius: 6px;
+          color: #ef4444;
+        }
+      `}</style>
+
+      <div className="toggle-btn" onClick={() => setIsOpen(!isOpen)}>
+        {isOpen ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
+      </div>
+
+      <div className="sidebar-header">
+        <div className="logo-container">
+          {companyLogo ? (
+            <img src={companyLogo} alt="Logo" className="nav-icon" style={{ borderRadius: '6px' }} />
+          ) : (
+            <Sparkles size={22} color="white" />
+          )}
+        </div>
+        <AnimatePresence>
+          {isOpen && (
+            <motion.span
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              className="company-name"
+            >
+              {companyName}
+            </motion.span>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <nav className="nav-section">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = pathname.includes(item.href);
+
+          const handleLockedClick = (e) => {
+            if (item.locked) {
+              e.preventDefault();
+              toast.error(`${item.label} is locked. Please complete your company setup first.`, {
+                icon: '🔒',
+                style: {
+                  borderRadius: '12px',
+                  background: '#18181b',
+                  color: '#fff',
+                  border: '1px solid rgba(255,255,255,0.1)'
+                },
+              });
+            }
+          };
+
+          return (
+            <Link
+              key={item.label}
+              href={item.locked ? "#" : item.href}
+              onClick={handleLockedClick}
+              className={`nav-item ${isActive ? 'active' : ''} ${item.locked ? 'locked' : ''}`}
+            >
+              <div className="relative flex items-center">
+                <Icon className="nav-icon" />
+                {!isOpen && item.locked && (
+                  <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-[#09090b]" />
                 )}
               </div>
-            </div>
-            {isExpanded && (
-              <div className="flex flex-col ml-1 overflow-hidden whitespace-nowrap">
-                <span className="text-white font-bold tracking-wide text-[15px] leading-tight truncate max-w-[150px]">
-                  {tenant?.toUpperCase() || "HR SAAS"}
-                </span>
-                <span className="text-blue-400 text-[10px] uppercase font-bold tracking-[0.2em] mt-0.5">Portal</span>
-              </div>
-            )}
-
-            {/* Desktop Toggle Button */}
-            <button
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-[#0A0F24] border border-white/10 rounded-full items-center justify-center text-slate-400 hover:text-white hover:scale-110 hover:bg-blue-600 transition-all z-50 shadow-lg"
-            >
-              {isExpanded ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
-            </button>
-          </div>
-
-          {/* Main Nav */}
-          <div className="flex-1 overflow-y-auto overflow-x-hidden py-6 flex flex-col gap-2 relative [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            {navItems.map(({ label, href, icon: Icon, locked }) => {
-              const isActive = pathname === href;
-              return (
-                <div
-                  key={label}
-                  className="relative group"
-                  onClick={() => {
-                    if (locked) {
-                      toast.error("Please complete Organization Setup first", {
-                        icon: '🔒',
-                        style: {
-                          borderRadius: '16px',
-                          background: '#0A0F24',
-                          color: '#fff',
-                        },
-                      });
-                    }
-                  }}
-                >
-                  <Link
-                    href={locked ? "#" : href}
-                    className={`group relative flex items-center min-h-[50px] mx-4 rounded-xl transition-all duration-200
-                      ${isActive
-                        ? "bg-blue-600/15 text-blue-400"
-                        : locked
-                          ? "text-slate-600 cursor-not-allowed opacity-50"
-                          : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
-                      }
-                    `}
-                    onClick={() => !locked && setIsOpen?.(false)}
+              <AnimatePresence>
+                {isOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flex: 1 }}
                   >
-                    {/* Active Indicator Line */}
-                    {isActive && (
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]" />
-                    )}
-
-                    <div className="w-[56px] flex items-center justify-center shrink-0 relative">
-                      <Icon size={22} strokeWidth={isActive ? 2.2 : 1.8} className={`transition-transform duration-200 ${isActive ? "scale-110" : "group-hover:scale-110"}`} />
-                      {locked && (
-                        <div className="absolute top-0 right-3 bg-red-500 rounded-full p-0.5 border border-[#0A0F24]">
-                          <Lock size={8} className="text-white" />
-                        </div>
-                      )}
-                    </div>
-
-                    {isExpanded && (
-                      <span className={`text-[14px] font-medium whitespace-nowrap transition-colors ${isActive ? "text-blue-400 font-semibold" : ""}`}>
-                        {label}
+                    <span className="nav-label">{item.label}</span>
+                    {item.locked && (
+                      <span className="locked-badge">
+                        <Lock size={12} strokeWidth={3} />
                       </span>
                     )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </Link>
+          );
+        })}
+      </nav>
 
-                    {/* Tooltip for Collapsed State */}
-                    {!isExpanded && (
-                      <div className="absolute left-[72px] px-2.5 py-1.5 bg-slate-800 text-white text-xs font-medium rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap shadow-xl border border-white/10 z-50">
-                        {label}
-                      </div>
-                    )}
-                  </Link>
-                </div>
-              );
-            })}
-
+      <div className="sidebar-footer">
+        <div className="user-pill">
+          <div className="avatar">
+            {role ? role.charAt(0) : 'U'}
           </div>
+          {isOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="user-info"
+            >
+              <div style={{ fontSize: '13px', fontWeight: 600 }}>{role || 'User'}</div>
+              <div style={{ fontSize: '11px', color: '#71717a' }}>Workspace Active</div>
+            </motion.div>
+          )}
         </div>
-
-        {/* Bottom Nav */}
-        <div className="py-4 border-t border-white/5 bg-gradient-to-t from-white/[0.02] to-transparent flex flex-col gap-2">
-          {bottomItems.map(({ label, href, icon: Icon }) => {
-            const isActive = pathname === href;
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={`group relative flex items-center min-h-[50px] mx-4 rounded-xl transition-all duration-200
-                  ${isActive
-                    ? "bg-blue-600/15 text-blue-400"
-                    : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
-                  }
-                `}
-                onClick={() => setIsOpen?.(false)}
-              >
-                {/* Active Indicator Line */}
-                {isActive && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]" />
-                )}
-
-                <div className="w-[56px] flex items-center justify-center shrink-0">
-                  <Icon size={22} strokeWidth={isActive ? 2.2 : 1.8} className={`transition-transform duration-200 ${isActive ? "scale-110" : "group-hover:scale-110"}`} />
-                </div>
-
-                {isExpanded && (
-                  <span className={`text-[14px] font-medium whitespace-nowrap ${isActive ? "text-blue-400 font-semibold" : ""}`}>
-                    {label}
-                  </span>
-                )}
-
-                {!isExpanded && (
-                  <div className="absolute left-[72px] px-2.5 py-1.5 bg-slate-800 text-white text-xs font-medium rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap shadow-xl border border-white/10 z-50">
-                    {label}
-                  </div>
-                )}
-              </Link>
-            );
-          })}
-        </div>
-      </aside>
-    </>
+      </div>
+    </motion.aside>
   );
 }

@@ -1,6 +1,7 @@
 import { getReportingManager } from '@/services/user/overviewService';
 import { MessageSquare } from 'lucide-react';
 import React, { useEffect, useState } from 'react'
+import { useTenant } from '@/hooks/useTenant';
 
 function SideCard({ children }) {
     return (
@@ -16,11 +17,12 @@ function SideCard({ children }) {
 }
 
 function ReportingManager() {
-
+    const tenantId = useTenant();
     const [reportingManager, setReportingManager] = useState([]);
 
     useEffect(() => {
         const fetchReportingManager = async () => {
+            if (!tenantId) return;
             const res = await getReportingManager(tenantId);
             setReportingManager(res);
 
@@ -28,7 +30,7 @@ function ReportingManager() {
         }
 
         fetchReportingManager();
-    }, []);
+    }, [tenantId]);
 
     return (
         <div>

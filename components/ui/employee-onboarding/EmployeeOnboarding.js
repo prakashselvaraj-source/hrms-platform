@@ -12,6 +12,7 @@ import Salary from './tabs/Salary';
 import LeaveSetup from './tabs/LeaveSetup';
 import Documents from './tabs/Documents';
 import { useTenant } from '@/hooks/useTenant';
+import useRole from '@/hooks/useRole';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 
@@ -25,14 +26,17 @@ const tabs = [
   { id: 'documents', label: 'Docs', icon: FileText },
 ];
 
-export default function EmployeeOnboarding() {
+export default function EmployeeOnboarding({ employeeId: propId }) {
   const [mounted, setMounted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('personal');
   const tenant = useTenant();
+  const role = useRole();
   const route = useRouter();
   const searchParams = useSearchParams();
-  const employeeId = searchParams.get('id');
+  const employeeId = propId || searchParams.get('id');
+
+  const rolePrefix = role === "SUPER_ADMIN" ? "manager" : "admin";
 
   const [formData, setFormData] = useState({
     personal: { firstName: '', lastName: '', dateOfBirth: '', gender: '', workEmail: '', mobileNumber: '', photo: null, photoUrl: '' },
@@ -47,7 +51,6 @@ export default function EmployeeOnboarding() {
       department: '',
       role: '',
       dateOfJoining: '',
-      reportingManager: '',
       workLocation: '',
       employmentType: '',
     },
@@ -121,7 +124,6 @@ export default function EmployeeOnboarding() {
               department: emp.department || '',
               role: emp.role || '',
               dateOfJoining: emp.dateOfJoining || '',
-              reportingManager: emp.reportingManager || '',
               workLocation: emp.workLocation || '',
               employmentType: emp.employmentType || '',
             },
@@ -196,7 +198,6 @@ export default function EmployeeOnboarding() {
     emergencyContactRelationship: data.contact.emergency.relationship,
     emergencyContactMobile: data.contact.emergency.mobile,
     dateOfJoining: data.job.dateOfJoining,
-    reportingManager: data.job.reportingManager,
     workLocation: data.job.workLocation,
     employmentType: data.job.employmentType,
     designation: data.job.designation,
@@ -260,7 +261,7 @@ export default function EmployeeOnboarding() {
           localStorage.removeItem('employeeOnboardingActiveTab');
           toast.success('Onboarding Profile Completed!');
         }
-        route.push(`/${tenant}/admin/operations/employeemanagement/employee-list`);
+        route.push(`/${tenant}/${rolePrefix}/operations/employeemanagement/employee-list`);
       } catch (error) {
         toast.error(error.response?.data?.message || 'Submission failed.');
       } finally {
@@ -275,7 +276,7 @@ export default function EmployeeOnboarding() {
         localStorage.removeItem('employeeOnboardingData');
         localStorage.removeItem('employeeOnboardingActiveTab');
       }
-      route.push(`/${tenant}/admin/operations/employeemanagement/employee-list`);
+      route.push(`/${tenant}/${rolePrefix}/operations/employeemanagement/employee-list`);
     }
   };
 
@@ -335,7 +336,7 @@ export default function EmployeeOnboarding() {
 
         {/* Sleek Breadcrumb */}
         <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-4">
-          <span className="hover:text-indigo-600 cursor-pointer transition-colors" onClick={() => route.push(`/${tenant}/admin/operations/employeemanagement`)}>Operations</span>
+          <span className="hover:text-indigo-600 cursor-pointer transition-colors" onClick={() => route.push(`/${tenant}/${rolePrefix}/operations/employeemanagement`)}>Operations</span>
           <ChevronRight size={12} />
           <span className="text-indigo-600">{employeeId ? 'Modification' : 'Enrollment'}</span>
         </div>
@@ -349,7 +350,7 @@ export default function EmployeeOnboarding() {
             </p>
           </div>
           <button
-            onClick={() => route.push(`/${tenant}/admin/operations/employeemanagement/employee-list`)}
+            onClick={() => route.push(`/${tenant}/${rolePrefix}/operations/employeemanagement/employee-list`)}
             className="text-[11px] font-bold text-gray-500 hover:text-indigo-600 uppercase tracking-widest flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-gray-200 shadow-sm transition-all"
           >
             <LayoutDashboard size={14} /> Personnel List

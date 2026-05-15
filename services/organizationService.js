@@ -11,19 +11,19 @@ export const updateSetupStatus = (complete) => {
 };
 
 export const createLocation = (data) => {
-  return API.post("/api/locations", data);
+  return API.post("/locations", data);
 };
 
 export const getLocations = () => {
-  return API.get("/api/locations");
+  return API.get("/locations");
 };
 
 export const createShift = (data) => {
-  return API.post("/api/shifts", data);
+  return API.post("/shifts", data);
 };
 
 export const getShifts = () => {
-  return API.get("/api/shifts");
+  return API.get("/shifts");
 };
 
 export const completeFullSetup = (data) => {
