@@ -41,15 +41,15 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
     List<Employee> findByDepartmentAndTenant(String department, Tenant tenant);
 
-    Optional<Employee> findByWorkEmailAndTenant(String workEmail, Tenant tenant);
+    Optional<Employee> findFirstByWorkEmailAndTenant(String workEmail, Tenant tenant);
 
     boolean existsByWorkEmailAndTenant(String workEmail, Tenant tenant);
 
     boolean existsByWorkEmail(String workEmail);
 
-    Optional<Employee> findByWorkEmail(String workEmail);
+    Optional<Employee> findFirstByWorkEmail(String workEmail);
 
-    Optional<Employee> findByWorkEmailIgnoreCase(String workEmail);
+    Optional<Employee> findFirstByWorkEmailIgnoreCase(String workEmail);
 
     default Optional<Employee> findByIdAndTenantId(Long id, String tenantId) {
         return findByIdAndTenant_CompanyName(id, tenantId);
@@ -67,11 +67,11 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     List<Employee> findByTenant_CompanyNameAndDepartmentIgnoreCase(String companyName,
             String department);
 
-    Employee findByTenant_CompanyNameAndWorkEmail(String companyName, String workEmail);
+    Optional<Employee> findFirstByTenant_CompanyNameAndWorkEmail(String companyName, String workEmail);
 
-    Employee findByTenant_CompanyNameIgnoreCaseAndWorkEmailIgnoreCase(String companyName, String workEmail);
+    Optional<Employee> findFirstByTenant_CompanyNameIgnoreCaseAndWorkEmailIgnoreCase(String companyName, String workEmail);
 
-    Employee findByTenant_CompanyCodeIgnoreCaseAndWorkEmailIgnoreCase(String companyCode, String workEmail);
+    Optional<Employee> findFirstByTenant_CompanyCodeIgnoreCaseAndWorkEmailIgnoreCase(String companyCode, String workEmail);
 
     long countByTenant_CompanyName(String companyName);
 

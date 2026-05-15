@@ -31,7 +31,7 @@ public class TicketService {
         String name = raisedBy;
         String photoUrl = null;
 
-        Optional<Employee> empOpt = employeeRepository.findByWorkEmail(raisedBy);
+        Optional<Employee> empOpt = employeeRepository.findFirstByWorkEmail(raisedBy);
         if (empOpt.isPresent()) {
             Employee emp = empOpt.get();
             name = emp.getFirstName() + " " + emp.getLastName();

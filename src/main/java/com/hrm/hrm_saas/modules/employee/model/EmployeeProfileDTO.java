@@ -55,5 +55,5 @@ public class EmployeeProfileDTO {
     private String identityProofUrl;
     private String educationCertUrl;
     private String employmentProofUrl;
-    private List<String> otherDocUrl;
+    private List<String> otherDocUrls;
 }

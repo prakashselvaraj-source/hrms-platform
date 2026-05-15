@@ -19,7 +19,7 @@ public class AdminController {
 
     @GetMapping("/profile")
     public ResponseEntity<?> getProfile(@RequestParam String email) {
-        return userRepository.findByEmail(email)
+        return userRepository.findFirstByEmail(email)
                 .flatMap(user -> adminService.getAdminProfile(user.getId()))
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());

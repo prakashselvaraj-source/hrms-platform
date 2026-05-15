@@ -30,9 +30,10 @@ public class TaskService {
                 System.out.println("Assign Task : " + tenantId + " " + assignedByEmail + " " + dto);
 
                 Employee assignedBy = employeeRepository
-                                .findByTenant_CompanyNameAndWorkEmail(
+                                .findFirstByTenant_CompanyNameAndWorkEmail(
                                                 tenantId,
-                                                assignedByEmail);
+                                                assignedByEmail)
+                                .orElse(null);
 
                 if (assignedBy == null) {
                         throw new RuntimeException("Assigned by employee not found");

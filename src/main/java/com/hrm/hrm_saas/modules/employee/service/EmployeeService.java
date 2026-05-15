@@ -140,7 +140,7 @@ public class EmployeeService {
 
     public EmployeeProfileDTO getEmployeeProfile(String mail, String tenantId) {
         Tenant tenant = getTenant(tenantId);
-        return repository.findByWorkEmailAndTenant(mail, tenant)
+        return repository.findFirstByWorkEmailAndTenant(mail, tenant)
                 .map(this::toProfileDTO)
                 .orElseThrow(() -> new EmployeeNotFoundException("There No such user with this mail: " + mail));
     }
@@ -354,7 +354,7 @@ public class EmployeeService {
                 .identityProofUrl(e.getIdentityProofUrl())
                 .educationCertUrl(e.getEducationCertUrl())
                 .employmentProofUrl(e.getEmploymentProofUrl())
-                .otherDocUrl(e.getOtherDocUrl())
+                .otherDocUrls(e.getOtherDocUrls())
                 .build();
     }
 }

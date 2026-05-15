@@ -61,7 +61,8 @@ public class OverviewService {
         }
 
         public EmployeeDTO getProfile(String tenantId, String email) {
-                Employee employee = employeeRepository.findByTenant_CompanyNameAndWorkEmail(tenantId, email);
+                Employee employee = employeeRepository.findFirstByTenant_CompanyNameAndWorkEmail(tenantId, email)
+                                .orElseThrow(() -> new RuntimeException("Employee not found"));
                 System.out.println("employee: " + employee);
                 return EmployeeDTO.builder()
                                 .id(employee.getId())
@@ -108,7 +109,7 @@ public class OverviewService {
                                 .identityProofUrl(employee.getIdentityProofUrl())
                                 .educationCertUrl(employee.getEducationCertUrl())
                                 .employmentProofUrl(employee.getEmploymentProofUrl())
-                                .otherDocUrl(employee.getOtherDocUrl())
+                                .otherDocUrls(employee.getOtherDocUrls())
                                 .status(employee.getStatus())
                                 .createdAt(employee.getCreatedAt())
                                 .updatedAt(employee.getUpdatedAt())

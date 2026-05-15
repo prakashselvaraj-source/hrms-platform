@@ -32,7 +32,7 @@ public class ResignationService {
         Tenant tenant = tenantRepository.findByCompanyName(dto.getTenantId())
                 .orElseThrow(() -> new EntityNotFoundException("Tenant not found"));
 
-        Employee employee = employeeRepository.findByWorkEmailAndTenant(email, tenant)
+        Employee employee = employeeRepository.findFirstByWorkEmailAndTenant(email, tenant)
                 .orElseThrow(() -> new EntityNotFoundException("Employee not found for email: " + email));
 
         dto.setEmployeeId(employee.getId());
@@ -64,7 +64,7 @@ public class ResignationService {
         Tenant tenant = tenantRepository.findByCompanyName(tenantId)
                 .orElseThrow(() -> new EntityNotFoundException("Tenant not found"));
 
-        Employee employee = employeeRepository.findByWorkEmailAndTenant(email, tenant)
+        Employee employee = employeeRepository.findFirstByWorkEmailAndTenant(email, tenant)
                 .orElseThrow(() -> new EntityNotFoundException("Employee not found for email: " + email));
 
         return getByEmployeeId(employee.getId(), tenantId, pageable);

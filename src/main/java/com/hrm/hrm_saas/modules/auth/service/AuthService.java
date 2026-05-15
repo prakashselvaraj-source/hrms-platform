@@ -150,14 +150,14 @@ public class AuthService {
 
     public LoginResponse login(LoginRequest request) {
 
-        User user = userRepository.findByEmail(request.getEmail())
+        User user = userRepository.findFirstByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Invalid credentials"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new RuntimeException("Invalid credentials");
         }
 
-        String tenantCode = user.getTenant().getCompanyName();
+        String tenantCode = user.getTenant().getCompanyCode();
 
         String token = JwtUtil.generateToken(user.getEmail(), tenantCode, user.getRole());
 
@@ -174,7 +174,7 @@ public class AuthService {
 
     public void handleForgotPassword(String email) {
 
-        Optional<User> userOpt = userRepository.findByEmail(email);
+        Optional<User> userOpt = userRepository.findFirstByEmail(email);
 
         if (userOpt.isEmpty()) {
             System.out.println("FORGOT PASSWORD FAILURE: No user found with email: " + email);

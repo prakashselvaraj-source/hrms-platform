@@ -2,6 +2,7 @@ package com.hrm.hrm_saas.modules.user.controller;
 
 import com.hrm.hrm_saas.modules.tenant.dto.TenantResponseDTO;
 import com.hrm.hrm_saas.modules.user.dto.CreateUserRequest;
+import com.hrm.hrm_saas.modules.user.entity.User;
 import com.hrm.hrm_saas.modules.user.service.UserService;
 
 import lombok.RequiredArgsConstructor;
@@ -37,4 +38,8 @@ public class UserController {
         return ResponseEntity.ok(userService.createUser(dto));
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<User> getMyDetails(@RequestAttribute String email) {
+        return ResponseEntity.ok(userService.findByEmail(email));
+    }
 }

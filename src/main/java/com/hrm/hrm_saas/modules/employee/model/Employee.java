@@ -73,7 +73,6 @@ public class Employee {
     // Job Details
     @Column(nullable = false)
     private LocalDate dateOfJoining;
-    @Column(nullable = false)
     private String reportingManager;
     @Column(nullable = false)
     private String workLocation;

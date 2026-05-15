@@ -5,15 +5,19 @@ import jakarta.servlet.http.HttpServletRequest;
 public class TenantResolver {
 
     public static String resolve(HttpServletRequest request) {
-        String host = request.getServerName(); 
-        // tcs.localhost OR tcs.yourapp.com
+        // 1. Check Header (Prioritize for frontend flexibility)
+        String tenantHeader = request.getHeader("X-Tenant-Id");
+        if (tenantHeader != null && !tenantHeader.isEmpty()) {
+            return tenantHeader;
+        }
 
+        // 2. Fallback to Subdomain
+        String host = request.getServerName(); 
         if (host == null) return null;
 
         String[] parts = host.split("\\.");
-
         if (parts.length >= 2) {
-            return parts[0]; // tcs
+            return parts[0];
         }
 
         return null;

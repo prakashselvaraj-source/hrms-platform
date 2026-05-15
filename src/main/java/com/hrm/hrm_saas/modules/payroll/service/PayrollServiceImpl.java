@@ -212,29 +212,29 @@ public class PayrollServiceImpl implements PayrollService {
         }
 
         if (tenantOpt.isPresent()) {
-            Optional<Employee> emp = employeeRepository.findByWorkEmailAndTenant(trimmedEmail, tenantOpt.get());
+            Optional<Employee> emp = employeeRepository.findFirstByWorkEmailAndTenant(trimmedEmail, tenantOpt.get());
             if (emp.isPresent())
                 return emp.get();
 
-            emp = employeeRepository.findByWorkEmailIgnoreCase(trimmedEmail);
+            emp = employeeRepository.findFirstByWorkEmailIgnoreCase(trimmedEmail);
             if (emp.isPresent() && emp.get().getTenant().getId().equals(tenantOpt.get().getId())) {
                 return emp.get();
             }
         }
 
         // 2. Try lookup via User entity
-        Optional<User> userOpt = userRepository.findByEmail(trimmedEmail);
+        Optional<User> userOpt = userRepository.findFirstByEmail(trimmedEmail);
         if (userOpt.isPresent()) {
             User user = userOpt.get();
             if (user.getTenant() != null) {
-                Optional<Employee> emp = employeeRepository.findByWorkEmailAndTenant(trimmedEmail, user.getTenant());
+                Optional<Employee> emp = employeeRepository.findFirstByWorkEmailAndTenant(trimmedEmail, user.getTenant());
                 if (emp.isPresent())
                     return emp.get();
             }
         }
 
         // 3. Last resort: find by email globally
-        Employee employee = employeeRepository.findByWorkEmailIgnoreCase(trimmedEmail).orElse(null);
+        Employee employee = employeeRepository.findFirstByWorkEmailIgnoreCase(trimmedEmail).orElse(null);
         if (employee != null)
             return employee;
 
@@ -295,7 +295,7 @@ public class PayrollServiceImpl implements PayrollService {
                 throw new RuntimeException("Employee profile not found for " + trimmedEmail);
         } catch (RuntimeException e) {
             System.out.println("Employee not found for seeding. Attempting to create from User record...");
-            User user = userRepository.findByEmail(trimmedEmail)
+            User user = userRepository.findFirstByEmail(trimmedEmail)
                     .orElseThrow(() -> new RuntimeException("Cannot seed: User not found for email " + trimmedEmail));
 
             Tenant tenant = user.getTenant();

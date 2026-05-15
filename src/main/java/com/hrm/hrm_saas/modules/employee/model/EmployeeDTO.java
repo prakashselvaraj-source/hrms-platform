@@ -79,7 +79,6 @@ public class EmployeeDTO {
     // Job Details
     @NotNull(message = "Date of joining is required")
     private LocalDate dateOfJoining;
-    @NotBlank(message = "Reporting Manager is required")
     private String reportingManager;
     @NotBlank(message = "Work location is required")
     private String workLocation;

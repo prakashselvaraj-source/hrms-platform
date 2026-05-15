@@ -48,7 +48,7 @@ public class LeaveRequestService {
 
                 String email = JwtUtil.extractEmail(cleanToken);
 
-                Employee employee = employeeRepository.findByWorkEmail(email)
+                Employee employee = employeeRepository.findFirstByWorkEmail(email)
                                 .orElseThrow(() -> new RuntimeException("Employee not found"));
 
                 String fileName = null;
@@ -468,7 +468,7 @@ public class LeaveRequestService {
 
                 String email = JwtUtil.extractEmail(cleanToken);
 
-                Employee employee = employeeRepository.findByWorkEmail(email)
+                Employee employee = employeeRepository.findFirstByWorkEmail(email)
                                 .orElseThrow(() -> new RuntimeException("Employee not found"));
 
                 // System.out.println("employeessss" + employee);

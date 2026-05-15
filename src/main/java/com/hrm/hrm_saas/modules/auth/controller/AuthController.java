@@ -7,6 +7,7 @@ import com.hrm.hrm_saas.modules.auth.dto.LoginRequest;
 import com.hrm.hrm_saas.modules.auth.dto.LoginResponse;
 import com.hrm.hrm_saas.modules.auth.dto.ResetPasswordRequest;
 import com.hrm.hrm_saas.modules.auth.service.AuthService;
+import com.hrm.hrm_saas.modules.user.entity.User;
 
 import lombok.RequiredArgsConstructor;
 
@@ -73,4 +74,5 @@ public class AuthController {
             return ResponseEntity.badRequest().body("Invalid or expired OTP");
         }
     }
+
 }

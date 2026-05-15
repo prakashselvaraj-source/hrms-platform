@@ -30,7 +30,7 @@ public class UserService {
 
                 System.out.println("Looking up user by email: " + email);
 
-                User user = userRepository.findByEmail(email)
+                User user = userRepository.findFirstByEmail(email)
                                 .orElseThrow(() -> new RuntimeException("User not found"));
 
                 return new TenantResponseDTO(
@@ -41,7 +41,7 @@ public class UserService {
 
         public CreateUserRequest createUser(CreateUserRequest dto) {
 
-                Optional<User> user = userRepository.findByEmail(dto.getEmail());
+                Optional<User> user = userRepository.findFirstByEmail(dto.getEmail());
 
                 if (user.isPresent()) {
                         throw new RuntimeException("User Already exists");
@@ -52,7 +52,7 @@ public class UserService {
                                 .or(() -> tenantRepository.findByCompanyName(dto.getTenant()))
                                 .orElseThrow(() -> new RuntimeException("Tenant not found"));
 
-                Employee employee = employeeRepository.findByWorkEmail(dto.getEmail())
+                Employee employee = employeeRepository.findFirstByWorkEmail(dto.getEmail())
                                 .orElseThrow(() -> new RuntimeException("Employee not found"));
 
                 System.out.println("employee" + dto);
@@ -70,5 +70,11 @@ public class UserService {
                                 .role(userdata.getRole())
                                 .build();
 
+        }
+
+        public User findByEmail(String email) {
+
+                return userRepository.findFirstByEmail(email)
+                                .orElseThrow(() -> new RuntimeException("User not found"));
         }
 }
