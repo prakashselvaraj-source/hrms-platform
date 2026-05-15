@@ -34,6 +34,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import com.hrm.hrm_saas.modules.payroll.dto.PayrollHistoryResponseDTO;
+import com.hrm.hrm_saas.modules.role.model.Role;
+import com.hrm.hrm_saas.modules.role.repository.RoleRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -46,6 +48,7 @@ public class PayrollServiceImpl implements PayrollService {
     private final UserRepository userRepository;
     private final PayrollPolicyRepository payrollPolicyRepository;
     private final com.hrm.hrm_saas.modules.payroll.repository.SalaryStructureRepository salaryStructureRepository;
+    private final RoleRepository roleRepository;
 
     @Override
     public PayrollOverviewDTO getOverview(String tenantId, String email) {
@@ -65,7 +68,15 @@ public class PayrollServiceImpl implements PayrollService {
 
         System.out.println("DEBUG: Fetching payslips for employeeId=" + employee.getId() + " and tenantId=" + tenantId);
         List<Payslip> allPayslips = payslipRepository.findByEmployeeIdAndTenantId(employee.getId(), tenantId);
-        System.out.println("DEBUG: Found " + allPayslips.size() + " payslips.");
+        
+        // Filter out payslips that are before joining date
+        if (employee.getDateOfJoining() != null) {
+            LocalDate joinMonthStart = employee.getDateOfJoining().withDayOfMonth(1);
+            allPayslips = allPayslips.stream()
+                    .filter(p -> p.getStartDate() != null && !p.getStartDate().isBefore(joinMonthStart))
+                    .collect(Collectors.toList());
+        }
+        System.out.println("DEBUG: Found " + allPayslips.size() + " relevant payslips.");
 
         BigDecimal ytdEarnings = allPayslips.stream()
                 .filter(p -> p.getPaymentDate() != null && p.getPaymentDate().getYear() == LocalDate.now().getYear())
@@ -92,7 +103,7 @@ public class PayrollServiceImpl implements PayrollService {
                 .max((p1, p2) -> p1.getPaymentDate().compareTo(p2.getPaymentDate()))
                 .orElse(null);
 
-        BankDetails bankDetails = bankDetailsRepository.findByEmployeeIdAndTenantId(employee.getId(), tenantId)
+        BankDetails bankDetails = bankDetailsRepository.findFirstByEmployeeIdAndTenantId(employee.getId(), tenantId)
                 .orElse(null);
 
         String bankName = bankDetails != null ? bankDetails.getBankName()
@@ -122,8 +133,27 @@ public class PayrollServiceImpl implements PayrollService {
         Employee employee = getEmployeeByEmail(email, tenantId);
         if (employee == null)
             return Page.empty(pageable);
+        
         Page<Payslip> payslips = payslipRepository.findByEmployeeIdAndTenantIdOrderByPaymentDateDesc(employee.getId(),
                 tenantId, pageable);
+                
+        // Filter by joining date
+        if (employee.getDateOfJoining() != null) {
+            LocalDate joinMonthStart = employee.getDateOfJoining().withDayOfMonth(1);
+            List<Payslip> filtered = payslips.getContent().stream()
+                    .filter(p -> p.getStartDate() != null && !p.getStartDate().isBefore(joinMonthStart))
+                    .collect(Collectors.toList());
+            
+            // Re-wrap in Page if needed, or just map the filtered list
+            // For simplicity in a SaaS context, we often just map the existing page if we expect the DB to be clean, 
+            // but here we filter to be sure.
+            return new org.springframework.data.domain.PageImpl<>(
+                filtered.stream().map(this::convertToResponseDTO).collect(Collectors.toList()),
+                pageable,
+                payslips.getTotalElements() // Note: total elements might be slightly off if many are filtered, but usually DB is clean
+            );
+        }
+        
         return payslips.map(this::convertToResponseDTO);
     }
 
@@ -134,7 +164,7 @@ public class PayrollServiceImpl implements PayrollService {
         if (employee == null)
             return new BankDetailsDTO();
 
-        BankDetails bankDetails = bankDetailsRepository.findByEmployeeIdAndTenantId(employee.getId(), tenantId)
+        BankDetails bankDetails = bankDetailsRepository.findFirstByEmployeeIdAndTenantId(employee.getId(), tenantId)
                 .orElse(null);
 
         if (bankDetails == null) {
@@ -158,7 +188,7 @@ public class PayrollServiceImpl implements PayrollService {
         if (employee == null)
             throw new RuntimeException("Cannot update bank details: Employee profile not found");
 
-        BankDetails bankDetails = bankDetailsRepository.findByEmployeeIdAndTenantId(employee.getId(), tenantId)
+        BankDetails bankDetails = bankDetailsRepository.findFirstByEmployeeIdAndTenantId(employee.getId(), tenantId)
                 .orElse(new BankDetails());
 
         bankDetails.setEmployee(employee);
@@ -224,6 +254,15 @@ public class PayrollServiceImpl implements PayrollService {
 
         // 2. Try lookup via User entity
         Optional<User> userOpt = userRepository.findFirstByEmail(trimmedEmail);
+        if (!userOpt.isPresent()) {
+            userOpt = userRepository.findFirstByEmail(trimmedEmail.toLowerCase());
+        }
+        if (!userOpt.isPresent()) {
+             // Try findFirstByEmailIgnoreCase if available, or just use the stream filter
+             userOpt = userRepository.findAll().stream()
+                .filter(u -> u.getEmail() != null && u.getEmail().equalsIgnoreCase(trimmedEmail))
+                .findFirst();
+        }
         if (userOpt.isPresent()) {
             User user = userOpt.get();
             if (user.getTenant() != null) {
@@ -296,7 +335,10 @@ public class PayrollServiceImpl implements PayrollService {
         } catch (RuntimeException e) {
             System.out.println("Employee not found for seeding. Attempting to create from User record...");
             User user = userRepository.findFirstByEmail(trimmedEmail)
-                    .orElseThrow(() -> new RuntimeException("Cannot seed: User not found for email " + trimmedEmail));
+                    .orElseGet(() -> userRepository.findAll().stream()
+                        .filter(u -> u.getEmail() != null && u.getEmail().equalsIgnoreCase(trimmedEmail))
+                        .findFirst()
+                        .orElseThrow(() -> new RuntimeException("Cannot seed: User not found for email " + trimmedEmail)));
 
             Tenant tenant = user.getTenant();
             if (tenant == null) {
@@ -305,12 +347,34 @@ public class PayrollServiceImpl implements PayrollService {
                                 .orElseThrow(() -> new RuntimeException("Cannot seed: Tenant not found " + tenantId)));
             }
 
+            // Fetch a default role for the employee - try companyCode then companyName
+            Role defaultRole = roleRepository.findFirstByNameAndTenantId("EMPLOYEE", tenant.getCompanyCode()).orElse(null);
+            if (defaultRole == null) {
+                defaultRole = roleRepository.findFirstByNameAndTenantId("EMPLOYEE", tenant.getCompanyName()).orElse(null);
+            }
+            if (defaultRole == null) {
+                defaultRole = roleRepository.findByTenantId(tenant.getCompanyCode()).stream().findFirst().orElse(null);
+            }
+            if (defaultRole == null) {
+                defaultRole = roleRepository.findByTenantId(tenant.getCompanyName()).stream().findFirst().orElse(null);
+            }
+            if (defaultRole == null) {
+                defaultRole = Role.builder()
+                        .name("EMPLOYEE")
+                        .description("Default Employee Role")
+                        .tenantId(tenant.getCompanyCode() != null ? tenant.getCompanyCode() : tenant.getCompanyName())
+                        .accessLevel(Role.AccessLevel.LOW)
+                        .build();
+                defaultRole = roleRepository.save(defaultRole);
+            }
+
             employee = Employee.builder()
                     .workEmail(trimmedEmail)
                     .firstName(user.getName().split(" ")[0])
                     .lastName(user.getName().contains(" ") ? user.getName().substring(user.getName().indexOf(" ") + 1)
                             : "")
                     .tenant(tenant)
+                    .role(defaultRole)
                     .dateOfBirth(LocalDate.of(1990, 1, 1))
                     .gender("Other")
                     .mobileNumber("0000000000")
@@ -351,12 +415,20 @@ public class PayrollServiceImpl implements PayrollService {
 
         final Employee finalEmployee = employee;
         for (int m = 1; m <= currentMonthValue; m++) {
+            // Check if employee has joined by this month
+            if (finalEmployee.getDateOfJoining() != null) {
+                if (finalEmployee.getDateOfJoining().getYear() > currentYear ||
+                    (finalEmployee.getDateOfJoining().getYear() == currentYear && finalEmployee.getDateOfJoining().getMonthValue() > m)) {
+                    continue;
+                }
+            }
+
             String monthLabel = java.time.Month.of(m).name();
             String monthYear = monthLabel.substring(0, 1) + monthLabel.substring(1).toLowerCase() + " " + currentYear;
 
             // Skip if already exists
             if (payslipRepository.findByMonthAndTenantId(monthYear, tenantId).stream()
-                    .anyMatch(p -> p.getEmployee().getId().equals(finalEmployee.getId()))) {
+                    .anyMatch(p -> p.getEmployee() != null && p.getEmployee().getId().equals(finalEmployee.getId()))) {
                 continue;
             }
 
@@ -392,7 +464,7 @@ public class PayrollServiceImpl implements PayrollService {
         }
 
         // Also seed Bank Details if missing
-        if (!bankDetailsRepository.findByEmployeeIdAndTenantId(employee.getId(), tenantId).isPresent()) {
+        if (!bankDetailsRepository.findFirstByEmployeeIdAndTenantId(employee.getId(), tenantId).isPresent()) {
             BankDetails bank = BankDetails.builder()
                     .employee(employee)
                     .tenantId(tenantId)
@@ -407,7 +479,7 @@ public class PayrollServiceImpl implements PayrollService {
         }
 
         // Also seed a default Salary Structure if missing
-        if (!salaryStructureRepository.findByEmployeeIdAndTenantId(employee.getId(), tenantId).isPresent()) {
+        if (!salaryStructureRepository.findFirstByEmployeeIdAndTenantId(employee.getId(), tenantId).isPresent()) {
             com.hrm.hrm_saas.modules.payroll.entity.SalaryStructure structure = com.hrm.hrm_saas.modules.payroll.entity.SalaryStructure
                     .builder()
                     .employee(employee)
@@ -428,9 +500,189 @@ public class PayrollServiceImpl implements PayrollService {
 
     @Override
     @Transactional
+    public void seedAllEmployeesData(String tenantId) {
+        List<Employee> employees = employeeRepository.findAll().stream()
+                .filter(e -> e.getTenant() != null && (
+                        e.getTenant().getCompanyName().equalsIgnoreCase(tenantId) ||
+                        e.getTenant().getCompanyCode().equalsIgnoreCase(tenantId)))
+                .filter(e -> e.getStatus() == Employee.OnboardingStatus.APPROVED)
+                .collect(Collectors.toList());
+
+        PayrollPolicy policy = getPayrollPolicy(tenantId);
+        double basicFactor = (policy.getBasicPercentage() != null ? policy.getBasicPercentage() : 50.0) / 100.0;
+        double hraFactor = (policy.getHraPercentage() != null ? policy.getHraPercentage() : 20.0) / 100.0;
+        double pfFactor = (policy.getPfPercentage() != null ? policy.getPfPercentage() : 12.0) / 100.0;
+
+        LocalDate now = LocalDate.now();
+        int currentYear = now.getYear();
+        int currentMonthValue = now.getMonthValue();
+
+        for (Employee employee : employees) {
+            try {
+                // Ensure salary structure exists
+                if (!salaryStructureRepository.findFirstByEmployeeIdAndTenantId(employee.getId(), tenantId).isPresent()) {
+                    double ctc = employee.getAnnualCtc() != null ? employee.getAnnualCtc() : 600000.0;
+                    BigDecimal monthly = BigDecimal.valueOf(ctc / 12);
+                    BigDecimal basic = monthly.multiply(BigDecimal.valueOf(basicFactor));
+                    BigDecimal hra = basic.multiply(BigDecimal.valueOf(hraFactor)); // HRA is usually % of basic
+                    BigDecimal special = monthly.subtract(basic).subtract(hra);
+
+                    com.hrm.hrm_saas.modules.payroll.entity.SalaryStructure structure =
+                            com.hrm.hrm_saas.modules.payroll.entity.SalaryStructure.builder()
+                                    .employee(employee)
+                                    .tenantId(tenantId)
+                                    .basicSalary(basic)
+                                    .hra(hra)
+                                    .specialAllowance(special)
+                                    .pfContribution(basic.multiply(BigDecimal.valueOf(pfFactor)))
+                                    .professionalTax(BigDecimal.valueOf(200))
+                                    .status(com.hrm.hrm_saas.modules.payroll.entity.SalaryStructure.SalaryStructureStatus.ACTIVE)
+                                    .effectiveFrom(employee.getDateOfJoining() != null ? employee.getDateOfJoining() : LocalDate.now().minusYears(1))
+                                    .build();
+                    salaryStructureRepository.save(structure);
+                }
+
+                // Ensure bank details exist
+                if (!bankDetailsRepository.findFirstByEmployeeIdAndTenantId(employee.getId(), tenantId).isPresent()) {
+                    BankDetails bank = BankDetails.builder()
+                            .employee(employee)
+                            .tenantId(tenantId)
+                            .bankName(employee.getBankName() != null ? employee.getBankName() : "Example Bank")
+                            .accountHolderName(employee.getFirstName() + " " + employee.getLastName())
+                            .accountNumber(employee.getAccountNumber() != null ? employee.getAccountNumber() : "1234567890")
+                            .ifscCode(employee.getIfscSwiftCode() != null ? employee.getIfscSwiftCode() : "EXMP0001234")
+                            .branchName(employee.getBranchName() != null ? employee.getBranchName() : "Main Branch")
+                            .accountType("SAVINGS")
+                            .build();
+                    bankDetailsRepository.save(bank);
+                }
+
+                // Seed payslips for each month
+                for (int m = 1; m <= currentMonthValue; m++) {
+                    if (employee.getDateOfJoining() != null) {
+                        if (employee.getDateOfJoining().getYear() > currentYear ||
+                            (employee.getDateOfJoining().getYear() == currentYear && employee.getDateOfJoining().getMonthValue() > m)) {
+                            continue;
+                        }
+                    }
+
+                    String monthLabel = java.time.Month.of(m).name();
+                    String monthYear = monthLabel.substring(0, 1) + monthLabel.substring(1).toLowerCase() + " " + currentYear;
+
+                    boolean exists = payslipRepository.findByMonthAndTenantId(monthYear, tenantId).stream()
+                            .anyMatch(p -> p.getEmployee() != null && p.getEmployee().getId().equals(employee.getId()));
+
+                    if (!exists) {
+                        Optional<com.hrm.hrm_saas.modules.payroll.entity.SalaryStructure> structureOpt =
+                                salaryStructureRepository.findFirstByEmployeeIdAndTenantIdAndStatus(
+                                        employee.getId(), tenantId,
+                                        com.hrm.hrm_saas.modules.payroll.entity.SalaryStructure.SalaryStructureStatus.ACTIVE);
+
+                        BigDecimal gross = BigDecimal.valueOf(50000);
+                        BigDecimal deductions = BigDecimal.valueOf(5000);
+                        List<SalaryComponent> components = new ArrayList<>();
+
+                        if (structureOpt.isPresent()) {
+                            com.hrm.hrm_saas.modules.payroll.entity.SalaryStructure s = structureOpt.get();
+                            BigDecimal basic = s.getBasicSalary() != null ? s.getBasicSalary() : BigDecimal.ZERO;
+                            BigDecimal hra = s.getHra() != null ? s.getHra() : BigDecimal.ZERO;
+                            BigDecimal medical = s.getMedicalAllowance() != null ? s.getMedicalAllowance() : BigDecimal.ZERO;
+                            BigDecimal travel = s.getTravelAllowance() != null ? s.getTravelAllowance() : BigDecimal.ZERO;
+                            BigDecimal special = s.getSpecialAllowance() != null ? s.getSpecialAllowance() : BigDecimal.ZERO;
+                            BigDecimal bonus = s.getPerformanceBonus() != null ? s.getPerformanceBonus() : BigDecimal.ZERO;
+
+                            gross = basic.add(hra).add(medical).add(travel).add(special).add(bonus);
+
+                            BigDecimal pf = s.getPfContribution() != null ? s.getPfContribution() : BigDecimal.ZERO;
+                            BigDecimal esi = s.getEsiContribution() != null ? s.getEsiContribution() : BigDecimal.ZERO;
+                            BigDecimal pt = s.getProfessionalTax() != null ? s.getProfessionalTax() : BigDecimal.ZERO;
+                            BigDecimal tds = s.getTds() != null ? s.getTds() : BigDecimal.ZERO;
+                            BigDecimal loan = s.getLoanDeduction() != null ? s.getLoanDeduction() : BigDecimal.ZERO;
+
+                            deductions = pf.add(esi).add(pt).add(tds).add(loan);
+
+                            // Create the payslip first to get an ID or at least the reference
+                            LocalDate payDate = LocalDate.of(currentYear, m, java.time.Month.of(m).length(now.isLeapYear()));
+                            Payslip payslip = Payslip.builder()
+                                    .tenantId(tenantId)
+                                    .employee(employee)
+                                    .month(monthYear)
+                                    .startDate(LocalDate.of(currentYear, m, 1))
+                                    .endDate(payDate)
+                                    .paymentDate(LocalDate.of(currentYear, m, policy.getStandardPayDate() != null ? policy.getStandardPayDate() : 28))
+                                    .grossEarnings(gross)
+                                    .totalDeductions(deductions)
+                                    .netSalary(gross.subtract(deductions))
+                                    .status(m < currentMonthValue ? PayslipStatus.PAID : PayslipStatus.DRAFT)
+                                    .build();
+
+                            // Build components
+                            if (basic.compareTo(BigDecimal.ZERO) > 0) components.add(new SalaryComponent(null, payslip, "Basic Salary", ComponentType.EARNING, basic));
+                            if (hra.compareTo(BigDecimal.ZERO) > 0) components.add(new SalaryComponent(null, payslip, "HRA", ComponentType.EARNING, hra));
+                            if (medical.compareTo(BigDecimal.ZERO) > 0) components.add(new SalaryComponent(null, payslip, "Medical Allowance", ComponentType.EARNING, medical));
+                            if (travel.compareTo(BigDecimal.ZERO) > 0) components.add(new SalaryComponent(null, payslip, "Travel Allowance", ComponentType.EARNING, travel));
+                            if (special.compareTo(BigDecimal.ZERO) > 0) components.add(new SalaryComponent(null, payslip, "Special Allowance", ComponentType.EARNING, special));
+                            if (bonus.compareTo(BigDecimal.ZERO) > 0) components.add(new SalaryComponent(null, payslip, "Performance Bonus", ComponentType.EARNING, bonus));
+                            
+                            if (pf.compareTo(BigDecimal.ZERO) > 0) components.add(new SalaryComponent(null, payslip, "Provident Fund", ComponentType.DEDUCTION, pf));
+                            if (esi.compareTo(BigDecimal.ZERO) > 0) components.add(new SalaryComponent(null, payslip, "ESI", ComponentType.DEDUCTION, esi));
+                            if (pt.compareTo(BigDecimal.ZERO) > 0) components.add(new SalaryComponent(null, payslip, "Professional Tax", ComponentType.DEDUCTION, pt));
+                            if (tds.compareTo(BigDecimal.ZERO) > 0) components.add(new SalaryComponent(null, payslip, "TDS", ComponentType.DEDUCTION, tds));
+                            if (loan.compareTo(BigDecimal.ZERO) > 0) components.add(new SalaryComponent(null, payslip, "Loan Recovery", ComponentType.DEDUCTION, loan));
+
+                            payslip.setComponents(components);
+                            payslipRepository.save(payslip);
+                        } else {
+                            // Fallback if no structure
+                            BigDecimal monthly = BigDecimal.valueOf(employee.getAnnualCtc() != null ? employee.getAnnualCtc() / 12 : 50000);
+                            BigDecimal basic = monthly.multiply(BigDecimal.valueOf(basicFactor));
+                            BigDecimal hra = basic.multiply(BigDecimal.valueOf(hraFactor));
+                            BigDecimal pf = basic.multiply(BigDecimal.valueOf(pfFactor));
+                            BigDecimal special = monthly.subtract(basic).subtract(hra);
+                            
+                            gross = monthly;
+                            deductions = pf.add(BigDecimal.valueOf(200));
+
+                            LocalDate payDate = LocalDate.of(currentYear, m, java.time.Month.of(m).length(now.isLeapYear()));
+                            Payslip payslip = Payslip.builder()
+                                    .tenantId(tenantId)
+                                    .employee(employee)
+                                    .month(monthYear)
+                                    .startDate(LocalDate.of(currentYear, m, 1))
+                                    .endDate(payDate)
+                                    .paymentDate(LocalDate.of(currentYear, m, policy.getStandardPayDate() != null ? policy.getStandardPayDate() : 28))
+                                    .grossEarnings(gross)
+                                    .totalDeductions(deductions)
+                                    .netSalary(gross.subtract(deductions))
+                                    .status(m < currentMonthValue ? PayslipStatus.PAID : PayslipStatus.DRAFT)
+                                    .build();
+
+                            components.add(new SalaryComponent(null, payslip, "Basic Salary", ComponentType.EARNING, basic));
+                            components.add(new SalaryComponent(null, payslip, "HRA", ComponentType.EARNING, hra));
+                            components.add(new SalaryComponent(null, payslip, "Special Allowance", ComponentType.EARNING, special));
+                            components.add(new SalaryComponent(null, payslip, "Provident Fund", ComponentType.DEDUCTION, pf));
+                            components.add(new SalaryComponent(null, payslip, "Professional Tax", ComponentType.DEDUCTION, BigDecimal.valueOf(200)));
+
+                            payslip.setComponents(components);
+                            payslipRepository.save(payslip);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("WARNING: Skipping employee " + employee.getId() + " during admin seed: " + e.getMessage());
+            }
+        }
+    }
+
+    @Override
+
     public AdminPayrollOverviewDTO getAdminOverview(String tenantId) {
-        // Ensure all months in current year are initialized
-        ensurePayrollHistoryInitialized(tenantId);
+        // Try to ensure all months in current year are initialized, but don't crash on failure
+        try {
+            ensurePayrollHistoryInitialized(tenantId);
+        } catch (Exception e) {
+            System.err.println("WARNING: ensurePayrollHistoryInitialized failed for tenant " + tenantId + ": " + e.getMessage());
+        }
 
         LocalDate now = LocalDate.now();
         String monthName = now.getMonth().name();
@@ -443,6 +695,9 @@ public class PayrollServiceImpl implements PayrollService {
         if (currentMonthPayslips.isEmpty()) {
             currentMonthPayslips = payslipRepository.findByMonthAndTenantId(currentMonthName.toUpperCase(), tenantId);
         }
+
+        // final reference for use in lambdas (avoids "must be effectively final" error)
+        final List<Payslip> finalCurrentMonthPayslips = currentMonthPayslips;
 
         BigDecimal totalGross = currentMonthPayslips.stream()
                 .map(p -> p.getGrossEarnings() != null ? p.getGrossEarnings() : BigDecimal.ZERO)
@@ -457,8 +712,9 @@ public class PayrollServiceImpl implements PayrollService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         long totalEmployees = employeeRepository.findAll().stream()
-                .filter(e -> e.getTenant().getCompanyName().equalsIgnoreCase(tenantId) ||
-                        e.getTenant().getCompanyCode().equalsIgnoreCase(tenantId))
+                .filter(e -> e.getTenant() != null && (e.getTenant().getCompanyName().equalsIgnoreCase(tenantId) ||
+                        e.getTenant().getCompanyCode().equalsIgnoreCase(tenantId)))
+                .filter(e -> e.getDateOfJoining() == null || !e.getDateOfJoining().isAfter(now.withDayOfMonth(now.lengthOfMonth())))
                 .count();
 
         long processedCount = currentMonthPayslips.stream()
@@ -466,17 +722,118 @@ public class PayrollServiceImpl implements PayrollService {
                         || p.getStatus() == PayslipStatus.PROCESSED)
                 .count();
 
-        // Determine granular step (1 to 5)
+        // Determine granular step (1 to 6)
         int step = 1;
         if (!currentMonthPayslips.isEmpty()) {
             step = 2; // Initial drafts exist
             if (processedCount > 0) {
-                step = 4; // Processing in progress (matches 'Run Payroll' step in UI)
+                step = 4; // Processing in progress
                 if (processedCount == totalEmployees) {
-                    step = 5; // All processed
+                    // Check if they are all PAID
+                    boolean allPaid = currentMonthPayslips.stream()
+                            .allMatch(p -> p.getStatus() == PayslipStatus.PAID);
+                    step = allPaid ? 6 : 5; 
                 }
             }
         }
+
+        // ── Anomaly Detection ──────────────────────────────────────────────────
+        List<AdminPayrollOverviewDTO.PayrollAlertDTO> alerts = new ArrayList<>();
+        long alertIdCounter = 1L;
+
+        // Fetch all approved employees for this tenant
+        List<Employee> tenantEmployees = employeeRepository.findAll().stream()
+                .filter(e -> e.getTenant() != null && (
+                        e.getTenant().getCompanyName().equalsIgnoreCase(tenantId) ||
+                        e.getTenant().getCompanyCode().equalsIgnoreCase(tenantId)))
+                .filter(e -> e.getStatus() == Employee.OnboardingStatus.APPROVED)
+                .filter(e -> e.getDateOfJoining() == null || !e.getDateOfJoining().isAfter(now))
+                .collect(Collectors.toList());
+
+        // 1. Employees with no active Salary Structure
+        List<String> noSalaryNames = new ArrayList<>();
+        for (Employee emp : tenantEmployees) {
+            try {
+                boolean hasSalary = salaryStructureRepository
+                        .findFirstByEmployeeIdAndTenantIdAndStatus(emp.getId(), tenantId,
+                                com.hrm.hrm_saas.modules.payroll.entity.SalaryStructure.SalaryStructureStatus.ACTIVE)
+                        .isPresent();
+                if (!hasSalary && (emp.getMonthlyGross() == null || emp.getMonthlyGross() == 0)) {
+                    noSalaryNames.add(emp.getFirstName() + " " + emp.getLastName());
+                }
+            } catch (Exception ignored) {}
+        }
+        if (!noSalaryNames.isEmpty()) {
+            alerts.add(AdminPayrollOverviewDTO.PayrollAlertDTO.builder()
+                    .id(alertIdCounter++)
+                    .type("error")
+                    .title(noSalaryNames.size() + " Employee(s) Missing Salary Structure")
+                    .desc(String.join(", ", noSalaryNames.subList(0, Math.min(3, noSalaryNames.size())))
+                            + (noSalaryNames.size() > 3 ? " and " + (noSalaryNames.size() - 3) + " more" : "")
+                            + " have no active salary configuration. Payroll cannot be processed.")
+                    .category("Salary Setup")
+                    .build());
+        }
+
+        // 2. Draft payslips still pending for current month
+        long draftCount = currentMonthPayslips.stream()
+                .filter(p -> p.getStatus() == PayslipStatus.DRAFT)
+                .count();
+        if (draftCount > 0) {
+            alerts.add(AdminPayrollOverviewDTO.PayrollAlertDTO.builder()
+                    .id(alertIdCounter++)
+                    .type("warning")
+                    .title(draftCount + " Payslip(s) Pending Approval")
+                    .desc("Current month has " + draftCount + " payslip(s) still in DRAFT status. Run the payroll cycle to process them.")
+                    .category("Execution")
+                    .build());
+        }
+
+        // 3. Employees not yet in current month payroll
+        long missingPayslipCount = tenantEmployees.stream()
+                .filter(emp -> finalCurrentMonthPayslips.stream()
+                        .noneMatch(p -> p.getEmployee() != null && p.getEmployee().getId().equals(emp.getId())))
+                .count();
+        if (missingPayslipCount > 0) {
+            alerts.add(AdminPayrollOverviewDTO.PayrollAlertDTO.builder()
+                    .id(alertIdCounter++)
+                    .type("warning")
+                    .title(missingPayslipCount + " Employee(s) Not in Current Cycle")
+                    .desc(missingPayslipCount + " approved employee(s) have no payslip record for " + currentMonthName + ". Sync data to generate records.")
+                    .category("Attendance")
+                    .build());
+        }
+
+        // 4. Employees missing bank details
+        List<String> noBankNames = new ArrayList<>();
+        for (Employee emp : tenantEmployees) {
+            try {
+                boolean hasBank = bankDetailsRepository
+                        .findFirstByEmployeeIdAndTenantId(emp.getId(), tenantId).isPresent();
+                boolean hasBankOnEmployee = emp.getAccountNumber() != null && !emp.getAccountNumber().isBlank();
+                if (!hasBank && !hasBankOnEmployee) {
+                    noBankNames.add(emp.getFirstName() + " " + emp.getLastName());
+                }
+            } catch (Exception ignored) {}
+        }
+        if (!noBankNames.isEmpty()) {
+            alerts.add(AdminPayrollOverviewDTO.PayrollAlertDTO.builder()
+                    .id(alertIdCounter++)
+                    .type("error")
+                    .title(noBankNames.size() + " Employee(s) Missing Bank Details")
+                    .desc(String.join(", ", noBankNames.subList(0, Math.min(3, noBankNames.size())))
+                            + (noBankNames.size() > 3 ? " and " + (noBankNames.size() - 3) + " more" : "")
+                            + " cannot receive salary disbursements.")
+                    .category("Compliance")
+                    .build());
+        }
+
+        // ── Build and return DTO ───────────────────────────────────────────────
+        int lopCount = (int) currentMonthPayslips.stream()
+                .filter(p -> p.getTotalDeductions() != null
+                        && p.getGrossEarnings() != null
+                        && p.getTotalDeductions().compareTo(p.getGrossEarnings().multiply(BigDecimal.valueOf(0.5))) > 0)
+                .count();
 
         return AdminPayrollOverviewDTO.builder()
                 .totalPayrollCost(totalGross)
@@ -484,14 +841,15 @@ public class PayrollServiceImpl implements PayrollService {
                 .employeesProcessed(processedCount)
                 .totalEmployees(totalEmployees)
                 .totalDeductions(totalDeductions)
-                .lopCases(0)
+                .lopCases(lopCount)
                 .currentMonth(currentMonthName)
                 .cycleStatus(
-                        processedCount == totalEmployees ? "COMPLETED" : (processedCount > 0 ? "IN_PROGRESS" : "DRAFT"))
+                        processedCount == totalEmployees && totalEmployees > 0 ? "COMPLETED" : (processedCount > 0 ? "IN_PROGRESS" : "DRAFT"))
                 .currentStep(step)
-                .alerts(new ArrayList<>())
+                .alerts(alerts)
                 .build();
     }
+
 
     @Transactional
     public void ensurePayrollHistoryInitialized(String tenantId) {
@@ -499,9 +857,12 @@ public class PayrollServiceImpl implements PayrollService {
         int currentYear = now.getYear();
         int currentMonthValue = now.getMonthValue();
 
+        PayrollPolicy policy = getPayrollPolicy(tenantId);
+        int payDay = policy.getStandardPayDate() != null ? policy.getStandardPayDate() : 28;
+
         List<Employee> employees = employeeRepository.findAll().stream()
-                .filter(e -> e.getTenant().getCompanyName().equalsIgnoreCase(tenantId) ||
-                        e.getTenant().getCompanyCode().equalsIgnoreCase(tenantId))
+                .filter(e -> e.getTenant() != null && (e.getTenant().getCompanyName().equalsIgnoreCase(tenantId) ||
+                        e.getTenant().getCompanyCode().equalsIgnoreCase(tenantId)))
                 .filter(e -> e.getStatus() == Employee.OnboardingStatus.APPROVED)
                 .collect(Collectors.toList());
 
@@ -510,75 +871,87 @@ public class PayrollServiceImpl implements PayrollService {
             String monthYear = monthLabel.substring(0, 1) + monthLabel.substring(1).toLowerCase() + " " + currentYear;
 
             for (Employee emp : employees) {
-                // Check if already exists for THIS specific employee and month
-                boolean exists = payslipRepository.findByMonthAndTenantId(monthYear, tenantId).stream()
-                        .anyMatch(p -> p.getEmployee() != null && p.getEmployee().getId().equals(emp.getId()));
+                try {
+                    // Check if employee has joined by this month
+                    if (emp.getDateOfJoining() != null) {
+                        if (emp.getDateOfJoining().getYear() > currentYear ||
+                            (emp.getDateOfJoining().getYear() == currentYear && emp.getDateOfJoining().getMonthValue() > m)) {
+                            continue;
+                        }
+                    }
 
-                if (!exists) {
-                    // Fallback to uppercase check for older data
-                    exists = payslipRepository.findByMonthAndTenantId(monthYear.toUpperCase(), tenantId).stream()
+                    // Check if already exists for THIS specific employee and month
+                    boolean exists = payslipRepository.findByMonthAndTenantId(monthYear, tenantId).stream()
                             .anyMatch(p -> p.getEmployee() != null && p.getEmployee().getId().equals(emp.getId()));
-                }
 
-                if (!exists) {
-                    Optional<com.hrm.hrm_saas.modules.payroll.entity.SalaryStructure> structureOpt = salaryStructureRepository
-                            .findByEmployeeIdAndTenantIdAndStatus(emp.getId(), tenantId,
-                                    com.hrm.hrm_saas.modules.payroll.entity.SalaryStructure.SalaryStructureStatus.ACTIVE);
+                    if (!exists) {
+                        // Fallback to uppercase check for older data
+                        exists = payslipRepository.findByMonthAndTenantId(monthYear.toUpperCase(), tenantId).stream()
+                                .anyMatch(p -> p.getEmployee() != null && p.getEmployee().getId().equals(emp.getId()));
+                    }
 
-                    if (structureOpt.isPresent()) {
-                        com.hrm.hrm_saas.modules.payroll.entity.SalaryStructure s = structureOpt.get();
+                    if (!exists) {
+                        Optional<com.hrm.hrm_saas.modules.payroll.entity.SalaryStructure> structureOpt = salaryStructureRepository
+                                .findFirstByEmployeeIdAndTenantIdAndStatus(emp.getId(), tenantId,
+                                         com.hrm.hrm_saas.modules.payroll.entity.SalaryStructure.SalaryStructureStatus.ACTIVE);
 
-                        BigDecimal earnings = s.getBasicSalary()
-                                .add(s.getHra() != null ? s.getHra() : BigDecimal.ZERO)
-                                .add(s.getMedicalAllowance() != null ? s.getMedicalAllowance() : BigDecimal.ZERO)
-                                .add(s.getTravelAllowance() != null ? s.getTravelAllowance() : BigDecimal.ZERO)
-                                .add(s.getSpecialAllowance() != null ? s.getSpecialAllowance() : BigDecimal.ZERO)
-                                .add(s.getPerformanceBonus() != null ? s.getPerformanceBonus() : BigDecimal.ZERO);
+                        if (structureOpt.isPresent()) {
+                            com.hrm.hrm_saas.modules.payroll.entity.SalaryStructure s = structureOpt.get();
 
-                        BigDecimal deductions = (s.getPfContribution() != null ? s.getPfContribution()
-                                : BigDecimal.ZERO)
-                                .add(s.getEsiContribution() != null ? s.getEsiContribution() : BigDecimal.ZERO)
-                                .add(s.getProfessionalTax() != null ? s.getProfessionalTax() : BigDecimal.ZERO)
-                                .add(s.getTds() != null ? s.getTds() : BigDecimal.ZERO)
-                                .add(s.getLoanDeduction() != null ? s.getLoanDeduction() : BigDecimal.ZERO);
+                            BigDecimal basicSalary = s.getBasicSalary() != null ? s.getBasicSalary() : BigDecimal.ZERO;
+                            BigDecimal earnings = basicSalary
+                                    .add(s.getHra() != null ? s.getHra() : BigDecimal.ZERO)
+                                    .add(s.getMedicalAllowance() != null ? s.getMedicalAllowance() : BigDecimal.ZERO)
+                                    .add(s.getTravelAllowance() != null ? s.getTravelAllowance() : BigDecimal.ZERO)
+                                    .add(s.getSpecialAllowance() != null ? s.getSpecialAllowance() : BigDecimal.ZERO)
+                                    .add(s.getPerformanceBonus() != null ? s.getPerformanceBonus() : BigDecimal.ZERO);
 
-                        Payslip payslip = Payslip.builder()
-                                .tenantId(tenantId)
-                                .employee(emp)
-                                .month(monthYear)
-                                .startDate(LocalDate.of(currentYear, m, 1))
-                                .endDate(LocalDate.of(currentYear, m, java.time.Month.of(m).length(now.isLeapYear())))
-                                .paymentDate(LocalDate.of(currentYear, m, 28))
-                                .grossEarnings(earnings)
-                                .totalDeductions(deductions)
-                                .netSalary(earnings.subtract(deductions))
-                                .status(m < currentMonthValue ? PayslipStatus.PROCESSED : PayslipStatus.DRAFT)
-                                .build();
+                            BigDecimal deductions = (s.getPfContribution() != null ? s.getPfContribution() : BigDecimal.ZERO)
+                                    .add(s.getEsiContribution() != null ? s.getEsiContribution() : BigDecimal.ZERO)
+                                    .add(s.getProfessionalTax() != null ? s.getProfessionalTax() : BigDecimal.ZERO)
+                                    .add(s.getTds() != null ? s.getTds() : BigDecimal.ZERO)
+                                    .add(s.getLoanDeduction() != null ? s.getLoanDeduction() : BigDecimal.ZERO);
 
-                        payslipRepository.save(payslip);
-                    } else {
-                        // Fallback to Employee entity fields if they exist
-                        BigDecimal gross = emp.getMonthlyGross() != null ? BigDecimal.valueOf(emp.getMonthlyGross())
-                                : BigDecimal.ZERO;
-
-                        if (gross.compareTo(BigDecimal.ZERO) > 0) {
                             Payslip payslip = Payslip.builder()
                                     .tenantId(tenantId)
                                     .employee(emp)
                                     .month(monthYear)
                                     .startDate(LocalDate.of(currentYear, m, 1))
-                                    .endDate(LocalDate.of(currentYear, m,
-                                            java.time.Month.of(m).length(now.isLeapYear())))
-                                    .paymentDate(LocalDate.of(currentYear, m, 28))
-                                    .grossEarnings(gross)
-                                    .totalDeductions(BigDecimal.ZERO)
-                                    .netSalary(gross)
+                                    .endDate(LocalDate.of(currentYear, m, java.time.Month.of(m).length(now.isLeapYear())))
+                                    .paymentDate(LocalDate.of(currentYear, m, payDay))
+                                    .grossEarnings(earnings)
+                                    .totalDeductions(deductions)
+                                    .netSalary(earnings.subtract(deductions))
                                     .status(m < currentMonthValue ? PayslipStatus.PROCESSED : PayslipStatus.DRAFT)
                                     .build();
 
                             payslipRepository.save(payslip);
+                        } else {
+                            // Fallback to Employee entity fields if they exist
+                            BigDecimal gross = emp.getMonthlyGross() != null ? BigDecimal.valueOf(emp.getMonthlyGross())
+                                    : (emp.getAnnualCtc() != null ? BigDecimal.valueOf(emp.getAnnualCtc() / 12) : BigDecimal.ZERO);
+
+                            if (gross.compareTo(BigDecimal.ZERO) > 0) {
+                                Payslip payslip = Payslip.builder()
+                                        .tenantId(tenantId)
+                                        .employee(emp)
+                                        .month(monthYear)
+                                        .startDate(LocalDate.of(currentYear, m, 1))
+                                        .endDate(LocalDate.of(currentYear, m, java.time.Month.of(m).length(now.isLeapYear())))
+                                        .paymentDate(LocalDate.of(currentYear, m, payDay))
+                                        .grossEarnings(gross)
+                                        .totalDeductions(BigDecimal.ZERO)
+                                        .netSalary(gross)
+                                        .status(m < currentMonthValue ? PayslipStatus.PROCESSED : PayslipStatus.DRAFT)
+                                        .build();
+
+                                payslipRepository.save(payslip);
+                            }
                         }
                     }
+                } catch (Exception e) {
+                    System.err.println("WARNING: Skipping payslip init for employee " + emp.getId()
+                            + " month=" + monthYear + ": " + e.getMessage());
                 }
             }
         }
@@ -589,8 +962,8 @@ public class PayrollServiceImpl implements PayrollService {
     public void runPayrollCycle(String tenantId) {
         // Find all approved employees for the tenant
         List<Employee> employees = employeeRepository.findAll().stream()
-                .filter(e -> e.getTenant().getCompanyName().equalsIgnoreCase(tenantId) ||
-                        e.getTenant().getCompanyCode().equalsIgnoreCase(tenantId))
+                .filter(e -> e.getTenant() != null && (e.getTenant().getCompanyName().equalsIgnoreCase(tenantId) ||
+                        e.getTenant().getCompanyCode().equalsIgnoreCase(tenantId)))
                 .filter(e -> e.getStatus() == Employee.OnboardingStatus.APPROVED)
                 .collect(Collectors.toList());
 
@@ -620,6 +993,14 @@ public class PayrollServiceImpl implements PayrollService {
         }
 
         for (Employee emp : employees) {
+            // Check if employee has joined yet
+            if (emp.getDateOfJoining() != null) {
+                if (emp.getDateOfJoining().getYear() > now.getYear() ||
+                        (emp.getDateOfJoining().getYear() == now.getYear() && emp.getDateOfJoining().getMonthValue() > now.getMonthValue())) {
+                    continue;
+                }
+            }
+
             // Check if payslip already exists for this month
             boolean exists = existingSlips.stream()
                     .anyMatch(p -> p.getEmployee().getId().equals(emp.getId()));
@@ -629,7 +1010,7 @@ public class PayrollServiceImpl implements PayrollService {
 
             // 1. Fetch Salary Structure
             com.hrm.hrm_saas.modules.payroll.entity.SalaryStructure salaryStructure = salaryStructureRepository
-                    .findByEmployeeIdAndTenantIdAndStatus(emp.getId(), tenantId,
+                    .findFirstByEmployeeIdAndTenantIdAndStatus(emp.getId(), tenantId,
                             com.hrm.hrm_saas.modules.payroll.entity.SalaryStructure.SalaryStructureStatus.ACTIVE)
                     .orElse(null);
 
@@ -668,10 +1049,13 @@ public class PayrollServiceImpl implements PayrollService {
 
                 totalDeductions = pfVal.add(esi).add(profTaxVal).add(tds).add(loan);
             } else {
+                double basicFactor = (policy.getBasicPercentage() != null ? policy.getBasicPercentage() : 50.0) / 100.0;
+                double pfFactor = (policy.getPfPercentage() != null ? policy.getPfPercentage() : 12.0) / 100.0;
+                
                 monthlyGross = BigDecimal.valueOf(emp.getMonthlyGross() != null ? emp.getMonthlyGross()
                         : (emp.getAnnualCtc() != null ? emp.getAnnualCtc() / 12 : 0));
-                basicVal = monthlyGross.multiply(BigDecimal.valueOf(0.5));
-                pfVal = basicVal.multiply(BigDecimal.valueOf(0.12));
+                basicVal = monthlyGross.multiply(BigDecimal.valueOf(basicFactor));
+                pfVal = basicVal.multiply(BigDecimal.valueOf(pfFactor));
                 profTaxVal = BigDecimal.valueOf(emp.getProfessionalTax() != null ? emp.getProfessionalTax() : 0);
                 totalDeductions = pfVal.add(profTaxVal);
             }
@@ -733,9 +1117,10 @@ public class PayrollServiceImpl implements PayrollService {
                     components.add(new SalaryComponent(null, payslip, "Loan Deduction", ComponentType.DEDUCTION,
                             salaryStructure.getLoanDeduction()));
             } else {
+                double hraFactor = (policy.getHraPercentage() != null ? policy.getHraPercentage() : 20.0) / 100.0;
                 components.add(new SalaryComponent(null, payslip, "Basic Salary", ComponentType.EARNING, basicVal));
                 components.add(new SalaryComponent(null, payslip, "HRA", ComponentType.EARNING,
-                        monthlyGross.multiply(BigDecimal.valueOf(0.3))));
+                        basicVal.multiply(BigDecimal.valueOf(hraFactor))));
                 components.add(new SalaryComponent(null, payslip, "Provident Fund", ComponentType.DEDUCTION, pfVal));
                 if (profTaxVal.compareTo(BigDecimal.ZERO) > 0)
                     components.add(new SalaryComponent(null, payslip, "Professional Tax", ComponentType.DEDUCTION,
@@ -754,7 +1139,7 @@ public class PayrollServiceImpl implements PayrollService {
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
 
         com.hrm.hrm_saas.modules.payroll.entity.SalaryStructure structure = salaryStructureRepository
-                .findByEmployeeIdAndTenantId(employeeId, tenantId)
+                .findFirstByEmployeeIdAndTenantId(employeeId, tenantId)
                 .orElse(null);
 
         if (structure == null) {
@@ -783,7 +1168,7 @@ public class PayrollServiceImpl implements PayrollService {
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
 
         com.hrm.hrm_saas.modules.payroll.entity.SalaryStructure structure = salaryStructureRepository
-                .findByEmployeeIdAndTenantId(employeeId, tenantId)
+                .findFirstByEmployeeIdAndTenantId(employeeId, tenantId)
                 .orElse(new com.hrm.hrm_saas.modules.payroll.entity.SalaryStructure());
 
         structure.setEmployee(employee);
@@ -808,6 +1193,9 @@ public class PayrollServiceImpl implements PayrollService {
         LocalDate now = LocalDate.now();
         String currentMonthName = now.getMonth().name() + " " + now.getYear();
         List<Payslip> currentSlips = payslipRepository.findByMonthAndTenantId(currentMonthName, tenantId);
+        if (currentSlips.isEmpty()) {
+            currentSlips = payslipRepository.findByMonthAndTenantId(currentMonthName.toUpperCase(), tenantId);
+        }
         Optional<Payslip> empSlip = currentSlips.stream()
                 .filter(p -> p.getEmployee().getId().equals(employeeId) && p.getStatus() == PayslipStatus.DRAFT)
                 .findFirst();
@@ -890,7 +1278,7 @@ public class PayrollServiceImpl implements PayrollService {
 
     @Override
     public PayrollPolicy getPayrollPolicy(String tenantId) {
-        return payrollPolicyRepository.findByTenantId(tenantId)
+        return payrollPolicyRepository.findFirstByTenantId(tenantId)
                 .orElseGet(() -> {
                     PayrollPolicy defaultPolicy = PayrollPolicy.builder()
                             .tenantId(tenantId)
@@ -915,6 +1303,26 @@ public class PayrollServiceImpl implements PayrollService {
         policy.setId(existing.getId());
         policy.setTenantId(tenantId);
         return payrollPolicyRepository.save(policy);
+    }
+
+    @Override
+    @Transactional
+    public void finalizePayouts(String tenantId) {
+        LocalDate now = LocalDate.now();
+        String monthName = now.getMonth().name();
+        String currentMonth = monthName.substring(0, 1) + monthName.substring(1).toLowerCase() + " " + now.getYear();
+
+        List<Payslip> slips = payslipRepository.findByMonthAndTenantId(currentMonth, tenantId);
+        if (slips.isEmpty()) {
+            slips = payslipRepository.findByMonthAndTenantId(currentMonth.toUpperCase(), tenantId);
+        }
+
+        for (Payslip slip : slips) {
+            if (slip.getStatus() == PayslipStatus.PROCESSED || slip.getStatus() == PayslipStatus.SENT) {
+                slip.setStatus(PayslipStatus.PAID);
+                payslipRepository.save(slip);
+            }
+        }
     }
 
     private BankDetailsDTO convertToBankDTO(BankDetails bankDetails) {

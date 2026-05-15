@@ -10,11 +10,11 @@ import java.util.Optional;
 @Repository
 public interface SalaryStructureRepository extends JpaRepository<SalaryStructure, Long> {
     
-    Optional<SalaryStructure> findByEmployeeIdAndTenantId(Long employeeId, String tenantId);
+    Optional<SalaryStructure> findFirstByEmployeeIdAndTenantId(Long employeeId, String tenantId);
     
     List<SalaryStructure> findByTenantId(String tenantId);
     
-    Optional<SalaryStructure> findByEmployeeIdAndTenantIdAndStatus(Long employeeId, String tenantId, SalaryStructure.SalaryStructureStatus status);
+    Optional<SalaryStructure> findFirstByEmployeeIdAndTenantIdAndStatus(Long employeeId, String tenantId, SalaryStructure.SalaryStructureStatus status);
     
     List<SalaryStructure> findByTenantIdAndStatus(String tenantId, SalaryStructure.SalaryStructureStatus status);
 }

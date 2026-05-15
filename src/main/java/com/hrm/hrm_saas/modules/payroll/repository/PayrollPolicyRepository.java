@@ -7,5 +7,5 @@ import java.util.Optional;
 
 @Repository
 public interface PayrollPolicyRepository extends JpaRepository<PayrollPolicy, Long> {
-    Optional<PayrollPolicy> findByTenantId(String tenantId);
+    Optional<PayrollPolicy> findFirstByTenantId(String tenantId);
 }

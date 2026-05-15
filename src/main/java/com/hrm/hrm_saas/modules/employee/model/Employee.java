@@ -84,21 +84,27 @@ public class Employee {
     private String department;
 
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
     private List<Payslip> payslips;
 
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
     private List<LeaveRequest> leaveRequests;
 
     @OneToOne(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
     private SalaryStructure salaryStructure;
 
     @OneToOne(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
     private BankDetails bankDetails;
 
     @OneToMany(mappedBy = "assignedTo", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
     private List<Task> assignedTasks;
 
     @OneToMany(mappedBy = "assignedBy", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
     private List<Task> createdTasks;
 
     @ManyToOne

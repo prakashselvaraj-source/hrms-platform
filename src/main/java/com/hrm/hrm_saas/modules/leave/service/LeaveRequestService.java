@@ -57,7 +57,7 @@ public class LeaveRequestService {
                         fileName = attachment.getOriginalFilename();
                 }
 
-                System.out.println("employee123 " + employee);
+                System.out.println("Processing leave request for employee: " + employee.getFirstName() + " " + employee.getLastName());
                 String leaveTypeId = dto.getLeaveType();
                 System.out.println("leaveTypeId received: " + leaveTypeId + ", tenantId: " + tenantId);
 
@@ -115,8 +115,7 @@ public class LeaveRequestService {
                 // Update DTO with actual ID for downstream logic (engine, etc)
                 dto.setLeaveType(policy.getLeaveType().getId());
 
-                System.out.println("policy" + policy);
-                System.out.println("dto" + dto);
+                System.out.println("policy found: " + policy.getName());
 
                 System.out.println("Checking Policy Configuration for: " + policy.getName());
 
@@ -275,7 +274,7 @@ public class LeaveRequestService {
                                 .attachment(fileName)
                                 .build();
 
-                System.out.println("leaveRequest " + leaveRequest);
+                System.out.println("Saving leave request for " + leaveRequest.getLeaveType());
 
                 leaveRequestRepository.save(leaveRequest);
 
@@ -356,6 +355,7 @@ public class LeaveRequestService {
                                         Map<String, Object> accrualMap = policy.getAccrualRules();
 
                                         return LeaveSummaryItemDto.builder()
+                                                        .id(policy.getLeaveType().getId())
                                                         .leaveType(type)
                                                         .count(summaryMap.getOrDefault(policy.getId().toLowerCase(),
                                                                         0L))

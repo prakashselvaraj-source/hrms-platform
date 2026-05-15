@@ -21,6 +21,7 @@ public class Tenant {
     @Column(unique = true)
     private String companyCode;
 
+    @Builder.Default
     private boolean setupComplete = false;
 
     // Organization Details

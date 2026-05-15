@@ -89,7 +89,7 @@ public class EmployeeService {
             throw new DuplicateEmailException("Email already in use for this tenant: " + dto.getWorkEmail());
         }
 
-        Role role = roleRepository.findByNameAndTenantId(dto.getRole(), tenant.getCompanyName())
+        Role role = roleRepository.findFirstByNameAndTenantId(dto.getRole(), tenant.getCompanyName())
                 .orElseThrow(() -> new RoleNotFoundException("Role not found with name: " + dto.getRole()));
 
         Employee employee = toEntity(dto);
@@ -120,7 +120,7 @@ public class EmployeeService {
         }
 
         if (dto.getRole() != null) {
-            Role role = roleRepository.findByNameAndTenantId(dto.getRole(), tenant.getCompanyName())
+            Role role = roleRepository.findFirstByNameAndTenantId(dto.getRole(), tenant.getCompanyName())
                     .orElseThrow(() -> new RoleNotFoundException("Role not found with name: " + dto.getRole()));
             existing.setRole(role);
         }

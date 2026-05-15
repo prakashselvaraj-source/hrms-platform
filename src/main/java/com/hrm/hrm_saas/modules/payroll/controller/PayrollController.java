@@ -102,6 +102,24 @@ public class PayrollController {
         return ResponseEntity.ok("Payroll cycle executed successfully for all employees.");
     }
 
+    @PostMapping("/admin/finalize-payouts")
+    public ResponseEntity<String> finalizePayouts(
+            @RequestHeader("X-Tenant-Id") String tenantId) {
+        payrollService.finalizePayouts(tenantId);
+        return ResponseEntity.ok("Payouts finalized and marked as PAID.");
+    }
+
+    @PostMapping("/admin/seed-all")
+    public ResponseEntity<String> adminSeedAll(
+            @RequestHeader("X-Tenant-Id") String tenantId) {
+        try {
+            payrollService.seedAllEmployeesData(tenantId);
+            return ResponseEntity.ok("Simulation data generated for all employees in tenant: " + tenantId);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Seed failed: " + e.getMessage());
+        }
+    }
+
     @GetMapping("/admin/policy")
     public ResponseEntity<PayrollPolicy> getPayrollPolicy(
             @RequestHeader("X-Tenant-Id") String tenantId) {

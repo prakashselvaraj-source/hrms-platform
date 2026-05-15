@@ -8,5 +8,5 @@ import com.hrm.hrm_saas.modules.role.model.Role;
 public interface RoleRepository extends JpaRepository<Role, Long> {
 
     List<Role> findByTenantId(String tenantId);
-    java.util.Optional<Role> findByNameAndTenantId(String name, String tenantId);
+    java.util.Optional<Role> findFirstByNameAndTenantId(String name, String tenantId);
 }

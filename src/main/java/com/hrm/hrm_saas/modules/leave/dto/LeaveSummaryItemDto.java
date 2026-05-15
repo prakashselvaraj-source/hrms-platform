@@ -9,6 +9,7 @@ import lombok.Data;
 @Builder
 public class LeaveSummaryItemDto {
 
+    private String id;
     private String leaveType;
     private Long count;
     private Map<String, Object> accrual;

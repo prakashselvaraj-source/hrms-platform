@@ -16,6 +16,8 @@ public interface PayrollService {
     Object getSalaryStructure(String tenantId, String email);
     byte[] downloadPayslip(String tenantId, String payslipId);
     void seedData(String tenantId, String email);
+    void seedAllEmployeesData(String tenantId);
+
     
     // Admin methods
     AdminPayrollOverviewDTO getAdminOverview(String tenantId);
@@ -23,6 +25,7 @@ public interface PayrollService {
     PayrollPolicy getPayrollPolicy(String tenantId);
     PayrollPolicy updatePayrollPolicy(String tenantId, PayrollPolicy policy);
     com.hrm.hrm_saas.modules.payroll.dto.PayrollHistoryResponseDTO getPayrollHistory(String tenantId, int page, int size, String year);
+    void finalizePayouts(String tenantId);
 
     // Salary Structure Methods
     com.hrm.hrm_saas.modules.payroll.dto.SalaryStructureDTO getEmployeeSalaryStructure(Long employeeId, String tenantId);
