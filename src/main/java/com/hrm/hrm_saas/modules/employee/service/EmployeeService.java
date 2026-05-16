@@ -3,6 +3,7 @@ package com.hrm.hrm_saas.modules.employee.service;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.hrm.hrm_saas.common.service.EmailService;
 import com.hrm.hrm_saas.modules.employee.model.Employee;
@@ -13,6 +14,7 @@ import com.hrm.hrm_saas.modules.user.repository.UserRepository;
 import com.hrm.hrm_saas.modules.exception.DuplicateEmailException;
 import com.hrm.hrm_saas.modules.exception.EmployeeNotFoundException;
 import com.hrm.hrm_saas.modules.user.entity.User;
+import com.hrm.hrm_saas.modules.user.enums.UserRole;
 import com.hrm.hrm_saas.modules.tenant.entity.Tenant;
 import com.hrm.hrm_saas.modules.tenant.repository.TenantRepository;
 import com.hrm.hrm_saas.modules.role.model.Role;
@@ -40,22 +42,27 @@ public class EmployeeService {
     private final TenantRepository tenantRepository;
     private final RoleRepository roleRepository;
     private final DepartmentRepository departmentRepository;
+    private final PasswordEncoder passwordEncoder;
 
     private Tenant getTenant(String companyName) {
         return tenantRepository.findByCompanyName(companyName)
                 .orElseThrow(() -> new TenantNotFoundException("Tenant not found with code: " + companyName));
     }
 
-    public EmployeePageResponse getAllEmployees(String tenantId, OnboardingStatus status, String departmentId, String search, Pageable pageable) {
-        System.out.println("DEBUG: getAllEmployees - tenantId=" + tenantId + ", status=" + status + ", departmentId=" + departmentId + ", search=" + search);
-        
+    public EmployeePageResponse getAllEmployees(String tenantId, OnboardingStatus status, String departmentId,
+            String search, Pageable pageable) {
+        System.out.println("DEBUG: getAllEmployees - tenantId=" + tenantId + ", status=" + status + ", departmentId="
+                + departmentId + ", search=" + search);
+
         Tenant tenant = getTenant(tenantId);
         String departmentName = null;
         String departmentCode = null;
 
         // Clean up empty strings
-        if (departmentId != null && departmentId.trim().isEmpty()) departmentId = null;
-        if (search != null && search.trim().isEmpty()) search = null;
+        if (departmentId != null && departmentId.trim().isEmpty())
+            departmentId = null;
+        if (search != null && search.trim().isEmpty())
+            search = null;
 
         if (departmentId != null) {
             Department dept = departmentRepository.findById(departmentId).orElse(null);
@@ -84,27 +91,60 @@ public class EmployeeService {
     }
 
     public EmployeeDTO createEmployee(EmployeeDTO dto, String tenantId) {
+
         Tenant tenant = getTenant(tenantId);
-        if (dto.getWorkEmail() != null && repository.existsByWorkEmailAndTenant(dto.getWorkEmail(), tenant)) {
-            throw new DuplicateEmailException("Email already in use for this tenant: " + dto.getWorkEmail());
+
+        if (dto.getWorkEmail() != null &&
+                repository.existsByWorkEmailAndTenant(dto.getWorkEmail(), tenant)) {
+
+            throw new DuplicateEmailException(
+                    "Email already in use for this tenant: " + dto.getWorkEmail());
         }
 
-        Role role = roleRepository.findFirstByNameAndTenantId(dto.getRole(), tenant.getCompanyName())
-                .orElseThrow(() -> new RoleNotFoundException("Role not found with name: " + dto.getRole()));
+        Role role = roleRepository
+                .findFirstByNameAndTenantId(dto.getRole(), tenant.getCompanyName())
+                .orElseThrow(() -> new RoleNotFoundException(
+                        "Role not found with name: " + dto.getRole()));
 
         Employee employee = toEntity(dto);
+
         employee.setTenant(tenant);
         employee.setRole(role);
 
-        String url = "http://localhost:3000/" + tenantId + "/employee/register?email=" + dto.getWorkEmail() + "&name="
-                + dto.getFirstName() + " " + dto.getLastName();
+        Employee savedEmployee = repository.save(employee);
+
+        // CREATE USER ACCOUNT
+        User user = new User();
+
+        user.setEmail(dto.getWorkEmail());
+        user.setName(dto.getFirstName() + " " + dto.getLastName());
+
+        // temporary password
+        user.setPassword(passwordEncoder.encode("Temp@123"));
+
+        user.setTenant(tenant);
+
+        // IMPORTANT
+        user.setRole(UserRole.EMPLOYEE);
+
+        userRepository.save(user);
+
+        String url = "http://localhost:3000/"
+                + tenantId
+                + "/employee/register?email="
+                + dto.getWorkEmail()
+                + "&name="
+                + dto.getFirstName()
+                + " "
+                + dto.getLastName();
+
         emailService.sendEmail(
                 dto.getWorkEmail(),
                 "Welcome to Our platform",
                 "Register your account by set the password, link the following will redirect to the register page "
                         + url);
 
-        return toDTO(repository.save(employee));
+        return toDTO(savedEmployee);
     }
 
     public EmployeeDTO updateEmployee(Long id, EmployeeDTO dto, String tenantId) {
@@ -135,8 +175,6 @@ public class EmployeeService {
                 .orElseThrow(() -> new EmployeeNotFoundException("Employee not found with id: " + id));
         repository.delete(existing);
     }
-
-
 
     public EmployeeProfileDTO getEmployeeProfile(String mail, String tenantId) {
         Tenant tenant = getTenant(tenantId);

@@ -1,6 +1,7 @@
 package com.hrm.hrm_saas.common.config;
 
 import com.hrm.hrm_saas.common.security.JwtFilter;
+import com.hrm.hrm_saas.common.security.UserActivityFilter;
 import com.hrm.hrm_saas.common.tenant.TenantFilter;
 import java.util.List;
 
@@ -10,8 +11,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -24,10 +23,12 @@ public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
     private final TenantFilter tenantFilter;
+    private final UserActivityFilter userActivityFilter;
 
-    SecurityConfig(TenantFilter tenantFilter, JwtFilter jwtFilter) {
+    SecurityConfig(TenantFilter tenantFilter, JwtFilter jwtFilter, UserActivityFilter userActivityFilter) {
         this.tenantFilter = tenantFilter;
         this.jwtFilter = jwtFilter;
+        this.userActivityFilter = userActivityFilter;
     }
 
     @Bean
@@ -49,6 +50,8 @@ public class SecurityConfig {
                 // Both filters must run BEFORE Spring Security checks authentication
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(tenantFilter, JwtFilter.class);
+
+        http.addFilterAfter(userActivityFilter, JwtFilter.class);
 
         return http.build();
     }
@@ -75,9 +78,5 @@ public class SecurityConfig {
         return source;
     }
 
-    // ✅ PASSWORD ENCODER
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+
 }

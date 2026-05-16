@@ -10,6 +10,7 @@ import com.hrm.hrm_saas.modules.auth.dto.LoginResponse;
 import com.hrm.hrm_saas.modules.tenant.entity.Tenant;
 import com.hrm.hrm_saas.modules.tenant.repository.TenantRepository;
 import com.hrm.hrm_saas.modules.user.entity.User;
+import com.hrm.hrm_saas.modules.user.enums.UserRole;
 import com.hrm.hrm_saas.modules.user.repository.UserRepository;
 import com.hrm.hrm_saas.common.security.JwtUtil;
 
@@ -95,9 +96,7 @@ public class AuthService {
 
         if (subdomain == null || subdomain.isEmpty()) {
             subdomain = request.getCompanyName()
-                    .toLowerCase()
-                    .replaceAll(" ", "")
-                    .replaceAll("[^a-z0-9]", "");
+                    .replaceAll(" ", "");
         }
 
         if (tenantRepository.findByCompanyCode(subdomain).isPresent()) {
@@ -115,7 +114,7 @@ public class AuthService {
                 .name(request.getAdminName())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .role("ADMIN")
+                .role(UserRole.ADMIN)
                 .tenant(tenant)
                 .build();
 
@@ -157,13 +156,13 @@ public class AuthService {
             throw new RuntimeException("Invalid credentials");
         }
 
-        String tenantCode = user.getTenant().getCompanyCode();
-
-        String token = JwtUtil.generateToken(user.getEmail(), tenantCode, user.getRole());
-
+        String tenantCode = user.getTenant() != null ? user.getTenant().getCompanyCode() : "";
+        String roleName = user.getRole() != null ? user.getRole().name() : "USER";
+        String token = JwtUtil.generateToken(user.getEmail(), tenantCode, roleName);
+        
         return LoginResponse.builder()
                 .token(token)
-                .role(user.getRole())
+                .role(roleName)
                 .message("Login successful")
                 .build();
     }

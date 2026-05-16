@@ -15,9 +15,10 @@ public class DesignMemberResponse {
 
     private String name;
 
-    private String role;
+    private String designation;
 
-    private Boolean online;
+    @com.fasterxml.jackson.annotation.JsonProperty("isOnline")
+    private Boolean isOnline;
 
     private String avatarColor;
 

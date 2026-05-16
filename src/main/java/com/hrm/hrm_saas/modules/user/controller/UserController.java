@@ -39,7 +39,7 @@ public class UserController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<User> getMyDetails(@RequestAttribute String email) {
+    public ResponseEntity<com.hrm.hrm_saas.modules.user.dto.UserResponse> getMyDetails(@RequestAttribute String email) {
         return ResponseEntity.ok(userService.findByEmail(email));
     }
 }

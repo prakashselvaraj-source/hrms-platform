@@ -12,6 +12,8 @@ import lombok.*;
 @Builder
 public class Role {
 
+    public static final String ADMIN = null;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -25,7 +27,6 @@ public class Role {
     @Column(nullable = false)
     private String tenantId;
 
-    
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private AccessLevel accessLevel;
@@ -36,5 +37,5 @@ public class Role {
         MID,
         LOW
     }
-    
+
 }

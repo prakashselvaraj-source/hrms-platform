@@ -1,6 +1,7 @@
 package com.hrm.hrm_saas.modules.user.entity;
 
 import com.hrm.hrm_saas.modules.tenant.entity.Tenant;
+import com.hrm.hrm_saas.modules.user.enums.UserRole;
 
 import java.time.LocalDateTime;
 
@@ -24,10 +25,17 @@ public class User {
     private String email;
     private String password;
 
-    private String role; // SUPER_ADMIN,ADMIN, EMPLOYEE
+    @Enumerated(EnumType.STRING)
+    private UserRole role;
 
     private String resetToken;
     private LocalDateTime resetTokenExpiry;
+
+    @Column(name = "last_seen", nullable = true)
+    private LocalDateTime lastSeen;
+
+    @Column(name = "is_online", nullable = true)
+    private Boolean isOnline;
 
     @ManyToOne
     @JoinColumn(name = "tenant_id")

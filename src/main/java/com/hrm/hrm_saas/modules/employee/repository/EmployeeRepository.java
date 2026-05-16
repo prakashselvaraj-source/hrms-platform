@@ -75,4 +75,13 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
     long countByTenant_CompanyName(String companyName);
 
+    @Query("SELECT e FROM Employee e WHERE LOWER(e.tenant.companyName) = LOWER(:companyName) " +
+           "AND (LOWER(CONCAT(e.firstName, ' ', e.lastName)) = LOWER(:fullName) " +
+           "OR (LOWER(e.firstName) = LOWER(:firstName) AND LOWER(e.lastName) = LOWER(:lastName)))")
+    List<Employee> findManagerByName(
+            @Param("companyName") String companyName,
+            @Param("firstName") String firstName,
+            @Param("lastName") String lastName,
+            @Param("fullName") String fullName);
+
 }

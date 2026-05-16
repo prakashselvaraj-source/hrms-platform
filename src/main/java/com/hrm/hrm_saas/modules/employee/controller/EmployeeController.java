@@ -45,6 +45,7 @@ public class EmployeeController {
             HttpServletRequest request) {
 
         String tokenTenantId = (String) request.getAttribute("tenantId");
+        System.out.println("TokenTenantId" + tokenTenantId);
         if (tokenTenantId == null || !tokenTenantId.equals(tenantId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
@@ -126,7 +127,7 @@ public class EmployeeController {
         }
 
         String mail = (String) request.getAttribute("email");
-        
+
         System.out.println(mail);
         return ResponseEntity.ok(service.getEmployeeProfile(mail, tenantId));
     }

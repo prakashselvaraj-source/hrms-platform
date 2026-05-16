@@ -11,6 +11,7 @@ import com.hrm.hrm_saas.modules.user.entity.User;
 public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findFirstByEmail(String email);
+    Optional<User> findFirstByEmailIgnoreCase(String email);
 
     Optional<User> findByEmailAndTenant(String email, Tenant tenant);
 
