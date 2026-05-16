@@ -1,88 +1,76 @@
+import { motion } from 'framer-motion';
 import { useTenant } from '@/hooks/useTenant';
 import { getDesignMember } from '@/services/user/overviewService';
-import React, { useEffect, useState } from 'react'
-function SideCard({ children }) {
+import React, { useEffect, useState } from 'react';
+import { Users, MoreHorizontal } from 'lucide-react';
+
+function SideCard({ children, title, action }) {
     return (
-        <div className="rounded-2xl p-5 flex-shrink-0"
-            style={{
-                background: "var(--surface-card)",
-                border: "1px solid var(--border-default)",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)",
-            }}>
-            {children}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="text-[12px] font-bold text-slate-500 uppercase tracking-wider">{title}</h3>
+                {action && action}
+            </div>
+            <div className="p-2">
+                {children}
+            </div>
         </div>
     );
 }
-
-function Avatar({ name, color, size = 36 }) {
-    const initials = name.split(" ").map((n) => n[0]).join("").slice(0, 2);
-    return (
-        <div style={{ width: size, height: size, background: color, flexShrink: 0 }}
-            className="rounded-full flex items-center justify-center text-white font-bold text-xs">
-            {initials}
-        </div>
-    );
-}
-
 
 function DesignMember() {
-
-
     const [designMember, setDesignMember] = useState([]);
     const tenantId = useTenant();
 
     useEffect(() => {
         const fetchDesignMember = async () => {
             if (!tenantId) return;
-            const res = await getDesignMember(tenantId);
-            setDesignMember(res);
+            try {
+                console.log("SetDesignMember");
 
-            console.log("designMemer", res);
+                const res = await getDesignMember(tenantId);
+                setDesignMember(res || []);
+                console.log("SetDesignMember", res);
+
+            } catch (error) {
+                console.error(error);
+            }
         }
         fetchDesignMember();
     }, [tenantId]);
+
     return (
-        <div>
-            <SideCard>
-                <div className="flex items-center justify-between mb-4">
-                    <div>
-                        <h4 className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>Design Members</h4>
-                        <p className="text-[10px] uppercase tracking-widest font-semibold mt-0.5" style={{ color: "var(--text-muted)" }}>
-                            Your Core Team
-                        </p>
-                    </div>
-                    <button className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg"
-                        style={{ background: "var(--surface-muted)", color: "var(--brand-primary)" }}>
-                        See All
-                    </button>
-                </div>
-
-                <div className="space-y-3">
-                    {designMember.map((m) => (
-                        <div key={m.name} className="flex items-center gap-3 p-2.5 rounded-xl transition-colors hover:bg-opacity-60"
-                            style={{ background: "var(--surface-muted)" }}>
-                            <div className="relative flex-shrink-0">
-                                <Avatar name={m.name} color={m.avatarColor} size={34} />
-                                <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 ${m.online ? "bg-green-400" : "bg-gray-300"}`}
-                                    style={{ borderColor: "var(--surface-muted)" }} />
+        <SideCard
+            title="Design Team"
+            action={<button className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700">View All</button>}
+        >
+            <div className="flex flex-col">
+                {designMember.map((m, idx) => (
+                    <div
+                        key={m.employeeId || idx}
+                        className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 transition-all group"
+                    >
+                        <div className="relative">
+                            <div className="w-10 h-10 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs uppercase">
+                                {m.name.split(" ").map(n => n[0]).join("")}
                             </div>
-                            <div className="min-w-0 flex-1">
-                                <p className="text-xs font-semibold truncate" style={{ color: "var(--text-primary)" }}>{m.name}</p>
-                                <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>{m.role}</p>
-                            </div>
-                            <div className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                                style={{ backgroundColor: m.online ? "#4ade80" : "var(--border-default)" }} />
+                            <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white ${m.online ? "bg-emerald-500" : "bg-slate-300"}`} />
                         </div>
-                    ))}
-                </div>
-
-                <button className="mt-4 w-full text-xs font-semibold py-2.5 rounded-xl border transition-all"
-                    style={{ background: "transparent", borderColor: "var(--border-default)", color: "var(--text-secondary)" }}>
-                    Request Collaboration
-                </button>
-            </SideCard>
-        </div>
-    )
+                        <div className="flex-1 min-w-0">
+                            <p className="text-[13px] font-semibold text-slate-900 truncate">{m.name}</p>
+                            <p className="text-[11px] font-medium text-slate-400">{m.role}</p>
+                        </div>
+                        <button className="p-1.5 rounded-md text-slate-300 hover:text-slate-600 hover:bg-slate-200 transition-all">
+                            <MoreHorizontal size={14} />
+                        </button>
+                    </div>
+                ))}
+            </div>
+            <button className="w-full mt-2 py-2 text-[12px] font-semibold text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all border border-transparent hover:border-indigo-100">
+                Collaborate with Team
+            </button>
+        </SideCard>
+    );
 }
 
-export default DesignMember
+export default DesignMember;

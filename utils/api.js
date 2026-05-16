@@ -17,7 +17,7 @@ API.interceptors.request.use((config) => {
     // URL pattern: http://localhost:3000/[tenant]/...
     const pathname = window.location.pathname;
     const pathParts = pathname.split('/').filter(Boolean);
-    
+
     // Usually the first part of the path is the tenant (e.g., /yellow/dashboard)
     if (pathParts.length > 0) {
       const tenantId = pathParts[0];
@@ -30,18 +30,5 @@ API.interceptors.request.use((config) => {
   return config;
 });
 
-// ✅ Response interceptor
-API.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401 || error.response?.status === 403) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("role");
-      localStorage.removeItem("userEmail");
-      window.location.href = "/login";
-    }
-    return Promise.reject(error);
-  }
-);
 
 export default API;

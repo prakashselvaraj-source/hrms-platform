@@ -1,3 +1,4 @@
+"use client";
 import { useTenant } from "@/hooks/useTenant";
 import { getAttendanceReport } from "@/services/user/overviewService";
 import React, { useEffect, useState } from "react";
@@ -7,43 +8,45 @@ import {
     User2,
     TimerReset,
     BadgeCheck,
+    Search,
+    Filter,
+    ArrowUpRight,
+    MoreHorizontal,
+    Download,
+    BarChart2
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 function AttendenceReport() {
-
     const [reportData, setReportData] = useState([]);
     const [loading, setLoading] = useState(true);
-
     const tenantId = useTenant();
 
     useEffect(() => {
-
         const fetchAttendenceReport = async () => {
+            if (!tenantId) return;
             try {
                 const res = await getAttendanceReport(tenantId);
-                setReportData(res);
+                setReportData(res || []);
             } catch (error) {
-                console.log(error);
+                console.error(error);
             } finally {
                 setLoading(false);
             }
         };
-
         fetchAttendenceReport();
-
     }, [tenantId]);
 
     const formatDate = (date) => {
         return new Date(date).toLocaleDateString("en-US", {
-            year: "numeric",
             month: "short",
             day: "numeric",
+            year: "numeric"
         });
     };
 
     const formatTime = (time) => {
         if (!time) return "--";
-
         return new Date(time).toLocaleTimeString("en-US", {
             hour: "2-digit",
             minute: "2-digit",
@@ -52,299 +55,101 @@ function AttendenceReport() {
     };
 
     return (
-        <div
-            className="rounded-3xl  overflow-hidden"
-            style={{
-                background: "var(--card-bg)",
-                borderColor: "var(--border-color)",
-            }}
-        >
-
-            {/* HEADER */}
-
-            <div
-                className="flex items-center justify-between px-6 py-5 "
-                style={{
-                    borderColor: "var(--border-color)",
-                }}
-            >
-
-                <div>
-                    <h2
-                        className="text-xl font-bold"
-                        style={{ color: "var(--text-primary)" }}
-                    >
-                        Attendance Report
-                    </h2>
-
-                    <p
-                        className="text-sm mt-1"
-                        style={{ color: "var(--text-muted)" }}
-                    >
-                        Employee daily attendance overview
-                    </p>
+        <div className="flex flex-col bg-white">
+            {/* Header / Toolbar */}
+            <div className="px-6 py-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600">
+                        <BarChart2 size={18} />
+                    </div>
+                    <div>
+                        <h3 className="text-[15px] font-bold text-slate-900">Attendance Activity</h3>
+                        <p className="text-[12px] font-medium text-slate-400">Reviewing your daily login/logout cycles</p>
+                    </div>
                 </div>
-
-                <div
-                    className="px-4 py-2 rounded-xl text-sm font-semibold"
-                    style={{
-                        background: "var(--sidebar-hover)",
-                        color: "var(--text-primary)",
-                    }}
-                >
-                    {reportData.length} Records
+                <div className="flex items-center gap-2">
+                    <div className="relative">
+                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input type="text" placeholder="Filter by date..." className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-[12px] focus:ring-2 focus:ring-indigo-100 outline-none w-48 transition-all" />
+                    </div>
+                    <button className="p-2 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 transition-all">
+                        <Download size={16} />
+                    </button>
                 </div>
-
             </div>
 
-            {/* LOADING */}
-
-            {loading ? (
-
-                <div className="flex items-center justify-center min-h-[300px]">
-
-                    <div className="flex flex-col items-center gap-3">
-
-                        <div className="w-10 h-10 border-4 border-gray-300 border-t-black rounded-full animate-spin"></div>
-
-                        <p
-                            className="text-sm font-medium"
-                            style={{ color: "var(--text-muted)" }}
-                        >
-                            Loading attendance report...
-                        </p>
-
-                    </div>
-
-                </div>
-
-            ) : reportData.length > 0 ? (
-
-                <div className="overflow-x-auto">
-
-                    <table className="w-full">
-
-                        <thead
-                            className="sticky top-0 z-10"
-                            style={{
-                                background: "var(--sidebar-hover)",
-                            }}
-                        >
-                            <tr>
-
-                                <th className="text-left p-4 text-xs uppercase tracking-widest">
-                                    <div className="flex items-center gap-2">
-                                        <User2 size={14} />
-                                        Employee
-                                    </div>
-                                </th>
-
-                                <th className="text-left p-4 text-xs uppercase tracking-widest">
-                                    <div className="flex items-center gap-2">
-                                        <CalendarDays size={14} />
-                                        Date
-                                    </div>
-                                </th>
-
-                                <th className="text-left p-4 text-xs uppercase tracking-widest">
-                                    <div className="flex items-center gap-2">
-                                        <Clock3 size={14} />
-                                        Check In
-                                    </div>
-                                </th>
-
-                                <th className="text-left p-4 text-xs uppercase tracking-widest">
-                                    <div className="flex items-center gap-2">
-                                        <Clock3 size={14} />
-                                        Check Out
-                                    </div>
-                                </th>
-
-                                <th className="text-left p-4 text-xs uppercase tracking-widest">
-                                    <div className="flex items-center gap-2">
-                                        <TimerReset size={14} />
-                                        Hours
-                                    </div>
-                                </th>
-
-                                <th className="text-left p-4 text-xs uppercase tracking-widest">
-                                    <div className="flex items-center gap-2">
-                                        <BadgeCheck size={14} />
-                                        Status
-                                    </div>
-                                </th>
-
-                            </tr>
-                        </thead>
-
-                        <tbody>
-
-                            {reportData.map((report, index) => (
-
-                                <tr
-                                    key={report.id}
-                                    className="transition-all duration-200 hover:bg-black/5"
-                                    style={{
-                                        borderBottom:
-                                            "1px solid var(--border-color)",
-                                    }}
-                                >
-
-                                    {/* EMPLOYEE */}
-
-                                    <td className="p-4">
-
-                                        <div className="flex items-center gap-3">
-
-                                            <div
-                                                className="w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm"
-                                                style={{
-                                                    background:
-                                                        "linear-gradient(135deg,#6366f1,#8b5cf6)",
-                                                    color: "#fff",
-                                                }}
-                                            >
-                                                {report.employeeId?.charAt(0)}
-                                            </div>
-
-                                            <div>
-                                                <h3
-                                                    className="font-semibold text-sm"
-                                                    style={{
-                                                        color:
-                                                            "var(--text-primary)",
-                                                    }}
+            <div className="p-6">
+                <AnimatePresence mode="wait">
+                    {loading ? (
+                        <div className="flex flex-col items-center justify-center py-20 gap-4">
+                            <div className="w-10 h-10 border-4 border-slate-100 border-t-indigo-600 rounded-full animate-spin" />
+                            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Loading Logs</span>
+                        </div>
+                    ) : reportData.length > 0 ? (
+                        <div className="overflow-x-auto">
+                            <table className="w-full border-collapse">
+                                <thead>
+                                    <tr className="text-left border-b border-slate-100">
+                                        <th className="pb-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider pl-2">Member</th>
+                                        <th className="pb-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Date</th>
+                                        <th className="pb-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Check In</th>
+                                        <th className="pb-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Check Out</th>
+                                        <th className="pb-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center">Duration</th>
+                                        <th className="pb-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-right pr-2">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50">
+                                    {reportData.map((report, idx) => (
+                                        <tr key={idx} className="group hover:bg-slate-50/50 transition-all">
+                                            <td className="py-4 pl-2">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-[11px] shadow-sm">
+                                                        {report.employeeId?.charAt(0)}
+                                                    </div>
+                                                    <span className="text-[13px] font-semibold text-slate-700">{report.employeeId}</span>
+                                                </div>
+                                            </td>
+                                            <td className="py-4 text-[13px] font-medium text-slate-600">{formatDate(report.date)}</td>
+                                            <td className="py-4">
+                                                <div className="flex items-center gap-2 text-[13px] font-bold text-slate-900">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                                    {formatTime(report.checkIn)}
+                                                </div>
+                                            </td>
+                                            <td className="py-4">
+                                                <div className="flex items-center gap-2 text-[13px] font-bold text-slate-900">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                                                    {formatTime(report.checkOut)}
+                                                </div>
+                                            </td>
+                                            <td className="py-4 text-center">
+                                                <span className="px-2 py-1 rounded-md bg-slate-100 text-[11px] font-bold text-slate-600">{report.totalHours || "0.0h"}</span>
+                                            </td>
+                                            <td className="py-4 text-right pr-2">
+                                                <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider
+                                                    ${report.status === "Present" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
+                                                        report.status === "Late" ? "bg-amber-50 text-amber-700 border border-amber-100" :
+                                                            "bg-rose-50 text-rose-700 border border-rose-100"}`}
                                                 >
-                                                    {report.employeeId}
-                                                </h3>
-
-                                                <p
-                                                    className="text-xs"
-                                                    style={{
-                                                        color:
-                                                            "var(--text-muted)",
-                                                    }}
-                                                >
-                                                    Employee ID
-                                                </p>
-                                            </div>
-
-                                        </div>
-
-                                    </td>
-
-                                    {/* DATE */}
-
-                                    <td
-                                        className="p-4 text-sm font-medium"
-                                        style={{
-                                            color: "var(--text-primary)",
-                                        }}
-                                    >
-                                        {formatDate(report.date)}
-                                    </td>
-
-                                    {/* CHECK IN */}
-
-                                    <td
-                                        className="p-4 text-sm"
-                                        style={{
-                                            color: "var(--text-primary)",
-                                        }}
-                                    >
-                                        {formatTime(report.checkIn)}
-                                    </td>
-
-                                    {/* CHECK OUT */}
-
-                                    <td
-                                        className="p-4 text-sm"
-                                        style={{
-                                            color: "var(--text-primary)",
-                                        }}
-                                    >
-                                        {formatTime(report.checkOut)}
-                                    </td>
-
-                                    {/* HOURS */}
-
-                                    <td className="p-4">
-
-                                        <div
-                                            className="inline-flex items-center px-3 py-1 rounded-xl text-sm font-semibold"
-                                            style={{
-                                                background:
-                                                    "var(--sidebar-hover)",
-                                                color:
-                                                    "var(--text-primary)",
-                                            }}
-                                        >
-                                            {report.totalHours || "0h"}
-                                        </div>
-
-                                    </td>
-
-                                    {/* STATUS */}
-
-                                    <td className="p-4">
-
-                                        <span
-                                            className={`px-4 py-1.5 rounded-full text-xs font-bold tracking-wide
-                                                
-                                                ${report.status === "Present"
-                                                    ? "bg-green-100 text-green-700"
-                                                    : report.status === "Late"
-                                                        ? "bg-yellow-100 text-yellow-700"
-                                                        : "bg-red-100 text-red-700"
-                                                }`}
-                                        >
-                                            {report.status}
-                                        </span>
-
-                                    </td>
-
-                                </tr>
-
-                            ))}
-
-                        </tbody>
-
-                    </table>
-
-                </div>
-
-            ) : (
-
-                <div className="flex items-center justify-center min-h-[300px]">
-
-                    <div className="text-center">
-
-                        <img
-                            src="https://cdn-icons-png.flaticon.com/512/7486/7486740.png"
-                            alt="empty"
-                            className="w-24 h-24 mx-auto opacity-70"
-                        />
-
-                        <h2
-                            className="text-xl font-bold mt-4"
-                            style={{ color: "var(--text-primary)" }}
-                        >
-                            No Attendance Report Found
-                        </h2>
-
-                        <p
-                            className="mt-2 text-sm"
-                            style={{ color: "var(--text-muted)" }}
-                        >
-                            Attendance reports will appear here once employees check in.
-                        </p>
-
-                    </div>
-
-                </div>
-
-            )}
-
+                                                    {report.status}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center py-20 text-center">
+                            <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-200 mb-4 border border-slate-100">
+                                <Clock3 size={32} />
+                            </div>
+                            <h4 className="text-[16px] font-bold text-slate-900">No Attendance Records</h4>
+                            <p className="text-[13px] font-medium text-slate-400 mt-1 max-w-xs">Attendance data for this period is not yet available. Check back later.</p>
+                        </div>
+                    )}
+                </AnimatePresence>
+            </div>
         </div>
     );
 }

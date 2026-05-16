@@ -1,42 +1,25 @@
 import { useTenant } from '@/hooks/useTenant';
 import { getUserData } from '@/services/user/overviewService';
-import { BadgeCheck, Mail, MapPin, Pencil } from 'lucide-react';
-import React, { useEffect, useState } from 'react'
+import { BadgeCheck, Mail, MapPin, Pencil, ExternalLink, ChevronRight, Phone } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 
-function SideCard({ children }) {
+function SideCard({ children, title }) {
     return (
-        <div className="rounded-2xl p-5 flex-shrink-0"
-            style={{
-                background: "var(--surface-card)",
-                border: "1px solid var(--border-default)",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)",
-            }}>
-            {children}
-        </div>
-    );
-}
-
-/* ── Stat Chip ── */
-function StatChip({ value, label, active }) {
-    return (
-        <div className="flex flex-col items-center justify-center rounded-xl px-4 py-2.5 text-center"
-            style={{
-                backgroundColor: active ? "var(--brand-accent)" : "var(--surface-muted)",
-                border: `1px solid ${active ? "var(--brand-accent)" : "var(--border-default)"}`,
-            }}>
-            <span className="text-lg font-black leading-none" style={{ color: active ? "#fff" : "var(--text-primary)" }}>
-                {value}
-            </span>
-            <span className="text-[9px] font-bold uppercase tracking-widest mt-1"
-                style={{ color: active ? "rgba(255,255,255,0.75)" : "var(--text-muted)" }}>
-                {label}
-            </span>
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            {title && (
+                <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/50">
+                    <h3 className="text-[12px] font-bold text-slate-500 uppercase tracking-wider">{title}</h3>
+                </div>
+            )}
+            <div className="p-6">
+                {children}
+            </div>
         </div>
     );
 }
 
 function ProfileCard() {
-
     const [profile, setProfile] = useState(null);
     const tenantId = useTenant();
 
@@ -44,9 +27,9 @@ function ProfileCard() {
         const fetchUser = async () => {
             if (!tenantId) return;
             const res = await getUserData(tenantId);
-            setProfile(res);
 
             console.log("fetchUser", res);
+            setProfile(res);
         }
         fetchUser();
     }, [tenantId]);
@@ -54,70 +37,73 @@ function ProfileCard() {
     if (!profile) return null;
 
     return (
-        <div>
-            <SideCard>
-                {/* Top strip accent */}
-                <div className="h-1 -mx-5 -mt-5 mb-5 rounded-t-2xl"
-                    style={{ background: "var(--brand-gradient)" }} />
+        <SideCard>
+            <div className="flex flex-col items-center mb-6">
+                <div className="relative mb-4">
+                    <div className="w-20 h-20 rounded-full border-2 border-indigo-50 p-1 bg-white">
+                        <div className="w-full h-full rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-2xl shadow-sm">
+                            {
+                                profile?.photoUrl ? (
+                                    <div className="w-full h-full rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-2xl shadow-sm overflow-hidden">
+                                        <img src={profile?.photoUrl} alt="" className='w-full h-full object-cover' />
+                                    </div>
+                                ) : (
+                                    (profile?.firstName?.charAt(0) || '') + (profile?.lastName?.charAt(0) || '')
+                                )
+                            }
 
-                <div className="flex items-start justify-between mb-5">
-                    <div className="flex items-center gap-3">
-                        <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-black text-lg flex-shrink-0"
-                            style={{ background: "linear-gradient(135deg, #a78bfa, #ec4899)" }}>
-                            {(profile?.firstName?.charAt(0) || '') + (profile?.lastName?.charAt(0) || '')}
-                        </div>
-                        <div>
-                            <h3 className="text-sm font-bold leading-tight" style={{ color: "var(--text-primary)" }}>
-                                {profile?.firstName + " " + profile?.lastName}
-                            </h3>
-                            <p className="text-[11px] font-semibold mt-0.5" style={{ color: "var(--brand-primary)" }}>
-                                {profile?.designation}                            </p>
-                            <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>
-                                {profile?.department}
-                            </p>
                         </div>
                     </div>
-                    <button className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors flex-shrink-0"
-                        style={{ background: "var(--surface-muted)", color: "var(--brand-primary)" }}>
+                    <button className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-500 hover:text-indigo-600 transition-all">
                         <Pencil size={12} />
                     </button>
                 </div>
 
-                {/* Info pills */}
-                <div className="space-y-2 mb-5">
-                    {[
-                        { icon: <BadgeCheck size={13} />, text: "EMP-1024" },
-                        { icon: <MapPin size={13} />, text: profile?.currentCity },
-                        { icon: <Mail size={13} />, text: profile?.workEmail },
-                    ].map(({ icon, text }) => (
-                        <div key={text} className="flex items-center gap-2.5 text-xs rounded-xl px-3 py-2"
-                            style={{ background: "var(--surface-muted)", color: "var(--text-secondary)" }}>
-                            <span style={{ color: "var(--text-muted)" }}>{icon}</span>
-                            <span className="truncate">{text}</span>
-                        </div>
-                    ))}
+                <h2 className="text-xl font-bold text-slate-900">{profile?.firstName + " " + profile?.lastName}</h2>
+                <p className="text-[13px] font-semibold text-indigo-600 mt-0.5">{profile?.designation}</p>
+                <div className="flex items-center gap-1.5 mt-2 text-slate-400">
+                    <MapPin size={12} />
+                    <span className="text-[12px] font-medium">{profile?.currentCity || "San Francisco, CA"}</span>
                 </div>
+            </div>
 
-                {/* Quick stats */}
-                <div className="grid grid-cols-3 gap-2 mb-5">
-                    <StatChip value="4.2" label="Rating" />
-                    <StatChip value="32" label="Projects" active />
-                    <StatChip value="6yr" label="Tenure" />
+            <div className="grid grid-cols-2 gap-3 mb-6">
+                <div className="p-3 rounded-lg bg-slate-50 border border-slate-100 text-center">
+                    <span className="block text-[16px] font-bold text-slate-900">4.8</span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Performance</span>
                 </div>
+                <div className="p-3 rounded-lg bg-slate-50 border border-slate-100 text-center">
+                    <span className="block text-[16px] font-bold text-slate-900">32</span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Project Days</span>
+                </div>
+            </div>
 
-                <div className="flex gap-2">
-                    <button className="flex-1 text-white text-xs font-bold py-2.5 rounded-xl transition-all"
-                        style={{ background: "var(--brand-accent)" }}>
-                        Edit Profile
-                    </button>
-                    <button className="flex-1 text-xs font-bold py-2.5 rounded-xl border transition-all"
-                        style={{ borderColor: "var(--brand-accent)", color: "var(--brand-accent)", background: "transparent" }}>
-                        View ID Card
-                    </button>
+            <div className="space-y-4 pt-4 border-t border-slate-100">
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400">
+                        <BadgeCheck size={16} />
+                    </div>
+                    <div className="flex-1">
+                        <p className="text-[11px] font-bold text-slate-400 uppercase">Employee ID</p>
+                        <p className="text-[13px] font-semibold text-slate-700">EMP-1024</p>
+                    </div>
                 </div>
-            </SideCard>
-        </div>
-    )
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400">
+                        <Mail size={16} />
+                    </div>
+                    <div className="flex-1">
+                        <p className="text-[11px] font-bold text-slate-400 uppercase">Email Address</p>
+                        <p className="text-[13px] font-semibold text-slate-700 truncate">{profile?.workEmail}</p>
+                    </div>
+                </div>
+            </div>
+
+            <button className="w-full mt-8 py-2.5 rounded-lg bg-indigo-600 text-white text-[13px] font-semibold hover:bg-indigo-700 transition-all shadow-sm">
+                View Full Profile
+            </button>
+        </SideCard>
+    );
 }
 
-export default ProfileCard
+export default ProfileCard;

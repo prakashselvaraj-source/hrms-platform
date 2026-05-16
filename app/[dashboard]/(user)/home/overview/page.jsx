@@ -2,8 +2,11 @@
 import { useEffect, useState } from "react";
 import {
   Pencil, BadgeCheck, MapPin, Mail, MessageSquare, Sun, Menu, X,
+  LayoutGrid, BarChart2, TrendingUp, Clock, ChevronRight, Zap,
+  Calendar, Award, Target, ArrowUpRight, Sparkles, User, Bell, Search,
+  Settings, LogOut, ChevronDown, Plus
 } from "lucide-react";
-import ThemeToggle from "@/components/ui/theme-toggle";
+import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useTenant } from "@/hooks/useTenant";
 import ApplyLeaveManagement from "./tabs/ApplyLeaveManagement";
@@ -14,278 +17,287 @@ import CareerHistory from "./tabs/CareerHistory";
 import DesignMember from "./components/DesignMember";
 import ReportingManager from "./components/ReportingManager";
 import ProfileCard from "./components/ProfileCard";
+import ThemeToggle from "@/components/ui/theme-toggle";
+import { useSelector } from "react-redux";
 
 const leaveTabs = ["Apply Leaves", "Attendance Report", "Request Status", "Upcoming Holidays", "Career History"];
 
-const leaveRows = [
-  { type: "Casual Leave", available: 2, booked: "-", pct: 20 },
-  { type: "Sick Leave", available: 5, booked: "2", pct: 50 },
-  { type: "Earned Leave", available: 8, booked: "-", pct: 80 },
-  { type: "Maternity Leave", available: 0, booked: "-", pct: 0 },
-  { type: "Comp Off", available: 1, booked: "-", pct: 10 },
-];
+const GlobalStyles = () => (
+  <style>{`
+     /* ── Nav tab ── */
+    .nav-tab {
+      padding: 6px 16px;
+      margin: 8px 0;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      background: transparent;
+      color: #64748b;
+      letter-spacing: 0.01em;
+    }
+    .nav-tab:hover { background: #f1f3ff; color: #4f46e5; }
+    .nav-tab.active { background: #eff1ff; color: #4338ca; }
 
-const teamMembers = [
-  { name: "Alex Rivera", role: "UX Researcher", online: true, color: "#6366f1" },
-  { name: "Sarah Chen", role: "Visual Designer", online: false, color: "#8b5cf6" },
-  { name: "Elena Rodriguez", role: "Design Systems", online: true, color: "#06b6d4" },
-];
+    `}</style>
+)
 
-/* ── Icons ── */
-function LeafSVG() {
+/* ── Tab Icons ── */
+const TAB_ICONS = {
+  "Apply Leaves": <Calendar size={14} />,
+  "Attendance Report": <BarChart2 size={14} />,
+  "Request Status": <Clock size={14} />,
+  "Upcoming Holidays": <Sun size={14} />,
+  "Career History": <TrendingUp size={14} />,
+};
+
+function SidebarContent() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-      stroke="var(--icon-leave-color)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z" />
-      <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
-    </svg>
-  );
-}
-
-/* ── Avatar ── */
-function Avatar({ name, color, size = 36 }) {
-  const initials = name.split(" ").map((n) => n[0]).join("").slice(0, 2);
-  return (
-    <div style={{ width: size, height: size, background: color, flexShrink: 0 }}
-      className="rounded-full flex items-center justify-center text-white font-bold text-xs">
-      {initials}
+    <div className="flex flex-col gap-6">
+      <ProfileCard />
+      <DesignMember />
+      <ReportingManager />
     </div>
   );
 }
 
-
-
-
-
-/* ── Sidebar ── */
-function SidebarContent({ teamMembers }) {
-  return (
-    <>
-      {/* ── Profile Card ── */}
-      <ProfileCard />
-
-      {/* ── Team Members ── */}
-      <DesignMember />
-
-      {/* ── Reporting Manager ── */}
-      <ReportingManager />
-
-    </>
-  );
-}
-
-/* ══════════════════════════════════════════════
-   MAIN PAGE
-═══════════════════════════════════════════════ */
 export default function HROverview() {
   const [activeLeaveTab, setActiveLeaveTab] = useState("Apply Leaves");
-  const [menuOpen, setMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("Overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
 
+  const router = useRouter();
   const tenantId = useTenant();
 
+  const { user } = useSelector((state) => state.auth);
 
   return (
-    <div className="flex flex-col min-h-screen" style={{ background: "var(--surface-page)", color: "var(--text-primary)" }}>
+    <div className="min-h-screen bg-[#F9FAFB] font-sans text-slate-900 selection:bg-indigo-100 selection:text-indigo-900 transition-colors duration-300">
+      <GlobalStyles />
+      {/* ── TOP NAVIGATION (ENTERPRISE STYLE) ── */}
+      {/* ══ TOP NAV ══ */}
+      <nav style={{
+        position: "sticky", top: 0, zIndex: 50,
+        background: "rgba(255,255,255,0.88)",
+        backdropFilter: "blur(20px)",
+        borderBottom: "1px solid rgba(99,102,241,0.08)",
+        boxShadow: "0 1px 0 rgba(99,102,241,0.05)",
+      }}>
+        <div style={{ maxWidth: 1400, margin: "0 auto", padding: "0 32px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
 
-      {/* ── Top Nav ── */}
-      <div className="sticky top-0 z-30 border-b px-4 sm:px-8"
-        style={{ backgroundColor: "var(--nav-bg)", borderColor: "var(--nav-border)", backdropFilter: "blur(12px)" }}>
-        <div className="flex items-center justify-between max-w-9xl mx-auto">
-          <div className="hidden sm:flex">
-            {["Overview", "Dashboard"].map((tab) => (
-              <button key={tab}
-                onClick={() => { setActiveTab(tab); router.push(tab === "Overview" ? `/${tenantId}/home/overview` : `/${tenantId}/home/${tab.toLowerCase()}`); }}
-                className="px-5 py-3.5 text-[13px] font-semibold border-b-2 transition-all cursor-pointer bg-transparent outline-none"
-                style={{
-                  borderBottomColor: activeTab === tab ? "var(--tab-active-border)" : "transparent",
-                  color: activeTab === tab ? "var(--tab-active-text)" : "var(--tab-inactive-text)",
-                  letterSpacing: "0.01em",
-                }}>
-                {tab}
-              </button>
-            ))}
-          </div>
-          <div className="flex sm:hidden items-center justify-between w-full py-3.5">
-            <span className="text-[14px] font-bold" style={{ color: "var(--tab-active-text)" }}>HR Overview</span>
-            <button onClick={() => setMenuOpen(!menuOpen)} className="p-1 rounded-md">
-              <Menu size={20} style={{ color: "var(--text-muted)" }} />
-            </button>
-          </div>
-          <div className="hidden sm:block py-2"><ThemeToggle /></div>
-        </div>
-        {menuOpen && (
-          <div className="sm:hidden border-t pb-2"
-            style={{ borderColor: "var(--divider)", backgroundColor: "var(--surface-overlay)" }}>
-            {["Overview", "Dashboard"].map((tab) => (
-              <button key={tab}
-                onClick={() => { setActiveTab(tab); setMenuOpen(false); }}
-                className="block w-full text-left px-4 py-2.5 text-[13px] font-semibold cursor-pointer border-0 transition"
-                style={{
-                  color: activeTab === tab ? "var(--tab-active-text)" : "var(--tab-inactive-text)",
-                  backgroundColor: activeTab === tab ? "var(--mobile-menu-active-bg)" : "transparent",
-                }}>
-                {tab}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* ── Body ── */}
-      <div className="flex flex-1 gap-6 p-4 sm:p-6 lg:p-8 min-w-0 relative max-w-9xl mx-auto w-full">
-
-        {/* Mobile FAB */}
-        <button onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="lg:hidden fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full flex items-center justify-center text-white shadow-xl"
-          style={{ background: "var(--brand-accent)" }}>
-          {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-        </button>
-
-        {/* Mobile overlay */}
-        {sidebarOpen && (
-          <div className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
-            onClick={() => setSidebarOpen(false)} />
-        )}
-
-        {/* Mobile sidebar drawer */}
-        <aside className={`lg:hidden fixed top-0 right-0 h-full z-50 w-80 max-w-[90vw] overflow-y-auto p-4 flex flex-col gap-4 transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "translate-x-full"}`}
-          style={{ background: "var(--surface-page)" }}>
-          <div className="pt-16 space-y-4">
-            <SidebarContent teamMembers={teamMembers} />
-          </div>
-        </aside>
-
-        {/* ── Main Content ── */}
-        <div className="flex-1 flex flex-col gap-5 min-w-0">
-
-          {/* Mobile ThemeToggle */}
-          <div className="sm:hidden flex justify-end"><ThemeToggle /></div>
-
-          {/* ── Hero Banner ── */}
-          <div className="relative rounded-2xl overflow-hidden"
-            style={{ background: "var(--brand-gradient)", minHeight: "140px" }}>
-            {/* Decorative rings */}
-            <div className="absolute right-12 top-1/2 -translate-y-1/2 w-40 h-40 rounded-full pointer-events-none"
-              style={{ border: "1.5px solid rgba(255,255,255,0.12)" }} />
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 w-24 h-24 rounded-full pointer-events-none"
-              style={{ border: "1.5px solid rgba(255,255,255,0.1)" }} />
-            <div className="absolute right-28 bottom-4 w-10 h-10 rounded-full pointer-events-none"
-              style={{ background: "rgba(255,255,255,0.06)" }} />
-
-            <div className="relative z-10 px-6 sm:px-8 py-7 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg"
-                    style={{ background: "rgba(255,255,255,0.18)", backdropFilter: "blur(8px)" }}>
-                    <Sun size={12} className="text-white" />
-                    <span className="text-white/80 text-[10px] font-bold tracking-[0.12em] uppercase">
-                      New Day, New Goals
-                    </span>
-                  </div>
-                </div>
-                <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight tracking-tight">
-                  Good morning, Shivani! 🌟
-                </h1>
-                <p className="text-white/65 text-sm mt-1 font-medium">
-                  Tuesday — here's your workspace at a glance.
-                </p>
+          {/* Left: Logo + Tabs */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {/* Logo */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 16px 14px 0", flexShrink: 0 }}>
+              <div style={{
+                width: 34, height: 34, borderRadius: 10,
+                background: "linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                boxShadow: "0 4px 12px rgba(99,102,241,0.35)",
+              }}>
+                <span style={{ color: "white", fontSize: 11, fontWeight: 900, fontFamily: "'Bricolage Grotesque', system-ui", letterSpacing: 0.5 }}>HR</span>
               </div>
-
-              {/* Quick stats in banner */}
-              <div className="flex gap-2.5 flex-shrink-0">
-                {[
-                  { v: "16", l: "Days Off Left" },
-                  { v: "3", l: "Pending Tasks" },
-                  { v: "92%", l: "Attendance" },
-                ].map(({ v, l }) => (
-                  <div key={l} className="flex flex-col items-center rounded-xl px-3.5 py-2.5"
-                    style={{ background: "rgba(255,255,255,0.16)", backdropFilter: "blur(10px)" }}>
-                    <span className="text-white font-black text-lg leading-none">{v}</span>
-                    <span className="text-white/65 text-[9.5px] font-bold uppercase tracking-wider mt-0.5 whitespace-nowrap">{l}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* ── Leave Section ── */}
-          <div className="rounded-2xl overflow-hidden"
-            style={{
-              background: "var(--surface-card)",
-              border: "1px solid var(--border-default)",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)",
-            }}>
-
-            {/* Section header */}
-            <div className="flex items-center justify-between px-6 pt-5 pb-4"
-              style={{ borderBottom: "1px solid var(--border-default)" }}>
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-                  style={{ background: "var(--icon-leave-bg)" }}>
-                  <LeafSVG />
-                </div>
-                <span className="text-[15px] font-bold" style={{ color: "var(--text-primary)" }}>Leave Management</span>
-              </div>
-              <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full"
-                style={{ background: "var(--accent-subtle)", color: "var(--accent-text)" }}>
-                FY 2024–25
+              <span className="display-font" style={{ fontSize: 16, fontWeight: 800, color: "#1a1d27", letterSpacing: "-0.03em" }}>
+                WorkSpace
               </span>
             </div>
 
-            {/* Tabs */}
-            <div className="flex overflow-x-auto gap-1 px-4 py-2.5"
-              style={{ borderBottom: "1px solid var(--border-default)", background: "var(--surface-muted)" }}>
-              {leaveTabs.map((tab) => (
-                <button key={tab}
-                  onClick={() => setActiveLeaveTab(tab)}
-                  className="px-3.5 py-2 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap transition-all flex-shrink-0 rounded-xl"
-                  style={{
-                    background: activeLeaveTab === tab ? "var(--surface-card)" : "transparent",
-                    color: activeLeaveTab === tab ? "var(--brand-primary)" : "var(--text-muted)",
-                    boxShadow: activeLeaveTab === tab ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
-                  }}>
+            {/* Divider */}
+            <div style={{ width: 1, height: 22, background: "#e8eaff", margin: "0 4px" }} className="hidden sm:block" />
+
+            {/* Desktop tabs */}
+            <div className="hidden sm:flex" style={{ gap: 2 }}>
+              {["Overview", "Dashboard"].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => {
+                    setActiveTab(tab);
+                    router.push(
+                      tab === "Overview"
+                        ? `/${tenantId}/home/overview`
+                        : `/${tenantId}/home/${tab.toLowerCase()}`
+                    );
+                  }}
+                  className={`nav-tab${activeTab === tab ? " active" : ""}`}>
                   {tab}
                 </button>
               ))}
             </div>
-            {
-              activeLeaveTab === "Apply Leaves" && <ApplyLeaveManagement leaveRows={leaveRows} />
-            }
-            {
-              activeLeaveTab === "Attendance Report" && <AttendenceReport />
-            }
-            {
-              activeLeaveTab === "Request Status" && <RequestStatus />
-            }
-            {
-              activeLeaveTab === "Upcoming Holidays" && <UpcomingHolidays />
-            }
-            {
-              activeLeaveTab === "Career History" && <CareerHistory />
-            }
+          </div>
+
+          {/* Right: actions */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {/* Bell */}
 
 
-            {/* Footer */}
-            <div className="px-6 py-3.5 flex items-center justify-between"
-              style={{ borderTop: "1px solid var(--border-default)", background: "var(--surface-muted)" }}>
-              <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-                Showing all leave types · FY 2024–25
-              </p>
-              <a href="#" className="text-[11px] font-bold hover:underline" style={{ color: "var(--text-link)" }}>
-                View leave history →
-              </a>
-            </div>
+            <ThemeToggle />
+
           </div>
         </div>
 
-        {/* ── Desktop Sidebar ── */}
-        <aside className="hidden lg:flex flex-col gap-4 w-72 xl:w-80 flex-shrink-0">
-          <SidebarContent teamMembers={teamMembers} />
-        </aside>
-      </div>
-    </div>
+        {/* Mobile dropdown */}
+        {menuOpen && (
+          <div className="mobile-menu sm:hidden" style={{
+            borderTop: "1px solid #eef0f8",
+            background: "rgba(255,255,255,0.97)",
+            backdropFilter: "blur(20px)",
+          }}>
+            {["Overview", "Dashboard"].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => {
+                  setActiveTab(tab);
+                  setMenuOpen(false);
+                  router.push(
+                    tab === "Overview"
+                      ? `/${tenantId}/home/overview`
+                      : `/${tenantId}/home/${tab.toLowerCase()}`
+                  );
+                }}
+                style={{
+                  display: "block", width: "100%", textAlign: "left",
+                  padding: "12px 24px", fontSize: 13, fontWeight: 600,
+                  border: "none", cursor: "pointer", transition: "all 0.15s",
+                  color: activeTab === tab ? "#4338ca" : "#64748b",
+                  background: activeTab === tab ? "#eff1ff" : "transparent",
+                }}>
+                {tab}
+              </button>
+            ))}
+          </div>
+        )}
+      </nav>
+
+      {/* ── MAIN LAYOUT ── */}
+      < div className="max-w-[1600px] mx-auto w-full px-6 py-8" >
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8 items-start">
+
+          {/* Main Content Area */}
+          <main className="flex flex-col gap-8">
+
+            {/* CLEAN HEADER SECTION */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Overview</h1>
+                <p className="text-slate-500 text-[14px]">
+                  Welcome back, {user?.firstName || user?.name || "User"}. Here's what's happening today.
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-[13px] font-semibold text-slate-700 hover:bg-slate-50 transition-all shadow-sm">
+                  <Calendar size={16} />
+                  Schedule
+                </button>
+                <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 rounded-lg text-[13px] font-semibold text-white hover:bg-indigo-700 transition-all shadow-sm shadow-indigo-100">
+                  <Plus size={16} />
+                  Apply Leave
+                </button>
+              </div>
+            </div>
+
+            {/* SUMMARY CARDS (CLEAN & PROFESSIONAL) */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              {[
+                { label: "Available Balance", value: "14 Days", icon: <Calendar className="text-indigo-600" />, trend: "+2 this month", color: "bg-indigo-50" },
+                { label: "Active Requests", value: "03", icon: <Clock className="text-amber-600" />, trend: "2 pending", color: "bg-amber-50" },
+                { label: "Team Pulse", value: "98%", icon: <Zap className="text-emerald-600" />, trend: "Steady", color: "bg-emerald-50" }
+              ].map((stat, i) => (
+                <div key={i} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className={`p-2 rounded-lg ${stat.color}`}>
+                      {stat.icon}
+                    </div>
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{stat.label}</span>
+                  </div>
+                  <div className="flex items-end justify-between">
+                    <span className="text-2xl font-bold text-slate-900">{stat.value}</span>
+                    <span className="text-[12px] font-medium text-slate-500">{stat.trend}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* TABBED MODULE SECTION */}
+            <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              {/* Tab Header */}
+              <div className="px-6 border-b border-slate-200 bg-white">
+                <div className="flex items-center gap-6 overflow-x-auto scrollbar-hide">
+                  {leaveTabs.map((tab) => {
+                    const isActive = activeLeaveTab === tab;
+                    return (
+                      <button
+                        key={tab}
+                        onClick={() => setActiveLeaveTab(tab)}
+                        className={`relative py-4 text-[13px] font-semibold transition-all whitespace-nowrap ${isActive ? 'text-indigo-600' : 'text-slate-500 hover:text-slate-700'}`}
+                      >
+                        <div className="flex items-center gap-2">
+                          {TAB_ICONS[tab]}
+                          {tab}
+                        </div>
+                        {isActive && (
+                          <motion.div layoutId="active-tab-border" className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Tab Content Area */}
+              <div className="min-h-[500px]">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activeLeaveTab}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="h-full"
+                  >
+                    {activeLeaveTab === "Apply Leaves" && <ApplyLeaveManagement />}
+                    {activeLeaveTab === "Attendance Report" && <AttendenceReport />}
+                    {activeLeaveTab === "Request Status" && <RequestStatus />}
+                    {activeLeaveTab === "Upcoming Holidays" && <UpcomingHolidays />}
+                    {activeLeaveTab === "Career History" && <CareerHistory />}
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+
+              {/* Module Footer */}
+              <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+                <span className="text-[12px] font-medium text-slate-500">Updated 2 minutes ago</span>
+                <button className="text-[12px] font-semibold text-indigo-600 hover:text-indigo-700 transition-colors">Export Report</button>
+              </div>
+            </section>
+          </main>
+
+          {/* SIDEBAR (PROFESSIONAL & COMPACT) */}
+          <aside className="hidden lg:flex flex-col gap-6">
+            <SidebarContent />
+          </aside>
+
+        </div>
+      </div >
+
+      {/* MOBILE DRAWER */}
+      < AnimatePresence >
+        {sidebarOpen && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[130] bg-slate-900/40 backdrop-blur-[2px]" onClick={() => setSidebarOpen(false)} />
+            <motion.aside initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 30, stiffness: 300 }} className="fixed top-0 right-0 h-full w-[320px] z-[140] bg-white p-6 overflow-y-auto shadow-2xl">
+              <div className="flex items-center justify-between mb-8">
+                <span className="text-lg font-bold">Menu</span>
+                <button onClick={() => setSidebarOpen(false)} className="p-2 rounded-lg hover:bg-slate-100 transition-all text-slate-400"><X size={20} /></button>
+              </div>
+              <SidebarContent />
+            </motion.aside>
+          </>
+        )
+        }
+      </AnimatePresence >
+    </div >
   );
 }

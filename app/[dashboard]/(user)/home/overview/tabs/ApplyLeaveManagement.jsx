@@ -5,131 +5,112 @@ import { getAllLeaveTypesWithUserIdAndYear } from '@/services/user/leaveService'
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react'
 import { useDispatch } from 'react-redux';
-
-function LeafSVG() {
-    return (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-            stroke="var(--icon-leave-color)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z" />
-            <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
-        </svg>
-    );
-}
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowRight, ChevronRight, PieChart, Sparkles, Calendar } from 'lucide-react';
 
 function ApplyLeaveManagement() {
-
     const [leaveRows, setLeaveRows] = useState([]);
+    const [loading, setLoading] = useState(true);
     const tenantId = useTenant();
     const currentYear = new Date().getFullYear();
     const router = useRouter();
-
     const dispatch = useDispatch();
-
 
     useEffect(() => {
         const fetchLeaveRows = async () => {
-            const res = await getAllLeaveTypesWithUserIdAndYear(tenantId, currentYear)
-            setLeaveRows(res.summary);
-            console.log("fetchLeaveRows", res.summary);
+            if (!tenantId) return;
+            try {
+                const res = await getAllLeaveTypesWithUserIdAndYear(tenantId, currentYear);
+                setLeaveRows(res.summary || []);
+            } catch (error) {
+                console.error(error);
+            } finally {
+                setLoading(false);
+            }
         }
-
         fetchLeaveRows();
-    }, []);
+    }, [tenantId]);
 
     return (
-        <>
-            {
-                leaveRows && leaveRows.length > 0 ? (
-                    <>
-                        <div className="hidden sm:grid grid-cols-[1fr_120px_120px_140px] gap-4 px-6 py-3"
-                            style={{ borderBottom: "1px solid var(--border-default)", background: "var(--surface-muted)" }}>
-                            {["Leave Type", "Available", "Booked", ""].map((h, i) => (
-                                <p key={i} className={`text-[10px] font-bold uppercase tracking-widest ${i > 0 ? "text-center" : ""}`}
-                                    style={{ color: "var(--text-muted)" }}>
-                                    {h}
-                                </p>
-                            ))}
+        <div className="flex flex-col bg-white">
+            {/* Header */}
+            <div className="px-6 py-6 flex items-center justify-between border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                   <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600">
+                      <Calendar size={18} />
+                   </div>
+                   <div>
+                      <h3 className="text-[15px] font-bold text-slate-900">Leave Balance</h3>
+                      <p className="text-[12px] font-medium text-slate-400">Available quotas for the current year</p>
+                   </div>
+                </div>
+            </div>
+
+            <div className="p-6">
+                <AnimatePresence mode="wait">
+                    {loading ? (
+                        <div className="flex flex-col items-center justify-center py-20 gap-4">
+                            <div className="w-10 h-10 border-4 border-slate-100 border-t-indigo-600 rounded-full animate-spin" />
+                            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Checking Quotas</span>
                         </div>
-
-                        <div>
+                    ) : leaveRows.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                             {leaveRows?.map((row, i) => (
-                                <div key={i}
-                                    className="grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_120px_120px_140px] gap-4 items-center px-6 py-4 group transition-colors"
-                                    style={{
-                                        borderBottom: i < leaveRows.length - 1 ? "1px solid var(--border-default)" : "none",
-                                    }}
-                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = "var(--surface-muted)"}
-                                    onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}>
-
-                                    {/* Leave type */}
-                                    <div className="flex items-center gap-3.5 min-w-0">
-                                        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                                            style={{ background: "var(--icon-leave-bg)" }}>
-                                            <LeafSVG />
+                                <div 
+                                    key={i}
+                                    className="p-6 rounded-xl border border-slate-100 hover:border-indigo-200 hover:shadow-md transition-all group bg-white"
+                                >
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div className="p-2.5 rounded-lg bg-slate-50 text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
+                                            <Calendar size={20} />
                                         </div>
-                                        <div className="min-w-0">
-                                            <p className="font-semibold text-sm truncate" style={{ color: "var(--text-primary)" }}>
-                                                {row.leaveType}
-                                            </p>
-                                            {/* mobile available label */}
-                                            <p className="text-[10px] sm:hidden mt-0.5" style={{ color: "var(--text-muted)" }}>
-                                                {row?.accrual?.maxCarryForwardDays} days available
-                                            </p>
-                                            {/* usage bar */}
-                                            <div className="hidden sm:block mt-1.5 w-24 h-1 rounded-full overflow-hidden"
-                                                style={{ background: "var(--bar-track)" }}>
-                                                <div className="h-full rounded-full"
-                                                    style={{ width: `${row.pct}%`, background: "var(--bar-primary)" }} />
-                                            </div>
+                                        <div className="text-right">
+                                            <span className="text-2xl font-bold text-slate-900">{row?.accrual?.maxAnnualQuota || 0}</span>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Days</p>
                                         </div>
                                     </div>
 
-                                    {/* Available */}
-                                    <div className="hidden sm:flex flex-col items-center justify-center">
-                                        <p className="text-lg font-black leading-none" style={{ color: "var(--text-primary)" }}>
-                                            {row?.accrual?.maxAnnualQuota || 0}
-                                        </p>
-                                        <p className="text-[10px] font-medium mt-0.5" style={{ color: "var(--text-muted)" }}>days</p>
+                                    <h4 className="text-[15px] font-bold text-slate-900 mb-4">{row.leaveType}</h4>
+
+                                    <div className="space-y-2 mb-6">
+                                        <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-tight">
+                                            <span className="text-slate-400">Consumption</span>
+                                            <span className="text-slate-700">{row.count || 0} Used</span>
+                                        </div>
+                                        <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                                            <motion.div 
+                                                initial={{ width: 0 }}
+                                                animate={{ width: `${Math.min(((row.count || 0) / (row?.accrual?.maxAnnualQuota || 1)) * 100, 100)}%` }}
+                                                className="h-full bg-indigo-600 rounded-full"
+                                            />
+                                        </div>
                                     </div>
 
-                                    {/* Booked */}
-                                    <div className="hidden sm:flex flex-col items-center justify-center">
-                                        <p className="text-lg font-black leading-none"
-                                            style={{ color: row.count !== "-" ? "var(--brand-primary)" : "var(--text-muted)" }}>
-                                            {row.count}
-                                        </p>
-                                        {row.booked !== "-" && (
-                                            <p className="text-[10px] font-medium mt-0.5" style={{ color: "var(--text-muted)" }}>booked</p>
-                                        )}
-                                    </div>
-
-                                    {/* Apply button */}
-                                    <div className="flex items-center justify-end sm:justify-center">
-                                        <button
-                                            className="text-[11px] font-bold uppercase tracking-wider px-4 py-2 rounded-xl border transition-all whitespace-nowrap"
-                                            style={{ borderColor: "var(--brand-accent)", color: "var(--brand-accent)", background: "transparent" }}
-                                            onMouseEnter={e => { e.currentTarget.style.background = "var(--brand-accent)"; e.currentTarget.style.color = "#fff"; }}
-                                            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--brand-accent)"; }}
-                                            onClick={() => {
-                                                dispatch(setSelectedLeave(row));
-                                                router.push(`/${tenantId}/leaveManagement`)
-                                            }}
-                                        >
-                                            Apply Now
-                                        </button>
-                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            dispatch(setSelectedLeave(row));
+                                            router.push(`/${tenantId}/leaveManagement`)
+                                        }}
+                                        className="w-full flex items-center justify-center gap-2 py-2 text-[12px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-600 hover:text-white rounded-lg transition-all"
+                                    >
+                                        Request Leave
+                                        <ChevronRight size={14} />
+                                    </button>
                                 </div>
                             ))}
                         </div>
-                    </>
-                ) : (
-                    <div className="flex items-center justify-center min-h-[200px]">
-                        <p className="text-[13px] font-medium text-gray-400">No Leave Data Available</p>
-                    </div>
-                )
-            }
-
-        </>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center py-20 text-center">
+                            <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-200 mb-4 border border-slate-100">
+                                <PieChart size={32} />
+                            </div>
+                            <h4 className="text-[16px] font-bold text-slate-900">No Allocations Found</h4>
+                            <p className="text-[13px] font-medium text-slate-400 mt-1 max-w-xs">Your leave types and quotas will be initialized soon by HR.</p>
+                        </div>
+                    )}
+                </AnimatePresence>
+            </div>
+        </div>
     )
 }
 

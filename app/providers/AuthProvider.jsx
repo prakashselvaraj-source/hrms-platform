@@ -18,12 +18,13 @@ export default function AuthProvider({ children }) {
         const fetchUser = async () => {
             try {
                 const response = await API.get("/user/me");
-                console.log("Auth response:", response.data);
+                console.log("Auth response:", response.data.firstName);
                 dispatch(setUser(response.data));
             } catch (error) {
                 console.log("Session invalid or expired");
             }
         }
+
         fetchUser();
     }, [pathname, dispatch]);
 
